@@ -1,0 +1,82 @@
+
+# the assembler
+ASM = ca65
+ASMFLAGS = -I include
+VERSION_EXT =
+
+# the linker
+LINK = ld65
+LINKFLAGS =
+
+# script to fix the SNES checksum
+FIX_CHECKSUM = python3 tools/fix_checksum.py
+
+# list of ROM versions
+VERSIONS = ff5-jp ff5-en
+OBJ_DIR = obj
+ROM_DIR = rom
+ROMS = $(foreach V, $(VERSIONS), $(ROM_DIR)/$(V).sfc)
+
+# the SPC program
+# SPC_PRG = src/sound/ff5-spc.dat
+
+.PHONY: all clean distclean \
+	$(VERSIONS) $(MODULES)
+
+# disable default suffix rules
+.SUFFIXES:
+
+# make all versions
+all: $(VERSIONS)
+
+clean:
+	$(RM) -rf $(ROM_DIR) $(OBJ_DIR)
+
+distclean: clean
+
+# ROM filenames
+FF5_JP_PATH = $(ROM_DIR)/ff5-jp.sfc
+FF5_EN_PATH = $(ROM_DIR)/ff5-en.sfc
+
+ff5-jp: $(FF5_JP_PATH)
+ff5-en: $(FF5_EN_PATH)
+
+# set up target-specific variables
+ff5-jp: VERSION_EXT = jp
+ff5-en: VERSION_EXT = en
+
+ff5-jp: ASMFLAGS += -D ROM_VERSION=0
+ff5-en: ASMFLAGS += -D LANG_EN=1 -D ROM_VERSION=0
+
+# list of all include files
+INC_FILES = $(wildcard include/*.inc) $(wildcard include/*/*.inc)
+
+# target-specific object filenames
+OBJ_FILES_JP = $(foreach M,$(MODULES),$(OBJ_DIR)/$(M)-jp.o)
+OBJ_FILES_EN = $(foreach M,$(MODULES),$(OBJ_DIR)/$(M)-en.o)
+
+# list of modules
+MODULES = field btlgfx battle menu cutscene sound
+
+# generate rules for making each module
+define MAKE_MODULE
+$1_SRC := $(wildcard src/$1/*) $(wildcard src/$1/*/*)
+$$(OBJ_DIR)/$1-%.o: $$($1_SRC) $$(INC_FILES)
+	@mkdir -p $$(OBJ_DIR)
+	$$(ASM) $$(ASMFLAGS) -l $$(@:o=lst) src/$1/$1-main.asm -o $$@
+endef
+
+$(foreach M, $(MODULES), $(eval $(call MAKE_MODULE,$(M))))
+
+# rules for making ROM files
+$(FF5_JP_PATH): cfg/ff5-jp.cfg $(OBJ_FILES_JP)
+	@mkdir -p $(ROM_DIR)
+	$(LINK) $(LINKFLAGS) -m $(@:sfc=map) -o $@ -C $< $(OBJ_FILES_JP)
+	@$(RM) -rf $(LZ_DIR)
+	$(FIX_CHECKSUM) $@
+
+$(FF5_EN_PATH): cfg/ff5-en.cfg $(OBJ_FILES_EN)
+	@mkdir -p $(ROM_DIR)
+	$(LINK) $(LINKFLAGS) -m $(@:sfc=map) -o $@ -C $< $(OBJ_FILES_EN)
+	@$(RM) -rf $(LZ_DIR)
+	$(FIX_CHECKSUM) $@

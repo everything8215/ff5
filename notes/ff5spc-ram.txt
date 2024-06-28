@@ -1,0 +1,191 @@
+
++---------------------------------------------------------------------------+
+|                                                                           |
+|                              FINAL FANTASY V                              |
+|                                                                           |
++---------------------------------------------------------------------------+
+| file: notes/ff5spc-ram.txt                                                |
+|                                                                           |
+| description: ram map for SPC program                                      |
++---------------------------------------------------------------------------+
+
+$0000-$0100 direct page 0
+-----------
+
+        $04 channel command parameter
+        $05 current channel pointer
+
+       +$08 calculated frequency
+
+       +$0C script pointer
+
+       +$2C transfer destination address
+       +$2E transfer source address
+
+    $34-$3C scratch
+        $3C channel counter
+        $3D channel octave
+        $5C repeat depth (channel id * 4)
+        $5D sample
+       +$7C tempo
+        $7E tempo tick counter (add tempo every 4.5 ms, tick on overflow)
+        $7F sound effect tempo tick counter
+        $80 tempo envelope counter
+       +$81 tempo envelope rate
+       +$83 master volume
+       +$85 sound effect volume
+       +$87 master volume envelope rate
+       +$89 sound effect volume envelope rate
+       +$8B master volume envelope counter
+       +$8D sound effect volume envelope counter
+       +$8F volume multiplier (interrupt)
+       +$91 sfx volume multiplier (interrupt)
+       +$93 volume multiplier rate
+       +$95 sfx volume multiplier rate
+        $97 volume multiplier counter
+        $98 -
+        $99 sfx volume multiplier counter
+        $9A -
+       +$9B tempo multiplier (interrupt)
+       +$9D sfx tempo multiplier
+       +$9F tempo multiplier rate
+       +$A1 sfx tempo multiplier rate
+        $A3 tempo multiplier counter
+        $A4 -
+        $A5 sfx tempo multiplier counter
+        $A6 -
+       +$A7 pitch multiplier (interrupt)
+       +$A9 sfx pitch multiplier
+       +$AB pitch multiplier rate
+       +$AD sfx pitch multiplier rate
+        $AF pitch multiplier counter
+        $B0 -
+        $B1 sfx pitch multiplier counter
+        $B2 -
+       +$B3 echo volume
+       +$B5 echo volume rate
+        $B7 echo volume counter
+        $B8 music volume
+        $B9 active music channels (output to port 2)
+        $BA active game sound effect channels (output to port 3)
+        $BB active system sound effect channels
+        $BC key on
+        $BD key off
+        $BE w???rsfm flags
+            w: waveform output
+            r: reflect sound effects left <-> right
+            s: first/last 4 channels to waveform output (toggles every frame)
+            f: fast forward
+            m: mono
+        $BF current channel mask
+        $C0 muted channels
+    $C1-$C4 copied from io ports
+        $C5 enable echo (dsp)
+        $C6 enable noise (dsp)
+        $C7 enable pitch mod (dsp)
+        $C8 rmennnnn dsp flags
+            r: reset
+            m: mute
+            e: disable echo
+            n: noise frequency
+        $C9 enable echo
+        $CA enable echo (sfx)
+        $CB enable noise
+        $CC enable noise (sfx)
+        $CD enable pitch mod
+        $CE enable pitch mod (sfx)
+        $CF
+        $D0
+        $D1 conditional jump channels (output to port 1)
+        $D2 noise frequency
+        $D3 noise frequency (sfx)
+        $D4 echo filter id
+        $D5 echo feedback
+        $D6 channels requiring volume update in dsp
+        $D7 channels requiring pitch update in dsp
+        $D8
+        $D9
+    $DA-$E9 l/r dsp volume for each channel (0 to 255)
+        $EA counter for 36 ms timer (counts down from 7)
+
+$0100-$0200 direct page 1
+-----------
+      $0100 vibrato delay counter
+      $0101 tremolo delay counter
+      $0120 pitch envelope offset
+      $0121 vibrato amplitude
+      $0140 tremolo amplitude
+      $0141 enable pan cycle
+      $0160 vibrato delay
+      $0161 tremolo delay
+$0180-$01FF cpu stack
+
+$0200-$1A00 spc "rom"
+-----------
+$0200-$181B spc code
+$181B-$182B interrupt $FE jump table
+$182B-$1887 channel command jump table
+$1887-$18B5 number of parameters for each channel command
+$18B5-$18F5 interrupt jump table
+$18F5-$190F pitch multipliers
+$190F-$192F filter data
+$192F-$193E note durations
+$193E-$195E pointers to system sound effects
+$195E-$19E0 system sound effect scripts (8 items, variable size)
+$19E0-$19E8 pointers to dsp registers
+$19E8-$19F0 pointers to dsp values in dp0
+$19F0-$1A00 unused
+
+$1A00-$FA00 wram
+-----------
+$1A00-$1A80 sample pitch multipliers (2 bytes each)
+$1A80-$1B00 sample adsr values (2 bytes each, gdddaaa then sssrrrrr)
+$1B00-$1C00 pointers to sample brr data (4 bytes each, start then loop start)
+$1C00-$2C00 song scripts
+$2C00-$3000 pointers to game sound effects (4 bytes each, voice A then voice B)
+$3000-$4800 game sound effect scripts (177 items, variable size)
+$4800-$D200 sample brr data
+$D200-$FA00 echo buffer
+
+$FA00-$FFC0 channel ram (each chunk is 16*2 bytes each)
+-----------
+     +$FA00 volume (hi byte active, top bit inactive)
+     +$FA20 volume envelope rate
+     +$FA40 pan (hi byte active, 01 = left, 40 = center, 7f = right, top bit inactive)
+     +$FA60 pan envelope rate
+      $FA80 volume envelope counter
+      $FA81 pan envelope rate
+      $FAA0 vibrato cycle duration
+      $FAA1 tremolo cycle duration
+      $FAC0 pan cycle duration
+      $FAC1 pitch envelope duration
+      $FAE0 vibrato cycle counter
+      $FAE1 tremolo cycle counter
+      $FB00 pan cycle counter
+      $FB01 volume multiplier (tremolo)
+     +$FB20 frequency multiplier (vibrato)
+      $FB40 detune
+      $FB41 pitch value
+      $FB60 unused
+      $FB61 transpose
+     +$FB80 pitch envelope rate
+     +$FBA0 pan cycle rate
+      $FBC0 vibrato multiplier
+      $FBC1 tremolo offset
+      $FBE0 pan cycle offset
+      $FBE1 pan offset
+      $FC00 -----abc vibrato envelope
+            a: 1/4 (1st cycle)
+            b: 1/2 (2nd cycle)
+            c: 3/4 (3rd cycle)
+      $FC01 tremolo envelope
+     +$FC20 unused
+     +$FC40 frequency offset (vibrato)
+     +$FC60 frequency
+     +$FC80 adsr value
+      $FCA0 repeat counter
+      $FCA1 unused
+$FCC0-$FD00 repeat count (16*4 items, 1 byte each)
+$FD00-$FD80 repeat start pointer (16*4 items, 2 bytes each)
+
+$FFC0-$FFFF spc ipl rom
