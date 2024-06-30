@@ -1810,7 +1810,7 @@ ResetBattle = $7CD8			;Set when Reset is used
 
 BattleFrameCount = $DB6E		;4 bytes, time elapsed in battle (in frames)
 
-MusicChanged = $DBB3			;1 while music change routine is being called
+wMusicChanged = $DBB3			;1 while music change routine is being called
 
 ;Rom Structures
 ROMRNG = $C0FEC0

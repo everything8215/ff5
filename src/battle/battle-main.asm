@@ -16,6 +16,7 @@
 .include "hardware.inc"
 .include "const.inc"
 .include "battle_ram.inc"
+.include "outsidec2.asm"
 
 .export ExecBattle_ext
 
@@ -126,11 +127,11 @@ _006E:  inc wMusicChanged
 _007C:  sep #$10
         stx $3c
         cpx #$ff
-        bne +
+        bne :+
         bra _Finish
-+       cmp #00
+:       cmp #00
         beq _Finish
-+       cmp $3c
+        cmp $3c
         beq _Finish
         pha
         tdc
@@ -145,10 +146,10 @@ _007C:  sep #$10
         sec
         sbc $3c
         cmp #$ff
-        bne +
+        bne :+
         lda ROMRNG,X
         bra _Finish
-+
+:
         inc
         sta Divisor
         stz Divisor+1
@@ -176,24 +177,23 @@ _Finish:
 
 .proc Multiply_16bit
 
-_00D2:  rep #$20
+_00D2:  longa
         ldx #$0010
         stz $2e
         stz $30
--
+:
         ror $2c
-        bcc +
+        bcc :+
         clc
-        lda $_20a3
+        lda $2a
         adc $30
         sta $30
-+
+:
         ror $30
         ror $2e
         dex
-        bne -
-        tdc
-        sep #$20
+        bne :--
+        shorta0
         rts
 
 .endproc
@@ -206,14 +206,13 @@ _00F1:  lda $24
         sta $004202
         lda $25
         sta $004203
-        rep #$20
+        longa
         nop
         nop
         nop
         lda $004216
         sta $26
-        tdc
-        sep #$20
+        shorta0
         rts
 
 .endproc
@@ -224,7 +223,7 @@ _00F1:  lda $24
 ;16 bit
 .proc Division
 
-_010C   rep #$20
+_010C:  longa
         stz Quotient
         stz Remainder
         lda Dividend
@@ -233,25 +232,24 @@ _010C   rep #$20
         beq _Finish
         clc 
         ldx #$0010
--                                                                               
+:                                                                               
         rol Dividend
         rol Remainder
         sec 
         lda Remainder
         sbc Divisor
         sta Remainder
-        bcs +
+        bcs :+
         lda Remainder
         adc Divisor
         sta Remainder
         clc
-+                                                                       
+:                                                                       
         rol Quotient
         dex 
-        bne -
-_Finish                                                                                 ;:                              
-        tdc 
-        sep #$20
+        bne :--
+_Finish:
+        shorta0
         rts
 
 .endproc
@@ -259,7 +257,7 @@ _Finish                                                                         
 ; ---------------------------------------------------------------------------
 
 
-.if !_StaticMode
+;.if !_StaticMode
 .org $C20148
 ;A block of JIS japenese text is here
 ; since this isn't the encoding the game uses for text 
@@ -291,7 +289,7 @@ _Finish                                                                         
 
 ;Katsuhisa Higuchi is one of the FF5 battle programmers
 
-.endif
+;.endif
 
 ; ---------------------------------------------------------------------------
 
@@ -299,21 +297,21 @@ _Finish                                                                         
 .proc ShiftMultiply
 
 _01B1:
-.256 
+_256:
         asl
-.128
+_128:
         asl
-.64
+_64:
         asl
-.32
+_32:
         asl
-.16
+_16:
         asl
-.8
+_8:
         asl
-.4
+_4:
         asl
-.2
+_2:
         asl
         rts
 
@@ -325,21 +323,21 @@ _01B1:
 .proc ShiftDivide
 
 _01BA:
-.256
+_256:
         lsr
-.128
+_128:
         lsr
-.64
+_64:
         lsr
-.32
+_32:
         lsr
-.16
+_16:
         lsr
-.8
+_8:
         lsr
-.4
+_4:
         lsr
-.2
+_2:
         lsr
         rts
 
@@ -353,11 +351,11 @@ _01BA:
 _01C3:
         ldx #$0000
         ldy #$0008
--       asl
-        bcc +
+:       asl
+        bcc :+
         inx
-+       dey
-        bne -
+:       dey
+        bne :--
         rts
 
 .endproc
@@ -403,13 +401,12 @@ _01DB:
 .proc NextCharOffset
 
 _01E0:
-        rep #$20
+        longa
         clc
         txa
         adc #$0080
         tax
-        tdc
-        sep #$20
+        shorta0
         rts
 
 .endproc
@@ -422,11 +419,10 @@ _01E0:
 .proc CalculateCharOffset
 
 _01EC:
-        rep #$20
-        jsr ShiftMultiply_128
+        longa
+        jsr ShiftMultiply::_128
         tax
-        tdc
-        sep #$20
+        shorta0
         stx AttackerOffset
         rts
 
@@ -441,12 +437,11 @@ _01EC:
 _01F8:
         asl
         tax
-        rep #$20
+        longa
         lda ROMTimes650w,X
         sta SpellOffset
         tay
-        tdc
-        sep #$20
+        shorta0
         rts
 
 .endproc
@@ -460,12 +455,11 @@ _0207:
         phx
         asl
         tax
-        rep #$20
+        longa
         lda ROMTimes11w,X	;from ROM
         sta TimerOffset
         tay
-        tdc
-        sep #$20
+        shorta0
         plx
         rts
 
