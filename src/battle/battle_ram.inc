@@ -70,7 +70,7 @@ TempItemMagic = $46
 
 
 AttackerIndex = $47
-TargetIndex = $48
+wTargetIndex = $48
 	;* Target/Attacker index:
 	;   0 - Character1
 	;   1 - Character2
@@ -345,7 +345,7 @@ TerrainType = $04F2
 	MasteryPassives1       .res 1          ;4E
 	MasteryPassives2       .res 1          ;4F
 .endstruct
-;<name> = <name>.0
+name := name::CharRow
 .endmacro
 
 .org $7E0500
@@ -388,7 +388,7 @@ Config1 = $0970		;80h: 		command style
 							;7C85 - 7C93 other flags?
 							;7C87 some kind of party bitmask for slots to check (AICondition0D)
 .endstruct
-;<name> = <name>.0
+name := name::MagicLamp
 .endmacro
 
 .org $7E09B4
@@ -753,7 +753,7 @@ TempTargetting = $26A0		;sometimes is number of targets minus 1
 	EnemyNameID		.res 1          ;270E	;3F1D	;D0001E
 	Level			.res 1          ;270F	;3F1E	;D0001F
 .endstruct
-;<name> = <name>.0
+name := name::Speed
 .endmacro
 
 .org $7E26F0
@@ -875,7 +875,7 @@ InventoryUsable = $2C34	;2 bits per character (256 items)
 	Data1	.res 1	;$384F	;use varies by command type                     $436A
 	Data2	.res 1	;$3850	;use varies by command type                     $436B
 .endstruct
-;<name> = <name>.0
+name = name::Flag
 .endmacro
 
 .org $7E384C
@@ -1027,7 +1027,7 @@ MessageBoxDataOffset = $3CF0
 	ATB		.res 1		;$3CFB		;$3D7F		;$3E03	;tends to be used differently than status timers
 
 .endstruct
-;<name> = <name>.0	;makes a label so we don't have to keep specifying a property when accessing the structure as a whole
+name = name::Stop	;makes a label so we don't have to keep specifying a property when accessing the structure as a whole
 .endmacro
 
 
@@ -1120,7 +1120,7 @@ CreateTimerStruct ProcessTimer	;set to 1 when GlobalTimer runs out
 								;02h No Reward
 								;01h Alternate Death
 .endstruct
-;<name> = <name>.0
+name = name::IntroFX
 .endmacro
 
 .org $7E3EEF
@@ -1164,7 +1164,7 @@ MonstersVisible = $4048		;1 bit per monster, copied from EncounterInfo.Visible
 	Armor		.res 2	;419B		from CharStruct.EquipArmor
 
 .endstruct
-;<name> = <name>.0
+name := name::Weapons
 .endmacro
 
 .org $7E2720
@@ -1197,7 +1197,7 @@ ATBReadyCount = $41AE		;count of above queue
 	SecondPartyTargets	.res 1	;41BC	41CA
 	SecondSelectedItem	.res 1	;41BD	41CB
 .endstruct
-;<name> = <name>.0
+name := name::MenuOpen
 .endmacro
 
 .org $7E41B0
@@ -1229,7 +1229,7 @@ CreateMenuDataStruct MenuData
 	SecondPartyTargets	.res 1		;41DC
 	SecondSelectedItem	.res 1		;41DD
 .endstruct
-;<name> = <name>.ActionFlag
+name := name::ActionFlag
 .endmacro
 
 .org $7E41D4
@@ -1498,7 +1498,7 @@ name::AtkType := name::MEvade
 name::Param1 := name::MDefense
 name::Param2 := name::ElementDef
 name::Param3 := name::Status
-;<name> = <name>.0		;makes a define so we don't have to keep specifying a property when accessing the structure as a whole
+name := name::Targetting		;makes a define so we don't have to keep specifying a property when accessing the structure as a whole
 .endmacro
 
 .org $7E4049
@@ -1910,11 +1910,11 @@ ROMToadOK = $D0EF58		;1 bit per spell, determines whether magic can be used as a
 	Replacement		.res 2
 .endstruct
 
-;.org $D10000
-;CreateAttackInfoStruct ROMItems		;12 bytes, 256 entries, ends at $D10BFF
+.org $D10000
+CreateAttackInfoStruct ROMItems		;12 bytes, 256 entries, ends at $D10BFF
 							;identical to AttackInfo .struct at, see that for details
-;ROMWeapons = ROMItems
-;ROMArmor = ROMItems[$80]	;$D10600
+ROMWeapons := ROMItems
+ROMArmor := ROMItems + $600	;$D10600
 ;consumable items use the 8 byte magic/ability structure instead
 
 .macro CreateMagicInfoStruct name
@@ -1933,7 +1933,7 @@ ROMToadOK = $D0EF58		;1 bit per spell, determines whether magic can be used as a
 .endstruct
 name::CmdStatus := name::Misc
 name::DamageMod := name::MPCost
-;<name> = <name>.Targetting	;makes a define so we don't have to keep specifying a property when accessing the structure as a whole
+name := name::Targetting	;makes a define so we don't have to keep specifying a property when accessing the structure as a whole
 .endmacro
 
 
