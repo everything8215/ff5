@@ -16,8 +16,8 @@
 .include "hardware.inc"
 .include "const.inc"
 .include "battle_ram.inc"
-.include "outsidec2.asm"
 
+.import InitSound_ext, ExecBtlGfx_ext
 .export ExecBattle_ext
 
 ; ===========================================================================
@@ -103,7 +103,7 @@ _0053:  lda #$00
 
 .proc CallC1
 
-_0069:  jsl Dispatch_C1
+_0069:  jsl ExecBtlGfx_ext
         rts
 
 .endproc
@@ -114,7 +114,7 @@ _0069:  jsl Dispatch_C1
 
 _006E:  inc wMusicChanged
         sta MusicData
-        jsl MusicChange_C4
+        jsl InitSound_ext
         stz wMusicChanged
 
 .endproc
