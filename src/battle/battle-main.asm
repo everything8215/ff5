@@ -6923,6 +6923,907 @@ _2C27:
 
 ; ---------------------------------------------------------------------------
 
+.proc AITarget
+
+_2C4D:
+;%generatejumptable(AITarget,$32)
+;original data
+.word $2CB3, $2CDA, $2CE0, $2CE6, $2CEC, $2CF2, $2CFE, $2D0A ; $00
+.word $2D16, $2D22, $2D2E, $2D3A, $2D46, $2D52, $2D79, $2DBD
+.word $2DC6, $2DCD, $2DD3, $2E18, $2E25, $2E2D, $2E37, $2E44 ; $10
+.word $2E4F, $2E59, $2E62, $2E65, $2EA6, $2F00, $2F0B, $2F19
+.word $2F24, $2F27, $2F70, $2FAB, $2FB7, $2FC0, $2FC3, $3019 ; $20
+.word $305D, $309B, $30A1, $30A7, $30AD, $30B3, $30C2, $30F1
+.word $3115, $311B, $3121                                    ; $30
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget00	;butz
+
+        stz $0E
+AITargetPerson:		;code reused for other party members
+        tdc
+        tay
+        tax
+Loop:
+        lda CharStruct::CharRow,X
+        and #$07	;just character bits
+        cmp $0E
+        bne Next
+        lda ActiveParticipants,Y
+        beq Ret
+        jsr CheckTargetValid
+        bne Ret
+        stx AITargetOffsets
+        bra Ret
+Next:	JSR NextCharOffset
+        iny
+        cpy #$0004	;4 chars to check
+        bne Loop
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget01	;lenna
+
+        lda #$01
+        sta $0E
+        bra AITarget00::AITargetPerson
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget02 	;galuf
+        lda #$02
+        sta $0E
+        bra AITarget00::AITargetPerson
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+.proc AITarget03	;faris
+        lda #$03
+        sta $0E
+        bra AITarget00::AITargetPerson
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget04	;krile
+        lda #$04
+        sta $0E
+        bra AITarget00::AITargetPerson
+;**optimize: would be very easy to combine these 8 monster target routines
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget05 	;monster 1
+        lda ActiveParticipants+4
+        beq Ret
+        ldx #.sizeof(CharStruct)*4
+        stx AITargetOffsets
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget06 	;monster 2
+        lda ActiveParticipants+5
+        beq Ret
+        ldx #.sizeof(CharStruct)*5
+        stx AITargetOffsets
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget07 	;monster 3
+        lda ActiveParticipants+6
+        beq Ret
+        ldx #.sizeof(CharStruct)*6
+        stx AITargetOffsets
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget08 	;monster 4
+        lda ActiveParticipants+7
+        beq Ret
+        ldx #.sizeof(CharStruct)*7
+        stx AITargetOffsets
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget09 	;monster 5
+        lda ActiveParticipants+8
+        beq Ret
+        ldx #.sizeof(CharStruct)*8
+        stx AITargetOffsets
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget0A 	;monster 6
+        lda ActiveParticipants+9
+        beq Ret
+        ldx #.sizeof(CharStruct)*9
+        stx AITargetOffsets
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget0B 	;monster 7
+        lda ActiveParticipants+10
+        beq Ret
+        ldx #.sizeof(CharStruct)*10
+        stx AITargetOffsets
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget0C 	;monster 8
+        lda ActiveParticipants+11
+        beq Ret
+        ldx #.sizeof(CharStruct)*11
+        stx AITargetOffsets
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget0D	;self, unless forced
+        lda ReactingIndexType
+        beq Self
+        dec
+        beq ForcedMonster
+        dec ReactingIndexType
+        lda ReactingIndex
+        bra Target
+ForcedMonster:
+        clc
+        lda ReactingIndex
+        adc #$04
+        bra Target
+Self:
+        lda AttackerIndex
+Target:
+        longa
+        jsr ShiftMultiply::_128
+        tax
+        shorta0
+        stx AITargetOffsets
+        rts
+
+.endproc
+; ---------------------------------------------------------------------------
+
+.proc AITarget0E	;all active monsters except attacker
+        lda MonsterIndex
+        sta $12		;excluded monster
+        inc AIMultiTarget
+AITargetMonstersExcept:
+        tdc
+        tax
+        stx $0E		;first open AITargetOffsets slot
+        stx $10		;currently checked monster
+        ldx .sizeof(CharStruct)*4	;first monster offset
+Loop:
+        ldy $10
+        lda ActiveParticipants+4,Y
+        beq Next
+        lda $10		;currently checked monster
+        cmp $12		;excluded monster
+        beq Next
+        jsr CheckTargetValid
+        bne Next
+        ldy $0E		;first open AITargetOffsets slot
+        stx $08		;monster offset
+        lda $08
+        sta AITargetOffsets,Y
+        lda $09
+        sta AITargetOffsets+1,Y
+        iny
+        iny
+        sty $0E		;next slot
+        inc AITargetCount
+Next:	JSR NextCharOffset
+        inc $10
+        lda $10		;monster counter
+        cmp #$08	;8 monsters
+        bne Loop
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget0F	;all active monsters
+        lda #$FF
+        sta $12		;excluded monster
+        inc AIMultiTarget
+        bra AITarget0E::AITargetMonstersExcept
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget10	;random active monster except attacker
+        lda MonsterIndex
+        sta $12		;excluded monster
+        bra AITarget0E::AITargetMonstersExcept
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget11	;random active monster
+        lda #$FF
+        sta $12		;excluded monster
+        bra AITarget0E::AITargetMonstersExcept
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget12	;all front row active party 
+        lda #$80
+        sta $12		;check row bit
+        stz $13		;front row
+        inc AIMultiTarget
+AITargetCharRow:
+        tdc
+        tax
+        stx $0E		;first open AITargetOffsets slot
+        stx $10
+Loop:
+        ldy $10		;currently checked character
+        lda ActiveParticipants,Y
+        beq Next
+        jsr CheckTargetValid
+        bne Next
+        lda CharStruct::CharRow,X
+        and $12		;bits to check
+        cmp $13		;desired value
+        bne Next
+        ldy $0E
+        stx $08
+        lda $08
+        sta AITargetOffsets,Y
+        lda $09
+        sta AITargetOffsets+1,Y
+        iny
+        iny
+        sty $0E		;next slot
+        inc AITargetCount
+Next:	JSR NextCharOffset
+        inc $10
+        lda $10
+        cmp #$04	;4 party members to check
+        bne Loop
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget13	;all back row active party
+        lda #$80
+        sta $12		;check row bit
+        lda #$80
+        sta $13		;back row
+        inc AIMultiTarget
+        bra AITarget12::AITargetCharRow
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+.proc AITarget14	;random front row active party							
+        lda #$80
+        sta $12		;check row bit
+        stz $13		;front row
+        bra AITarget12::AITargetCharRow
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget15	;random back row active party
+        lda #$80
+        sta $12		;check row bit
+        lda #$80
+        sta $13		;back row
+        bra AITarget12::AITargetCharRow
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget16	;all female active party						
+        lda #$08
+        sta $12		;check gender bit
+        lda #$08
+        sta $13		;female
+        inc AIMultiTarget
+        bra AITarget12::AITargetCharRow
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget17	;all male active party
+        lda #$08
+        sta $12		;check gender bit
+        stz $13		;male
+        inc AIMultiTarget
+        bra AITarget12::AITargetCharRow
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget18	;random female active party
+        lda #$08
+        sta $12		;check gender bit
+        lda #$08
+        sta $13		;female
+        bra AITarget12::AITargetCharRow
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget19	;random male active party
+        lda #$08
+        sta $12		;check gender bit
+        stz $13		;male
+        jmp AITarget12::AITargetCharRow
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget1A	;all dead party
+        inc AIMultiTarget
+;continues to next routine
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget1B	;random dead party
+        tdc
+        tax
+        stx $0E
+        stx $10
+Loop:
+        lda CharStruct::Status1,X
+        and #$40	;stone
+        bne Next
+        lda CharStruct::Status4,X
+        and #$81	;erased or hidden
+        bne Next
+        lda CharStruct::CmdStatus,X
+        and #$10	;jumping
+        bne Next
+        lda CharStruct::Status1,X
+        bpl Next	;skip if alive
+        ldy $0E
+        stx $08
+        lda $08
+        sta AITargetOffsets,Y
+        lda $09
+        sta AITargetOffsets+1,Y
+        iny
+        iny
+        sty $0E
+        inc AITargetCount
+Next:	JSR NextCharOffset
+        inc $10
+        lda $10
+        cmp #$04	;4 party members
+        bne Loop
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget1C	;all monsters with reflect
+        lda #$1C	;status 3
+        tax
+        stx $14
+        lda #$80	;reflect
+        sta $12
+        inc AIMultiTarget
+AITargetMonsterStatus:
+        tdc
+        tax
+        stx $0E
+        stx $10
+        ldx #.sizeof(CharStruct)*4
+Loop:
+        phx
+        ldy $10
+        lda ActiveParticipants+4,Y
+        beq Next
+        jsr CheckTargetValid
+        bne Next
+        longa
+        clc
+        txa
+        adc $14		;status offset within CharStruct
+        tax
+        shorta0
+        lda $2000,X	;selected status
+        ora $2056,X	;always selected status
+        and $12
+        cmp $12		;status to check
+        bne Next
+        ldy $0E
+        stx $08
+        lda $08
+        sta AITargetOffsets,Y
+        lda $09
+        sta AITargetOffsets+1,Y
+        iny
+        iny
+        sty $0E
+        inc AITargetCount
+Next:	PLX
+        jsr NextCharOffset
+        inc $10
+        lda $10
+        cmp #$08	;8 monsters
+        bne Loop
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget1D	;random monster with reflect
+        lda #$1C	;status 3
+        tax
+        stx $14
+        lda #$80	;reflect
+        sta $12
+        bra AITarget1C::AITargetMonsterStatus
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget1E	;all monsters with critical hp							
+        lda #$1D	;status 4
+        tax
+        stx $14
+        lda #$02	;critical hp
+        sta $12
+        inc AIMultiTarget
+        bra AITarget1C::AITargetMonsterStatus
+        
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget1F	;random monster with critical hp			
+        lda #$1D	;status 4
+        tax
+        stx $14
+        lda #$02	;critical hp
+        sta $12
+        bra AITarget1C::AITargetMonsterStatus
+                
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget20	;all monsters with under half hp
+        inc AIMultiTarget
+;continues to next routine
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+						
+.proc AITarget21	;random monster with under half hp
+        tdc
+        tax
+        stx $0E
+        stx $10
+        ldx #.sizeof(CharStruct)*4
+Loop:
+        ldy $10
+        lda ActiveParticipants+4,Y
+        beq Next
+        jsr CheckTargetValid
+        bne Next
+        longa
+        lda CharStruct::MaxHP,X
+        lsr
+        cmp CharStruct::CurHP,X
+        bcs BelowHalf
+        shorta0
+        bra Next
+BelowHalf:
+        shorta0
+        ldy $0E
+        stx $08
+        lda $08
+        sta AITargetOffsets,Y
+        lda $09
+        sta AITargetOffsets+1,Y
+        iny
+        iny
+        sty $0E
+        inc AITargetCount
+Next:	JSR NextCharOffset
+        inc $10
+        lda $10
+        cmp #$08	;8 monsters
+        bne Loop
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget22	;random party member with reflect
+        tdc
+        tax
+        stx $0E
+        stx $10
+Loop:	LDY $10
+        lda ActiveParticipants,Y
+        beq Next
+        jsr CheckTargetValid
+        bne Next
+        lda CharStruct::Status3,X
+        ora CharStruct::AlwaysStatus3,X
+        bpl Next
+        ldy $0E
+        stx $08
+        lda $08
+        sta AITargetOffsets,Y
+        lda $09
+        sta AITargetOffsets+1,Y
+        iny
+        iny
+        sty $0E
+        inc AITargetCount
+Next:	JSR NextCharOffset
+        inc $10
+        lda $10
+        cmp #$04	;4 party members
+        bne Loop
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget23	;all party members on the team?
+        lda #$40
+        sta $12		;on the team bit?
+        stz $13
+        inc AIMultiTarget
+        jmp AITargetCharRow
+                
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget24	;random party member on the team?
+        lda #$40
+        sta $12		;on the team bit?
+        stz $13
+        jmp AITargetCharRow
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget25	;all dead monsters
+        inc AIMultiTarget
+;continues to next routine
+        
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget26	;random dead monster
+        tdc
+        tax
+        stx $0E
+        stx $10
+        ldx #.sizeof(CharStruct)*4
+Loop:	LDA CharStruct::Status1,X
+        and #$40	;stone
+        bne Next
+        cpx #.sizeof(CharStruct)*4
+        bcc :+		;branch can never occur?
+        lda SandwormBattle
+        bne SkipChecks
+:	LDA CharStruct::Status4,X
+        and #$81	;erased or hidden
+        bne Next
+        lda CharStruct::CmdStatus,X
+        and #$10	;jumping
+        bne Next
+SkipChecks:
+        lda CharStruct::Status1,X
+        bmi Dead
+        lda CharStruct::CurHP,X
+        ora CharStruct::CurHP+1,X
+        bne Next
+Dead:	LDY $0E
+        stx $08
+        lda $08
+        sta AITargetOffsets,Y
+        lda $09
+        sta AITargetOffsets+1,Y
+        iny
+        iny
+        sty $0E
+        inc AITargetCount
+Next:	JSR NextCharOffset
+        inc $10
+        lda $10
+        cmp #$08	;8 monsters
+        bne Loop
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget27
+
+_3019:
+;first monster target matching ai bits (??), excluding attacker or ReactingIndex if that's set
+        	;not sure exactly what's going on here, also data it doesn't expect could easily cause an infinite loop 
+        tdc
+        tay
+        sec
+        lda AIScriptOffset
+        sbc #$1B	;???
+        tax
+        lda !MonsterAIScript,X
+        beq Ret
+        sta $12		;target bits from somewhere in ai script
+        lda ReactingIndexType
+        bne ReactingIndex
+        sec
+        lda AttackerIndex
+        sbc #$04
+        bra FindTarget
+ReactingIndex:
+        lda ReactingIndex
+FindTarget:
+        tax
+        stx $10		;monster index to avoid
+        lda $12		;bitfield of acceptable targets
+BitLoop:
+        asl
+        bcs BitSet
+        iny
+        bra BitLoop
+BitSet:
+        cpy $10
+        bne FoundTarget
+        iny
+        bra BitLoop
+FoundTarget:
+        tya
+        clc
+        adc #$04
+        tax
+        inc ActiveParticipants,X	;target forced active
+        longa
+        jsr ShiftMultiply::_128
+        sta AITargetOffsets
+        shorta0
+Ret:	RTS
+        
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget28 	;butz if jumping but not yet intercepted
+        stz $0E		;butz
+AITargetPersonJumping:
+        tdc
+        tay
+        tax
+Loop:	LDA CharStruct::CharRow,X
+        and #$07	;character bits
+        cmp $0E
+        bne Next
+        lda ActiveParticipants,Y
+        beq Ret
+        lda CharStruct::Status1,X
+        and #$C0	;stone or dead
+        bne Ret
+        lda CharStruct::Status4,X
+        and #$81	;erased or hidden
+        bne Ret
+        lda CharStruct::CmdStatus,X
+        and #$10	;jumping
+        beq Ret	;aborts if NOT jumping
+        lda CharStruct::Command,X
+        cmp #$50	;jump intercepted
+        beq Ret	;already intercepted
+        stx AITargetOffsets
+        bra Ret
+Next:	JSR NextCharOffset
+        iny
+        cpy #$0004	;4 chars to check
+        bne Loop
+Ret:	RTS
+        
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget29	;lenna if jumping but not yet intercepted							
+ 
+        lda #$01	;lenna
+        sta $0E
+        bra AITarget28::AITargetPersonJumping
+.endproc 
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget2A	;galuf if jumping but not yet intercepted
+
+        lda #$02	;galuf
+        sta $0E
+        bra AITarget28::AITargetPersonJumping                
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget2B	;faris if jumping but not yet intercepted
+        lda #$03	;faris
+        sta $0E
+        bra AITarget28::AITargetPersonJumping
+                
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget2C	;krile if jumping but not yet intercepted
+        lda #$04	;krile
+        sta $0E
+        bra AITarget28::AITargetPersonJumping
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget2D	;acted this tick
+        lda ActedIndex
+        longa
+        jsr ShiftMultiply::_128
+        sta AITargetOffsets
+        shorta0
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget2E	;all party matching a bitmask from event flags?
+        inc AIMultiTarget
+        tdc
+        tax
+        stx $0E
+        stx $10
+Loop:	LDX $0E
+        lda BattleData::EventFlags+3	;???
+        jsr SelectBit_X
+        beq Next
+        longa
+        ldx $10
+        lda $0E
+        jsr ShiftMultiply::_128
+        sta AITargetOffsets,X
+        inc $10
+        inc $10
+        shorta0
+Next:	INC $0E
+        lda $0E
+        cmp #$04	;4 chars to check
+        bne Loop
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget2F	;butz if dead
+        stz $0E		;butz
+AITargetPersonDead:	;reused for other characters, note there is no krile version
+        tdc
+        tay
+        tax
+Loop:	LDA CharStruct::CharRow,X
+        and #$07	;character bits
+        cmp $0E
+        bne Next
+        lda CharStruct::Status1,X
+        and #$80	;dead
+        beq Ret
+        stx AITargetOffsets
+        bra Ret
+Next:	JSR NextCharOffset
+        iny
+        cpy #$0004	;4 chars to check
+        bne Loop
+Ret:	RTS
+        
+.endproc
+
+; ---------------------------------------------------------------------------
+
+						
+.proc AITarget30	;lenna if dead
+        lda #$01	;lenna
+        sta $0E
+        bra AITargetPersonDead
+                
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AITarget31	;galuf if dead							
+        lda #$02	;galuf
+        sta $0E
+        bra AITargetPersonDead
+                
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;faris if dead
+.proc AITarget32		;faris
+        lda #$03
+        sta $0E
+        bra AITargetPersonDead
+                
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
 ;============================ Stud Definitions for compilation purposes =====
 
 .proc MonsterATB
@@ -6997,10 +7898,6 @@ _2C27:
         nop
 .endproc
 
-.proc AITarget
-        nop
-.endproc
-
 .proc ProcessAIScript
         nop
 .endproc
@@ -7013,3 +7910,30 @@ _2C27:
         nop
 .endproc
 
+.proc AITargetPersonDead
+        nop
+.endproc
+
+.proc AITargetPersonJumping
+        nop
+.endproc
+
+.proc AITargetCharRow
+        nop
+.endproc
+
+.proc CheckTargetValid
+        nop
+.endproc
+
+.proc AITargetMonsterStatus
+        nop
+.endproc
+
+.proc AITargetMonstersExcept
+        nop
+.endproc
+
+.proc AITargetPerson
+        nop
+.endproc
