@@ -5413,22 +5413,1523 @@ Ret:	rts
 
 ; ---------------------------------------------------------------------------
 
+; ---------------------------------------------------------------------------
 
+;called when character's turn is up, perform their queued action
+.proc PerformAction
 
+_23DF:
+        jsr ProcessTurn
+        lda DelayedFight
+        bne Ret
+        lda AttackerIndex
+        cmp #$04	;monster check
+        bcs ResetATB
+        ldx AttackerOffset
+        lda CharStruct::CmdStatus,X
+        and #$E0	;clear many flags (jump/flirt/others?)
+        sta CharStruct::CmdStatus,X
+        stz CharStruct::DamageMod,X
+        lda CharStruct::Status1,X
+        ora CharStruct::AlwaysStatus1,X
+        and #$02	;zombie
+        bne Uncontrolled
+        lda CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$18	;charm/berserk
+        beq ResetATB
+Uncontrolled:
+        lda AttackerIndex
+        jsr GetTimerOffset
+        tdc
+        sta EnableTimer::ATB,Y
+        inc
+        sta CurrentTimer::ATB,Y
+        lda AttackerIndex
+        tax
+        lda UncontrolledATB,X
+        and #$7F	;max 127
+        sta UncontrolledATB,X
+ResetATB:
+        inc CheckQuick
+        lda AttackerIndex
+        jsr ResetATB
+        stz CheckQuick
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Waits when a character's turn arrives (amount depending on battle speed setting)
+.proc ATBWait
+
+_2432:
+        lda ATBWaiting
+        beq Ret
+        lda ATBWaitLeft
+        beq DoneWaiting
+        dec
+        sta ATBWaitLeft
+        bne Ret
+DoneWaiting:
+        tdc
+        sta ATBWaiting
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Updates ATB for all combatants and sets them active if present
+.proc ResetATBAll
+
+_2447:
+        tdc
+        tax
+        tay
+        stx $0E			;char index
+ResetATBLoop:
+        lda $0E
+        jsr ResetATB
+        lda $0E
+        jsr CalculateCharOffset
+        lda $0E
+        cmp #$04		;monster check
+        bcs Monster
+        ldx AttackerOffset
+        lda CharStruct::CharRow,X
+        and #$40		;not present
+        beq SetActive
+        bne Next
+Monster:
+        sec
+        lda $0E
+        sbc #$04
+        tax 			;monster index
+        lda InitialMonsters,X
+        beq Next
+SetActive:
+        ldx $0E
+        lda #$01
+        sta ActiveParticipants,X
+Next:
+        inc $0E			;char index
+        lda $0E
+        cmp #$0C		;12 participants
+        bne ResetATBLoop
+        									;.					
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;initialize ATB (A: character index 0-12)
+.proc ResetATB
+
+_2482:
+        pha
+        jsr GetTimerOffset	;Y and $36 = timer offset
+        pla
+        jsr CalculateCharOffset
+        jsr CopyStatsWithBonuses
+        lda CharStruct::EqWeight,X
+        jsr ShiftDivide::_8	;weight/8
+        clc
+        adc #$78     		;+120
+        sec
+        sbc Agility    	;-agi
+        beq :+
+        bcs :++
+:	LDA #$01     		;min 1
+:	JSR HasteSlowMod
+        sta CurrentTimer::ATB,Y
+        lda EncounterInfo::IntroFX
+        bpl NotCredits		;80h indicates a credits demo battle
+        ldx AttackerOffset
+        cpx #$0200		;monster
+        bcs CreditsMonster
+        lda #$01		;party member gets turn immediately
+        bra CreditsParty
+CreditsMonster:
+        lda #$FF		;monster turn as late as possible
+CreditsParty:								
+        sta CurrentTimer::ATB,Y
+NotCredits:								
+        lda CheckQuick
+        beq EnableATB
+        lda QuickTurns
+        beq EnableATB
+        lda CurrentlyReacting
+        bne EnableATB
+        dec QuickTurns
+        lda QuickTurns
+        bne Quick
+        phy
+        jsr ClearQuick
+        ply
+        bra EnableATB
+Quick:										;:					
+        lda #$01
+        sta CurrentTimer::ATB,Y
+EnableATB:
+        lda #$01
+        sta EnableTimer::ATB,Y
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Unfreezes time for everyone
+.proc ClearQuick
+
+_24E4:
+        tdc
+        tax
+:	STZ QuickTimeFrozen,X
+        inx
+        cpx #$000C		;12 combatants
+        bne :-
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Stop Timer (X: #timer; A: Target index 0-12)
+.proc StopTimer
+
+_24F0:
+        phx
+        jsr GetTimerOffset
+        plx
+        jsr AddTimerOffsetY
+        tdc
+        sta !EnableTimer,Y
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Start Timer (X: #timer; A: Participant index)
+.proc StartTimer
+
+_24FD:
+        phx
+        pha
+        jsr GetTimerOffset
+        pla
+        jsr CalculateCharOffset
+        jsr CopyStatsWithBonuses
+        plx
+        jsr GetTimerDuration	;also sets up Y
+        ldx AttackerOffset	;not actually attacker, in this case
+        jsr HasteSlowMod
+        sta !CurrentTimer,Y
+        sta !InitialTimer,Y
+        lda #$01
+        sta !EnableTimer,Y
+        stz StatusFixedDur
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Get Timer Duration (X - #timer; $3ED7 - IsItem): A = return duration
+;sets up and jumps to a jump table entry that sets the correct duration
+;also sets up Y as the correct timer offset
+.proc GetTimerDuration
+
+_2521:
+        jsr AddTimerOffsetY      ;Y = X + TimerOffset
+        txa
+        asl
+        clc
+        adc StatusFixedDur     ;uses alternate fixed status duration
+        asl
+        tax
+        lda TimerDurationJumpTable,X
+        sta $08
+        lda TimerDurationJumpTable+1,X
+        sta $09
+        lda #$c2 ;.b #bank(TimerDurationJumpTable)
+        sta $0A
+        jmp [$0008]		;jump to table address
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;(X): Y = X + $36 Timer Offset)
+.proc AddTimerOffsetY
+
+_253F:
+        txa
+        longa
+        clc
+        adc TimerOffset
+        tay
+        shorta0
+        rts
+
+.endproc
+; ---------------------------------------------------------------------------
+
+;Jump table for timer durations, these all return with A = timer duration
+.proc TimerDurationJumpTable
+
+_254A:
+; .word DurSpell
+; .word Dur120a
+; .word DurVit
+; .word DurVit
+; .word DurSpell
+; .word Dur120b
+; .word DurSpell
+; .word Dur49
+; .word DurSpell
+; .word Dur180mod
+; .word DurSpell
+; .word Dur180
+; .word Dur10
+; .word Dur10
+; .word Dur110mod
+; .word Dur110mod
+; .word Dur30
+; .word Dur30
+; .word DurSpellmod
+; .word Dur120mod
+.word $2572, $2576, $2579, $2579, $2572, $2584, $2572, $2587, $2572, $258A
+.word $2572, $259A, $259D, $259D, $25A0, $25A0, $25AF, $25AF, $25B2, $25C3
+
+; ---------------------------------------------------------------------------
+
+;Duration = Spell Duration
+.proc DurSpell
+
+_2572:
+        lda StatusDuration
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+						
+;Duration = 120
+.proc Dur120a
+
+_2576:
+        lda #$78	;120
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Duration = Attacker's Vitality + 20
+.proc DurVit
+
+_2579:
+        clc
+        lda Vitality
+        adc #$14	;+20
+        bcc :+
+        lda #$FF	;max 255
+:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Duration = 120
+.proc Dur120b
+
+_2584:
+        lda #$78	;120
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Duration = 49
+.proc Dur49
+
+_2587:
+        lda #$31	;49
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Duration = 180 - Attacker's Magic Power / 2
+.proc Dur180mod
+
+_258A:
+        lda MagicPower
+        lsr
+        sta $0E
+        sec
+        lda #$B4	;180
+        sbc $0E
+        bcs :+
+        lda #$01	;min 1
+:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Duration = 180 
+.proc Dur180
+
+_259A:
+        lda #$B4	;180
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Duration = 10 
+.proc Dur10
+
+_259D:
+        lda #$0A	;10
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Duration = 110 - Attacker's Magic Power, min 30
+.proc Dur110mod
+
+_25A0:
+        sec
+        lda #$6E	;110
+        sbc MagicPower
+        bcc :+
+        cmp #$1E	;min 30
+        bcs :++
+:	LDA #$1E	;min 30
+:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Duration = 30
+;**optimize: reuse code from Dur110mod 
+.proc Dur30
+
+_25AF:
+        lda #$1E
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Duration = Spell Duration - Attacker's Magic Power / 2
+.proc DurSpellmod
+
+_25B2:
+        lda MagicPower
+        lsr
+        sta $0E
+        sec
+        lda StatusDuration
+        sbc $0E
+        bcs :+
+        lda #$01	;min 1
+:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Duration = 120 - Attacker's Magic Power / 2
+.proc Dur120mod
+
+_25C3:
+        lda MagicPower
+        lsr
+        sta $0E
+        sec
+        lda #$78	;120
+        sbc $0E
+        bcs :+
+        lda #$01	;min 1
+:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Queues up a monster's action when their ATB is ready
+.proc MonsterATB
+
+_25D3:
+        lda #$01
+        sta AISkipDeadCheck
+        sec
+        lda AttackerIndex
+        sbc #$04
+        sta MonsterIndex
+        jsr ShiftMultiply::_16
+        tax
+        stx MonsterOffset16
+        asl
+        tax
+        stx MonsterOffset32
+        tdc
+        tay
+        sty TempCharm
+        ldx MonsterOffset16
+        lda #$FF
+:	STA MonsterMagic,X
+        inx
+        iny
+        cpy #$0010	;init 16 byte monster magic struct
+        bne :-
+        							;
+        lda MonsterIndex
+        asl
+        tax
+        lda ROMTimes100w,X
+        sta $0E
+        lda ROMTimes100w+1,X
+        sta $0F
+        tdc
+        tay
+        ldx $0E		;MonsterIndex *100
+        lda #$FF
+:	STA !MonsterAIScript,X
+        inx
+        iny
+        cpy #$0064	;init 100 bytes to $FF
+        bne :-
+        lda AttackerIndex
+        jsr CalculateCharOffset
+        ldx AttackerOffset
+        lda #$2C       	;magic
+        sta CharStruct::Command,X
+        lda #$21	;magic + costs mp
+        sta CharStruct::ActionFlag,X
+        ldx AttackerOffset
+        lda CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$08	;berserk
+        beq CheckCharm
+        lda #$01
+        sta CharStruct::CmdCancelled,X
+        lda #$80	;monster fight
+        sta AIBuffer
+        lda #$FF	;end of list
+        sta AIBuffer+1
+        jsr DispatchAICommands
+        jmp GoFinish
+CheckCharm:
+        lda CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$10	;charm
+        beq CheckFlirt
+TryRandomAction:
+        ldx AttackerOffset
+        lda #$01
+        sta CharStruct::CmdCancelled,X
+        tdc
+        tax
+        lda #$03
+        jsr Random_X_A 	;0..3
+        tax
+        stx $0E
+        lda MonsterIndex
+        asl
+        tax
+        longa
+        lda BattleMonsterID,X
+        jsr ShiftMultiply::_4
+        clc
+        adc $0E		;random number 0..3
+        tax 		;offset into control actions table
+        shorta0
+        lda ROMControlActions,X
+        cmp #$FF
+        beq TryRandomAction	;no action in this slot, try again
+        sta AIBuffer
+        lda #$FF	;end of list
+        sta AIBuffer+1
+        inc TempCharm
+        jsr DispatchAICommands
+        bra GoFinish
+CheckFlirt:								;
+        lda CharStruct::CmdStatus,X
+        and #$08	;flirt
+        beq CheckControl
+        lda #$51	;throbbing command
+        sta CharStruct::Command,X
+        lda #$80	;other
+        sta CharStruct::ActionFlag,X
+        bra GoFinish
+CheckControl:
+        lda CharStruct::Status4,X
+        and #$20	;control
+        bne Control
+        lda CharStruct::Status2,X
+        and #$40	;sleep
+        bne Sleep
+        bra Normal
+Control:
+        tdc
+        tay
+:	LDA ControlTarget,Y
+        cmp AttackerIndex
+        beq FoundController
+        iny
+        bra :-
+FoundController:
+        lda ControlCommand,Y
+        bne ControlCommand
+Sleep:	;or controlled without a command
+        stz CharStruct::Command,X
+        lda #$80	;action complete?
+        sta CharStruct::ActionFlag,X
+        bra GoFinish
+ControlCommand:
+        tdc
+        sta ControlCommand,Y
+        lda MonsterIndex
+        tax
+        lda MonsterControlActions,X
+        sta AIBuffer
+        lda #$FF	;end of list
+        sta AIBuffer+1
+        jsr DispatchAICommands
+GoFinish:
+        jmp Finish
+Normal:
+        lda MonsterIndex
+        tax
+        lda AIActiveConditionSet,X
+        sta AICurrentActiveCondSet
+        lda MonsterIndex
+        asl
+        tax
+        longa
+        clc
+        lda ROMTimes1620w,X	;*1620, size of MonsterAI struct
+        adc #!MonsterAI
+        sta AIOffset
+        shorta0
+        stz AICurrentCheckedSet
+CheckAIConditions:
+        lda AICurrentCheckedSet
+        tax
+        lda ROMTimes17,X	;size of a MonsterAI condition
+        tay
+        sty AIConditionOffset
+        stz AICheckIndex
+CheckSingleCondition:
+        ldy AIConditionOffset
+        lda (AIOffset),Y
+        beq AIActions		;0 always succeeds
+        cmp #$FE		;indicates end of condition set
+        beq AIActions
+        jsr CheckAICondition
+        lda AIConditionMet
+        beq NextConditionSet
+        longa
+        clc
+        lda AIConditionOffset
+        adc #$0004		;next condition in set
+        sta AIConditionOffset
+        shorta0
+        inc AICheckIndex
+        bra CheckSingleCondition
+NextConditionSet:	;failed a condition in this set, check next set of conditions
+        inc AICurrentCheckedSet
+        lda AICurrentCheckedSet
+        cmp #$0A		;10 conditions max
+        bne CheckAIConditions
+AIActions:
+        longa
+        clc
+        lda AIOffset
+        adc #$00AA	;advances from Conditions to Actions
+        sta AIOffset
+        shorta0
+        lda AICurrentActiveCondSet
+        cmp AICurrentCheckedSet
+        beq ConditionOK	;matches so don't need to change things
+        lda MonsterIndex
+        tax
+        lda AICurrentCheckedSet
+        sta AIActiveConditionSet,X	;checked cond is now current
+        lda MonsterIndex
+        asl
+        tay
+        lda AICurrentCheckedSet
+        asl
+        tax
+        lda ROMTimes64w,X
+        sta AICurrentOffset,Y
+        lda ROMTimes64w+1,X
+        sta AICurrentOffset+1,Y
+ConditionOK:
+        jsr ProcessAIScript
+Finish:
+        ldx MonsterOffset16
+        lda MonsterMagic,X
+        longa
+        jsr ShiftMultiply::_8
+        tax
+        shorta0
+        lda ROMMagicInfo::Targetting,X
+        and #$03       	;delay values
+        tax
+        lda ROMTimes10,X
+        pha
+        lda AttackerIndex
+        jsr GetTimerOffset
+        pla
+        sta CurrentTimer::ATB,Y    ;**bug? doesn't adjust for haste/slow
+        lda #$41	;pending action
+        sta EnableTimer::ATB,Y
+        lda MonsterIndex
+        asl
+        tax
+        stz ForcedTarget::Party,X
+        stz ForcedTarget::Monster,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc CheckAICondition
+
+_27BF:
+        cmp #$13	;$12 is last valid condition
+        bcc :+
+        tdc 		;always succeed	(if invalid)
+:	STA $0E		;condition to check
+        asl
+        tax
+        lda AICondition,X
+        sta $08
+        lda AICondition+1,X
+        sta $09
+        lda #$C2    ;.b #bank(AICondition)
+        sta $0A
+        iny
+        lda (AIOffset),Y
+        sta AIParam1
+        iny
+        lda (AIOffset),Y
+        sta AIParam2
+        iny
+        lda (AIOffset),Y
+        sta AIParam3
+        stz AIConditionMet
+        lda AISkipDeadCheck
+        bne Jump
+        ldx AttackerOffset
+        lda CharStruct::CurHP,X
+        ora CharStruct::CurHP+1,X
+        beq Dead
+        lda CharStruct::Status1,X
+        and #$C0	;dead or stone
+        beq NotDead
+Dead:
+        lda $0E
+        cmp #$0F	;condition: dead
+        beq Jump
+        rts
+
+NotDead:
+        lda $0E
+        cmp #$0F	;auto-fail condition: dead if not dead
+        bne Jump
+        rts
+
+Jump:	JML [$0008]	;jump to AICondition table
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc AICondition
+
+_2814:
+;%generatejumptable(AICondition,$12)
+;vanilla values:
+.word $283A, $283E, $289D, $28DB, $28EB, $291F, $2939, $29B1
+.word $2A29, $2A63, $2A9D, $2AD2, $2B19, $2B2A, $2B6F, $2B87
+.word $2B93, $2BC0, $2BFD
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition $00: Always Succeed
+.proc AICondition00
+
+        inc AIConditionMet
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition 01: Check Status
+;Param1: AITarget routine
+;Param2: Status offset (0-3 for status 1-4)
+;Param3: Status bits
+;if checking for death status, also succeed if hp is 0 (though this behavior is bugged)
+.proc AICondition01
+
+        lda AIParam1
+        jsr GetAITarget	;populates list of targets to check
+        lda AIParam2
+        tax
+        stx $0E
+        tdc
+        tay
+Loop:	rep #$20
+        lda AITargetOffsets,Y
+        ; TODO: this fails with Error: Range error (65535 not in [0..255])
+        ;cmp #$FFFF	;end of list or no target found
+        bne TargetFound
+        shorta0
+        bra Finish
+TargetFound:
+        sta $10		;target offset
+        clc
+        adc $0E		;status offset
+        tax
+        shorta0
+        lda CharStruct::Status1,X	;could be status 1-4 depending
+        ora CharStruct::AlwaysStatus1,X	;on status offset
+        and AIParam3
+        bne Match
+        lda $0E
+        bne Next
+        lda AIParam3
+        bpl Next
+        ldx $10			;if asked to check death status
+        lda CharStruct::CurHP,X	;also succeed if hp is 0
+        ora CharStruct::CurHP,X	;**bug: should be high byte $2007
+        bne Next
+Match:	INC AIConditionMet
+Next:	INY
+        iny
+        cpy #$0018	;12 characters * 2 bytes
+        bne Loop
+Finish:			;fail if any targets failed	
+        lda AIMultiTarget
+        beq Ret
+        lda AITargetCount
+        cmp AIConditionMet
+        beq Ret
+        stz AIConditionMet
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition 02: HP less than value
+;Param1: AITarget routine
+;Param2: HP (low byte)
+;Param3: HP (high byte)
+.proc AICondition02
+
+_289D:
+        lda AIParam1
+        jsr GetAITarget
+        tdc
+        tay
+Loop:	REP #$20
+        lda AITargetOffsets,Y
+        tax
+        ; TODO: this fails with Error: Range error (65535 not in [0..255])
+        ;cmp #$FFFF	;end of list or no target found
+        beq FinishMode
+        lda CharStruct::CurHP,X
+        cmp AIParam2
+        bcs Next
+        inc AIConditionMet
+Next:	TDC
+        shorta
+        iny
+        iny
+        cpy #$0018	;12 characters * 2 bytes
+        bne Loop
+        bra Finish	;not needed (resetting mode is harmless)
+FinishMode:		;need to fix A back to 8 bit
+        shorta0
+Finish:			;fail if any targets failed
+        lda AIMultiTarget
+        beq Ret
+        lda AITargetCount
+        cmp AIConditionMet
+        beq Ret
+        stz AIConditionMet
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition 03: Check Variable
+;Param2: Var to check (0-3)
+;Param3: Value
+.proc AICondition03
+
+_28DB:
+        lda AIParam2
+        tax
+        lda AIVars,X
+        cmp AIParam3
+        bne Fail
+        inc AIConditionMet
+Fail:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition 03: Alone 
+;Param2: if 0, succeeds when completely alone
+;	 if non-0, succeeds when all active monsters are the same
+.proc AICondition04
+
+_28EB:
+        lda AIParam2
+        bne CheckSame
+        lda MonstersVisible
+        jsr CountSetBits
+        dex
+        beq Met
+        rts
+
+CheckSame:
+        lda MonsterIndex
+        asl
+        tax
+        lda BattleMonsterID,X
+        sta $0E
+        tdc
+        tay
+Loop:	LDA ActiveParticipants+4,Y
+        beq Next
+        tya
+        asl
+        tax
+        lda BattleMonsterID,X
+        cmp $0E
+        bne Fail
+Next:	INY
+        cpy #$0008
+        bne Loop
+Met:
+        inc AIConditionMet
+Fail:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition 05: Compare Visible Monsters
+;Param1: if 0, succeeds if visible monsters match provided value
+;	 if non-0, succeeds if they do not match
+;Param3: Monster Bits (1 bit per monster)
+.proc AICondition05
+
+_291F:
+        lda AIParam1
+        beq CheckMatch
+        lda MonstersVisible
+        cmp AIParam3
+        bne Met
+        rts
+
+CheckMatch:
+        lda MonstersVisible
+        cmp AIParam3
+        bne Fail
+Met:	INC AIConditionMet
+Fail:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition 06: Reaction to Command and/or Element
+;Param1: if set, inverts test so a match fails the condition, and ignores element when checking commands
+;Param2: Command (post-remap values)
+;	 Command $07, normally BuildUp, is used as a flag to skip the command check and just check element
+;Param3: Element (ignored if zero)
+.proc AICondition06
+
+_2939:
+        ldx AttackerOffset
+        lda ReactionFlags
+        and #$01
+        bne Reaction2	;Check 2nd set of reactions instead
+        lda AIParam2	;command
+        cmp #$07	;used as a flag to skip command check
+        beq SkipCmdCheck1
+        lda AIParam1	;invert checks
+        beq CheckCmdMatch1
+        lda AIParam2
+        cmp CharStruct::Reaction1Command,X
+        bne Met	;if param1 is >0, succeed when no cmd match
+        rts
+
+CheckCmdMatch1:
+        lda AIParam2
+        cmp CharStruct::Reaction1Command,X
+        bne Fail	;if param1 is 0, fail when no cmd match
+SkipCmdCheck1:		;command match or command $07 override 
+        lda AIParam1
+        beq CheckElemMatch1
+        lda AIParam3	;element
+        and CharStruct::Reaction1Element,X
+        beq Met	;if param1 is >0, succeed when no elem match
+        rts	;(only reachable via the $07 override)
+CheckElemMatch1:
+        lda AIParam3
+        beq Met	;succeed when element is 0
+        and CharStruct::Reaction1Element,X
+        bne Met	;or when any element matches
+        rts
+
+Reaction2:	;same logic as above, but react to the second stored command
+        lda AIParam2
+        cmp #$07
+        beq SkipCmdCheck2
+        lda AIParam1
+        beq CheckCmdMatch2
+        lda AIParam2
+        cmp CharStruct::Reaction2Command,X
+        bne Met
+        rts
+
+CheckCmdMatch2:
+        lda AIParam2
+        cmp CharStruct::Reaction2Command,X
+        bne Fail
+SkipCmdCheck2:
+        lda AIParam1
+        beq CheckElemMatch2
+        lda AIParam3
+        and CharStruct::Reaction2Element,X
+        beq Met
+        rts
+
+CheckElemMatch2:
+        lda AIParam3
+        beq Met
+        and CharStruct::Reaction2Element,X
+        beq Fail
+Met:	INC AIConditionMet
+Fail:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition $07: Reaction to Command and/or Category
+;Param1: if set, inverts test so a match fails the condition, and ignores category when checking commands
+;Param2: Command (post-remap values)
+;	 Command $07, normally BuildUp, is used as a flag to skip the command check and just check category
+;Param3: Category (ignored if zero)
+.proc AICondition07
+
+_29B1:
+        ldx AttackerOffset
+        lda ReactionFlags
+        and #$01
+        bne Reaction2	;Check 2nd set of reactions instead
+        lda AIParam2	;command
+        cmp #$07	;used as a flag to skip command check
+        beq SkipCmdCheck1
+        lda AIParam1	;invert checks if set
+        beq CheckCmdMatch1
+        lda AIParam2
+        cmp CharStruct::Reaction1Command,X
+        bne Met	;if param1 is >0, succeed when no cmd match
+        rts
+
+CheckCmdMatch1:
+        lda AIParam2
+        cmp CharStruct::Reaction1Command,X
+        bne Fail	;if param1 is 0, fail when no cmd match
+SkipCmdCheck1:		;command match or command $07 override
+        lda AIParam1
+        beq CheckCatMatch1
+        lda AIParam3	;category
+        and CharStruct::Reaction1Category,X
+        beq Met	;if param1 >0, succeed when no category match
+        rts
+
+CheckCatMatch1:
+        lda AIParam3
+        beq Met	;succeed when category is 0
+        and CharStruct::Reaction1Category,X
+        bne Met	;or when any category matches
+        rts
+
+Reaction2:	;same logic as above, but react to the second stored command
+        lda AIParam2
+        cmp #$07	;used as a flag to skip command check
+        beq SkipCmdCheck2
+        lda AIParam1
+        beq CheckCmdMatch2
+        lda AIParam2
+        cmp CharStruct::Reaction2Command,X
+        bne Met
+        rts
+
+CheckCmdMatch2:
+        lda AIParam2
+        cmp CharStruct::Reaction2Command,X
+        bne Fail
+SkipCmdCheck2:
+        lda AIParam1
+        beq CheckCatMatch2
+        lda AIParam3
+        and CharStruct::Reaction2Category,X
+        beq Met
+        rts
+
+CheckCatMatch2:
+        lda AIParam3
+        beq Met
+        and CharStruct::Reaction2Category,X
+        beq Fail
+Met:	INC AIConditionMet
+Fail:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition $08: Reaction to Magic
+;Param1: if set, inverts test so a match fails the condition
+;Param2: Spell
+.proc AICondition08
+
+_2A29:
+        ldx AttackerOffset
+        lda ReactionFlags
+        and #$01	;check second set of reactions
+        bne Reaction2
+        lda AIParam1
+        beq CheckMatch1
+        lda CharStruct::Reaction1Magic,X
+        cmp AIParam2
+        bne Met
+        rts
+
+CheckMatch1:
+        lda CharStruct::Reaction1Magic,X
+        cmp AIParam2
+        beq Met
+        rts
+
+Reaction2:
+        lda AIParam1
+        beq CheckMatch2
+        lda CharStruct::Reaction2Magic,X
+        cmp AIParam2
+        bne Met
+        rts
+
+CheckMatch2:
+        lda CharStruct::Reaction2Magic,X
+        cmp AIParam2
+        bne Fail
+Met:	INC AIConditionMet
+Fail:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition $09: Reaction to Item
+;Param1: if set, inverts test so a match fails the condition
+;Param2: Item
+.proc AICondition09
+
+_2A63:
+        ldx AttackerOffset
+        lda ReactionFlags
+        and #$01	;check second set of reactions
+        bne Reaction2
+        lda AIParam1
+        beq CheckMatch1
+        lda CharStruct::Reaction1Item,X
+        cmp AIParam2
+        bne Met
+        rts
+
+CheckMatch1:
+        lda CharStruct::Reaction1Item,X
+        cmp AIParam2
+        beq Met
+        rts
+
+Reaction2:
+        lda AIParam1
+        beq CheckMatch2
+        lda CharStruct::Reaction2Item,X
+        cmp AIParam2
+        bne Met
+        rts
+
+CheckMatch2:
+        lda CharStruct::Reaction2Item,X
+        cmp AIParam2
+        bne Fail
+Met:	INC AIConditionMet
+Fail:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition $0A: Reaction to Targetting
+;Param3: if 0, succeeds when attack was single target
+;	 if non-0, succeeds when attack was multi target
+.proc AICondition0A
+
+_2A9D:
+        lda ReactionFlags
+        and #$01	;check second set of reactions
+        bne Reaction2
+        ldx AttackerOffset
+        lda CharStruct::Reaction1Targets,X
+        jsr CountSetBits
+        dex 		;targets -1
+        bmi Fail	;fail for 0 targets
+        jmp CheckInvert
+Reaction2:
+        ldx AttackerOffset
+        lda CharStruct::Reaction2Targets,X
+        jsr CountSetBits
+        dex 		;targets -1
+        bmi Fail	;fail for 0 targets
+        jsr CheckInvert
+Fail:	RTS
+CheckInvert:
+        lda AIParam3	;inverts
+        bne Invert
+        txa
+        bne Fail2	;fail for >1 targets
+        beq Met	;succeed for exactly 1 target
+Invert:
+        txa
+        beq Fail2	;fail for exactly 1 target
+Met:	INC AIConditionMet
+Fail2:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition 0B: Check CharStruct param
+;Param1: AITarget routine
+;Param2: Offset within CharStruct to check
+;Param3: Value for success
+.proc AICondition0B
+
+_2AD2:
+        lda AIParam1
+        jsr GetAITarget	;populates list of targets to check
+        lda AIParam2
+        tax
+        stx $0E		;Offset within CharStruct
+        tdc
+        tay
+Loop:	REP #$20
+        lda AITargetOffsets,Y
+        ; TODO: this fails with Error: Range error (65535 not in [0..255])
+        ;cmp #$FFFF	;end of list or no target found
+        bne TargetFound
+        shorta0
+        bra Finish
+TargetFound:
+        clc
+        adc $0E		;Offset within CharStruct
+        tax
+        shorta0
+        lda CharStruct::CharRow,X	;check any single CharStruct byte
+        cmp AIParam3		;compare with provided value
+        bne :+
+        inc AIConditionMet
+:	INY
+        iny
+        cpy #$0018	;12 characters * 2 bytes
+        bne Loop
+Finish:			;fail if any targets failed
+        lda AIMultiTarget
+        beq Ret
+        lda AITargetCount
+        cmp AIConditionMet
+        beq Ret
+        stz AIConditionMet
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition $0C: Compare with value at $A2?
+;Param2/3: 16 bit Value to compare, succeeds if >= value at $A2
+.proc AICondition0C
+
+_2B19:
+        longa
+        lda $00A2	;something from C1 bank	code
+        cmp AIParam2
+        bcc :+
+        inc AIConditionMet
+:	TDC
+        shorta
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition $0D: Check Event Flags
+;Param2: Event Flag # (0-15)
+;Param3: Value (bitmask)
+;There's a special case for Event Flag 03
+.proc AICondition0D
+
+_2B2A:
+        lda AIParam2
+        tax
+        cmp #$03		;special case
+        bne CheckEventFlags	;otherwise just compares flag bits
+        stz $0E
+        tdc
+        tax
+        tay
+PartyLoop:
+        lda BattleData::EventFlags+3
+        jsr SelectBit_X
+        beq Next	;if flag bit not set, skip this party slot
+        phx
+        lda CharStruct::CharRow,Y
+        and #$07	;character (butz, etc)
+        tax
+        lda $0E
+        jsr SetBit_X 	;otherwise, set bit corresponding with char
+        sta $0E
+        plx
+Next:
+        longa
+        tya
+        clc
+        adc #$0080	;next CharStruct Offset
+        tay
+        shorta0
+        inx
+        cpx #$0004	;4 party slots
+        bne PartyLoop
+        lda $0E		;bits set for party chars matching flag slots
+        bra CheckMatch
+CheckEventFlags:
+        lda BattleData::EventFlags,X
+CheckMatch:
+        and AIParam3
+        beq Ret
+        inc AIConditionMet
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition $0E: Reaction to Damage
+.proc AICondition0E
+
+_2B6F:
+        lda ReactionFlags
+        and #$01	;check second set of reactions
+        bne Reaction2
+        ldx AttackerOffset
+        lda CharStruct::Reaction1Damage,X
+        bne Met
+        rts
+
+.endproc
+Reaction2:		;**bug: didn't load X for this path, but fortunately it's always? correct already
+        lda CharStruct::Reaction2Damage,X
+        beq Fail
+Met:	INC AIConditionMet
+Fail:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition $0F: Sets flag to skip dead monster checks (Always Succeeds)
+.proc AICondition0F
+
+_2B87:
+        stz $4751
+        lda #$01
+        sta AISkipDeadCheck
+        sta AIConditionMet
+        rts
+
+.endproc
+; ---------------------------------------------------------------------------
+
+;AI Condition $10: One party member alive
+.proc AICondition10
+
+_2B93:
+        tdc
+        tax
+        tay
+        sty $0E
+PartyLoop:	;count number of active party members
+        lda ActiveParticipants,Y
+        beq Next
+        lda CharStruct::Status1,X
+        and #$C2	;Dead/Stone/Zombie
+        bne Next
+        lda CharStruct::CurHP,X
+        ora CharStruct::CurHP+1,X
+        beq Next
+        inc $0E    	;count of active characters
+Next:	JSR NextCharOffset
+        iny
+        cpy #$0004	;4 party members
+        bne PartyLoop
+        lda $0E
+        dec
+        bne Fail  	;>1 party member active
+        inc AIConditionMet
+Fail:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition $11: Reaction to Summon
+.proc AICondition11
+
+_2BC0:
+        lda ReactionFlags
+        and #$01	;check second set of reactions
+        bne Reaction2
+        ldx AttackerOffset
+        lda CharStruct::Reaction1Command,X
+        cmp #$2B	;magic
+        beq :+
+        cmp #$17	;conjure
+        bne Fail
+:	LDA CharStruct::Reaction1Magic,X
+        cmp #$48	;first summon spell
+        bcc Fail
+        cmp #$57	;past last summon spell
+        bcs Fail
+        bra Met
+Reaction2:
+        ldx AttackerOffset
+        lda CharStruct::Reaction2Command,X
+        cmp #$2B	;magic
+        beq :+
+        cmp #$17	;conjure
+        bne Fail
+:	LDA CharStruct::Reaction2Magic,X
+        cmp #$48	;first summon spell
+        bcc Fail
+        cmp #$57	;past last summon spell
+        bcs Fail
+Met:	INC AIConditionMet
+Fail:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;AI Condition $12: No Female targets available
+.proc AICondition12
+
+_2BFD:
+        tdc
+        tax
+        tay
+PartyLoop:
+        lda CharStruct::CharRow,X
+        and #$08	;gender
+        beq Next
+        lda ActiveParticipants,Y
+        beq Next
+        lda CharStruct::Status4,X
+        and #$81	;erased or hidden
+        bne Next
+        lda CharStruct::CmdStatus,X
+        and #$10	;jumping
+        beq Fail  	;girl available, fail condition
+Next:	JSR NextCharOffset
+        iny
+        cpy #$0004
+        bne PartyLoop
+        inc AIConditionMet
+Fail:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc GetAITarget
+
+_2C27:
+        asl
+        tax
+        lda AITarget,X
+        sta $08
+        lda AITarget+1,X
+        sta $09
+        lda #$C2    ;.b #bank(AITarget)
+        sta $0A
+        ldx #$0017	;18 bytes of AI target offsets to init
+        lda #$FF
+:	STA AITargetOffsets,X
+        dex
+        bpl :-
+        stz AIMultiTarget
+        stz AITargetCount
+        jml [$0008]
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;============================ Stud Definitions for compilation purposes =====
 
 .proc MonsterATB
         nop
 .endproc
 
-.proc PerformAction
-        nop
-.endproc
-
 .proc CheckBattleEnd
-        nop
-.endproc
-
-.proc ResetATB
         nop
 .endproc
 
@@ -5495,3 +6996,20 @@ Ret:	rts
 .proc MSword
         nop
 .endproc
+
+.proc AITarget
+        nop
+.endproc
+
+.proc ProcessAIScript
+        nop
+.endproc
+
+.proc DispatchAICommands
+        nop
+.endproc
+
+.proc ProcessTurn
+        nop
+.endproc
+

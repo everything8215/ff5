@@ -1344,7 +1344,7 @@ PendingReactions = $4756		;indicates PauseTimerChecks had some values set
 	ReactConditions	.res 170	;4A83, 10*17 bytes.   4*4byte args then $FE
 	ReactActions          .res 640        ;4B2D, 10*64 byte entries
 .endstruct
-;MonsterAI = MonsterAI.Conditions
+MonsterAI = MonsterAI::Conditions
 
 NextGFXQueueSlot = $79F9		;Max 101, though there can be more queued GFXs than that
 					;game works around it by just searching if so
