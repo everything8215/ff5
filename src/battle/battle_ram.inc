@@ -258,9 +258,11 @@ AttackerDamaged = $63	;makes attacker take damage from attack instead of target
 			;no target healing though so isn't undead reversing drain
 			;not sure where this is used?  
 
-MonsterTargets = $65	;1 bit per monster
+MonsterTargets = $65
+wMonsterTargets = $65	;1 bit per monster
 
-PartyTargets = $66	;1 bit per party member then 0000
+wPartyTargets = $66	;1 bit per party member then 0000
+PartyTargets = $66
 
 ;$70 seems to be a temp var, used for passing data to/from C1 bank
 MonsterDead = $70	

@@ -1,3 +1,15 @@
+.p816
+
+; ===========================================================================
+
+.include "../../include/macros.inc"
+.include "../../include/hardware.inc"
+.include "../../include/const.inc"
+.include "battle_ram.inc"
+.include "battle-main.asm"
+.reloc
+
+
 ; ---------------------------------------------------------------------------
 
 ;Command $01 (Other) and $24 (Dummy01)
@@ -69,7 +81,7 @@ CommandTable1F:
         and #$10	;weapon used as item
         beq :+
         jmp WeaponItem
-:	lda CharStruct::SelectedItem,X
+:       lda CharStruct::SelectedItem,X
         cmp #$EF	;magic lamp
         bne ConsumableItem
         jsr $0767 ;PrepMagicLamp
@@ -84,7 +96,7 @@ ConsumableItem:
         shorta0
         ldy $0C		;ProcSequence*12
         stz $0A
-:	lda !ROMConsumables,X
+:       lda !ROMConsumables,X
         sta !AttackInfo,Y
         inx
         iny
@@ -96,7 +108,7 @@ ConsumableItem:
         iny
         iny
         iny
-:	lda !ROMConsumables,X
+:	    lda !ROMConsumables,X
         sta !AttackInfo,Y
         inx
         iny
@@ -1236,3 +1248,1205 @@ _0DC3:
 .endscope
 
 ; ---------------------------------------------------------------------------
+
+;Command $18 (Conjure)
+.proc CommandTable17
+
+_0DE4:
+ConjureCommand:
+        lda MagicBits+10	;2nd byte of summons
+        and #$FE		;last bit is a song
+        ora MagicBits+9		;1st byte of summons
+        bne PickRandomSummon
+;no summons known
+        lda #$18
+        jsr GFXCmdAttackNameA
+        lda MessageBoxOffset
+        tax
+        lda #$1D		;message
+        sta MessageBoxes,X
+        lda ProcSequence
+        tax
+        lda #$7E		;always miss
+        sta AtkType,X
+        stz MultiTarget,X
+        stz TargetType,X
+        lda #$0D		;ability animation
+        jsr GFXCmdAbilityAnim
+        jsr FinishCommandNullTargets
+        jsr GFXCmdMessage
+        jmp Ret
+PickRandomSummon:
+        tdc
+        tax
+        stx $0E
+        lda #$0E
+        jsr Random_X_A    	;0..14
+        clc
+        adc #$48		;offset of first summon
+        sta TempSpell
+        stz TempIsEffect
+        lsr
+        ror $0E
+        lsr
+        ror $0E
+        lsr
+        ror $0E
+        tay 			;MagicBits offset
+        lda $0E
+        jsr ShiftDivide_32
+        tax 			;MagicBits spell
+        lda MagicBits,Y
+        jsr SelectBit_X
+        beq PickRandomSummon	;don't know this one, try again
+MagicLamp:			;Magic Lamp use jumps in here
+        stz PartyTargets
+        stz MonsterTargets
+        lda TempSpell
+        longa
+        jsr ShiftMultiply_8
+        tax
+        shorta0
+        tdc
+        tay
+:	    LDA !ROMMagicInfo,X
+        sta Temp,Y
+        inx
+        iny
+        cpy #$0008		;copy 8 bytes magic data
+        bne :-
+        lda Temp		;targetting
+        bne FindTargets
+;no targetting data, target self
+        lda AttackerIndex
+        tax
+        tdc
+        jsr SetBit_X
+        sta PartyTargets
+        bra TargetSet
+FindTargets:
+        and #$40		;hits all
+        bne TargetAll
+        lda Temp		;targetting
+        and #$08		;enemy by default
+        bne SingleEnemy
+SingleAlly:			;hardcoded for phoenix, targets first dead ally
+        tdc
+        tax
+        tay
+:	    lDA CharStruct::Status1,X
+        and #$80		;dead
+        bne DeadAlly
+        jsr NextCharOffset
+        iny
+        cpy #$0004		;4 chars
+        bne :-
+        lda #$80		;defaults to first member if none dead
+        bra SetAlly
+DeadAlly:
+        tyx
+        tdc
+        jsr SetBit_X
+SetAlly:	
+        sta PartyTargets	;target single dead ally
+        bra TargetSet
+SingleEnemy:
+        tdc
+        tax
+        lda #$07
+        jsr Random_X_A 		;0..7 random monster
+        tax
+        tdc
+        jsr SetBit_X
+        sta MonsterTargets
+        bra TargetSet
+TargetAll:
+        lda Temp		;targetting
+        and #$08		;enemy by default
+        bne AllEnemy
+        lda #$F0
+        sta PartyTargets	;all allies
+        bra TargetSet
+AllEnemy:
+        lda #$FF
+        sta MonsterTargets	;all enemies
+TargetSet:
+        stz TempAttachedSpell	;params for CastSpell
+        stz TempSkipNaming
+        jsr CastSpell
+        lda TempAttachedSpell
+        beq Ret
+        lda TempAttachedSpell	;second spell, for phoenix summon
+        sta TempSpell
+        stz TempIsEffect
+        lda TempMonsterTargets
+        sta MonsterTargets
+        lda TempPartyTargets
+        sta PartyTargets
+        inc TempSkipNaming	;2nd spell has no label and diff anim
+        jsr CastSpell
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $1B (Tame)
+.proc CommandTable1A
+
+_0EE0:
+        lda #$1B		;tame ability
+        jsr CopyAbilityInfo
+        jsr GetTargets
+        jsr CheckRetarget
+        jsr BuildTargetBitmask
+        lda #$1B		;ability name
+        jsr GFXCmdAttackNameA
+        lda #$1A		;ability anim
+        jsr GFXCmdAbilityAnim
+        jsr MagicAtkTypeSingleTarget
+        jmp FinishCommand
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $1C (Control)
+.proc CommandTable1B
+
+_0EFE:
+        lda #$1C		;control ability
+        jsr CopyAbilityInfo
+        jsr GetTargets
+        jsr CheckRetarget
+        jsr BuildTargetBitmask
+        lda #$1C		;ability name
+        jsr GFXCmdAttackNameA
+        lda #$1B		;ability anim
+        jsr GFXCmdAbilityAnim
+        jsr MagicAtkTypeSingleTarget
+        jsr FinishCommand
+        jmp GFXCmdMessage
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $1D (Catch)
+.proc CommandTable1C
+
+_0F1F:
+        lda #$1D		;catch ability
+        jsr CopyAbilityInfo
+        jsr GetTargets
+        jsr CheckRetarget
+        jsr BuildTargetBitmask
+        lda #$1D		;ability name
+        jsr GFXCmdAttackNameA
+        lda #$1C		;ability anim
+        jsr GFXCmdAbilityAnim
+        jsr MagicAtkTypeSingleTarget
+        jsr FinishCommand
+        jmp GFXCmdMessage
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $1E (Release)
+.proc CommandTable1D
+
+_0F40:
+        ldx AttackerOffset
+        lda CharStruct::CaughtMonster,X
+        sta ReleasedMonsterID
+        pha
+        lda #$FF		;no monster caught
+        sta CharStruct::CaughtMonster,X
+        pla
+        tax
+        lda ROMMonsterReleaseActions,X
+        sta TempSpell
+        longa
+        jsr ShiftMultiply::_8
+        tax
+        shorta0
+        tdc
+        tay
+:  	    LDA !ROMMagicInfo,X
+        sta !TempMagicInfo,Y
+        inx
+        iny
+        cpy #$0008		;8 bytes magic data
+        bne :-
+        jsr SelectCurrentProcSequence
+        tdc
+        tax
+:	    LDA !TempMagicInfo,X
+        sta !AttackInfo,Y
+        inx
+        iny
+        cpx #$0005		;copy first 5 bytes
+        bne :-
+        iny 			;increment dest pointer by 4
+        iny
+        iny
+        iny
+:	    LDA !TempMagicInfo,X
+        sta !AttackInfo,Y
+        inx
+        iny
+        cpx #$0008		;then copy remaining 3 bytes
+        bne :-
+        stz MonsterTargets
+        stz PartyTargets
+        lda TempMagicInfo::Targetting
+        bne Targetting
+        lda AttackerIndex
+        tax
+        tdc
+        jsr SetBit_X
+        sta PartyTargets	;default to attacker if no targetting
+        bra TargetSet
+Targetting:
+        and #$40		;all targets
+        bne TargetAll
+        lda TempMagicInfo::Targetting
+        and #$08		;enemy by default
+        bne TargetEnemy
+TargetParty:
+        tdc
+        tax
+        lda #$03
+        jsr Random_X_A		;0..3 random party
+        cmp AttackerIndex
+        beq TargetParty	;pick again if attacker chosen
+        tax
+        tdc
+        jsr SetBit_X
+        sta PartyTargets
+        bra TargetSet
+TargetEnemy:
+        tdc
+        tax
+        lda #$07
+        jsr Random_X_A	      	;0..7 random monster
+        tax
+        tdc
+        jsr SetBit_X
+        sta MonsterTargets
+        bra TargetSet
+TargetAll:
+        lda TempMagicInfo::Targetting
+        and #$08		;enemy by default
+        bne TargetAllEnemy
+        lda #$F0
+        sta PartyTargets
+        bra TargetSet
+TargetAllEnemy:
+        lda #$FF
+        sta MonsterTargets
+TargetSet:
+        jsr CheckMultiTarget
+        bne Multi
+        lda TempMagicInfo::AtkType
+        bpl CheckRetarget
+        lda ProcSequence
+        tax
+        inc HitsInactive,X
+        bra TargetOK
+CheckRetarget:
+        jsr CheckRetarget
+        bra TargetOK
+Multi:
+        jsr RemoveInactiveTargets
+        jsr CheckMultiTarget
+TargetOK:
+        jsr BuildTargetBitmask
+        lda TempSpell
+        sta Temp+1		;attack id
+        stz Temp		;string table 0
+        jsr GFXCmdAttackNameFromTemp
+        jsr FindOpenGFXQueueSlot
+        stz GFXQueue::Flag,X
+        stz GFXQueue::Data2,X
+        lda #$FC		;exec graphics command
+        sta GFXQueue::Cmd,X
+        lda #$00		;attack animation
+        sta GFXQueue::Type,X
+        lda Temp+1		;attack id
+        sta GFXQueue::Data1,X
+        lda ProcSequence
+        tax
+        lda TempMagicInfo::AtkType
+        and #$7F		;remove flag bit
+        sta AtkType,X
+        lda TempTargetting	;number of targets minus 1
+        sta MultiTarget,X
+        beq :+
+        inc MultiTarget,X	;number of targets (but 1 target -> 0)
+        lda #$80		;multi target
+:	    STA TargetType,X
+        lda ProcSequence
+        asl
+        tax
+        lda TempTargetBitmask
+        sta CommandTargetBitmask,X
+        sta TargetBitmask,X
+        lda TempTargetBitmask+1
+        sta CommandTargetBitmask+1,X
+        sta TargetBitmask+1,X
+        inc ProcSequence
+        jsr GFXCmdDamageNumbers
+        lda AttackerIndex
+        sta $24
+        lda #$14
+        sta $25
+        jsr Multiply_8bit     	;Index * 20, size of CharCommands
+        tdc
+        tay
+        ldx $26			;CharCommands offset
+FindCmd:
+        lda CharCommands::ID,X
+        cmp #$1E		;release
+        beq Found
+        inx
+        iny
+        cpy #$0004		;4 command slots
+        bne FindCmd
+        beq CopyStats
+Found:
+        lda #$1D		;catch
+        sta CharCommands::ID,X
+        lda #$28		;target selectable + enemy default
+        sta CharCommands::Targetting,X
+        inx
+        iny
+        bra FindCmd		;keep going, could have multiple copies
+CopyStats:	;backs up attacker's stats so it can load monster stats instead, they will be restored later
+        ldx AttackerOffset
+        lda CharStruct::Level,X
+        sta SavedCharStats::Level
+        lda CharStruct::MonsterAttack,X
+        sta SavedCharStats::MonsterAttack
+        lda CharStruct::MonsterM,X
+        sta SavedCharStats::MonsterM
+        lda CharStruct::EquippedMag,X
+        sta SavedCharStats::EquippedMag
+        lda CharStruct::CharRow,X
+        sta SavedCharStats::CharRow
+        tdc
+        tay
+CopyStatus:
+        lda CharStruct::Status1,X
+        sta SavedCharStats::Status1,Y
+        stz CharStruct::Status1,X	;clear status for released mon
+        inx
+        iny
+        cpy #$0009		;9 bytes of status/passives
+        bne CopyStatus
+        tdc
+        tay
+        ldx AttackerOffset
+CopyMSword:
+        lda CharStruct::MSwordElemental1,X
+        sta SavedCharStats::MSwordElemental1,Y
+        stz CharStruct::MSwordElemental1,X	;clear all msword
+        inx
+        iny
+        cpy #$0006		;6 bytes msword elements/status
+        bne CopyMSword
+        tdc
+        tay
+        ldx AttackerOffset
+CopyMisc:
+        lda CharStruct::AlwaysStatus1,X
+        sta SavedCharStats::AlwaysStatus1,Y
+        stz CharStruct::AlwaysStatus1,X
+        inx
+        iny
+        cpy #$000B		;11 bytes always status/bonuses/etc
+        bne CopyMisc
+        lda ReleasedMonsterID
+        longa
+        jsr ShiftMultiply::_32
+        tax
+        shorta0
+        ldy AttackerOffset
+        lda CharStruct::CharRow,Y
+        and #$7F		;always front row
+        sta CharStruct::CharRow,Y
+        lda ROMMonsterStats::Level,X
+        sta CharStruct::Level,Y
+        lda ROMMonsterStats::AttackPower,X
+        sta CharStruct::MonsterAttack,Y
+        lda ROMMonsterStats::AttackMult,X
+        sta CharStruct::MonsterM,Y
+        lda ROMMonsterStats::MagicPower,X
+        sta CharStruct::EquippedMag,Y
+        lda #$01
+        sta WasMonsterReleased	;causes stats to be restored later
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $1F(Combine/Mix)
+.proc CommandTable1E
+
+_1125:
+        ldx AttackerOffset
+        lda CharStruct::MonsterTargets,X
+        sta MonsterTargets
+        lda CharStruct::PartyTargets,X
+        sta PartyTargets
+        lda CharStruct::SelectedItem,X
+        sec
+        sbc #$E0	;remove consumable item offset from item id
+        tax
+        stx $0E		;first item consumable index
+        ldx AttackerOffset
+        lda CharStruct::SecondSelectedItem,X
+        sec
+        sbc #$E0	;remove consumable item offset from item id
+        sta $24
+        lda #$0C
+        sta $25
+        jsr Multiply_8bit    	;item*12
+        longa
+        clc
+        lda $26			;second item * 12
+        adc $0E			;+ first item
+        tax
+        shorta0
+        lda ROMCombineSpells,X
+        sta TempSpell
+        stz TempAttachedSpell
+        stz TempSkipNaming
+        lda #$01
+        sta TempIsEffect
+        jmp CastSpell
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $21 (Pray/Recover)
+.proc CommandTable20
+
+_1169:
+        lda #$21		;recover ability
+        jsr CopyAbilityInfo
+        jsr GetTargets
+        jsr BuildTargetBitmask
+        jsr CheckMultiTarget
+        lda #$21		;ability name
+        jsr GFXCmdAttackNameA
+        lda #$20		;ability anim
+        jsr GFXCmdAbilityAnim
+        jsr MagicAtkTypeMultiTarget
+        jsr FinishCommand
+        jmp GFXCmdDamageNumbers
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $22 (Revive)
+.proc CommandTable21
+
+_118A:
+        lda #$22		;revive ability
+        jsr CopyAbilityInfo
+        jsr GetTargets
+        jsr BuildTargetBitmask
+        jsr CheckMultiTarget
+        lda ProcSequence
+        tax
+        inc HitsInactive,X
+        lda #$22		;ability name
+        jsr GFXCmdAttackNameA
+        lda #$21		;ability anim
+        jsr GFXCmdAbilityAnim
+        jsr MagicAtkTypeMultiTarget
+        jsr FinishCommand
+        jmp GFXCmdDamageNumbers
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $23 (Gaia/Terrain)
+.proc CommandTable22
+
+_11B2:
+        tdc
+        tax
+        lda Level
+        jsr Random_X_A 	;0..Level
+        cmp #$0B
+        bcs :+
+        tdc          	;<11, 0
+        bra Chosen
+:	    CMP #$15
+        bcs :+
+        lda #$01     	;<21, 1
+        bra Chosen
+:	    CMP #$33
+        bcs :+
+        lda #$02     	;<50, 2
+        bra Chosen
+:	    LDA #$03     	;otherwise 3
+Chosen:
+        sta $0E		;terrain spell slot 0-3
+        lda TerrainType
+        jsr ShiftMultiply_4
+        clc
+        adc $0E
+        tax
+        lda ROMTerrainSpells,X
+        sta TempSpell
+        lda TempSpell	;pointless load?
+        longa
+        jsr ShiftMultiply_8
+        tax
+        shorta0
+        tdc
+        tay
+:	    LDA !ROMEffectInfo,X
+        sta Temp,Y
+        inx
+        iny
+        cpy #$0008	;copy 8 bytes spell data
+        bne :-
+        stz PartyTargets
+        stz MonsterTargets
+        lda Temp		;targetting byte
+        bne Targetting
+        lda AttackerIndex	;default to attacker
+        tax
+        tdc
+        jsr SetBit_X
+        sta PartyTargets
+        bra TargetSet
+Targetting:
+        and #$08	;target enemy by default
+        bne TargetEnemy
+        lda Temp
+        and #$40	;target all
+        bne TargetAllParty
+        tdc
+        tax
+        lda #$03
+        jsr Random_X_A 	;0..3 random party
+        tax
+        tdc
+        jsr SetBit_X
+        sta PartyTargets
+        bra TargetSet
+TargetAllParty:
+        lda #$F0
+        sta PartyTargets
+        bra TargetSet
+TargetEnemy:
+        lda Temp
+        and #$40	;target all
+        bne TargetAllEnemy
+        tdc
+        tax
+        lda #$07	;0..7 random monster
+        jsr Random_X_A
+        tax
+        tdc
+        jsr SetBit_X
+        sta MonsterTargets
+        bra TargetSet
+TargetAllEnemy:
+        lda #$FF
+        sta MonsterTargets
+TargetSet:
+        stz TempAttachedSpell
+        stz TempSkipNaming
+        lda #$01
+        sta TempIsEffect
+        jmp CastSpell
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $25 (Hide)
+.proc CommandTable24
+
+_125E:
+        ldx AttackerOffset
+        lda CharStruct::Status4,X
+        ora #$01	;hidden
+        sta CharStruct::Status4,X
+        lda #$25	;hide ability name
+        jsr GFXCmdAttackNameA
+        lda #$24	;hide ability anim
+        jsr GFXCmdAbilityAnim
+        lda ProcSequence
+        tax
+        stz AtkType,X
+        stz MultiTarget,X
+        stz TargetType,X
+        inc UnknownReaction
+        jsr FinishCommandNullTargets
+        lda AttackerIndex
+        sta $24
+        lda #$14	;20, size of CharCommands struct
+        sta $25
+        jsr Multiply_8bit
+        tdc
+        tay
+        ldx $26
+FindHideCommands:
+        lda CharCommands::ID,X
+        cmp #$25	;hide command
+        beq Found
+        inx
+        iny
+        cpy #$0004	;4 command slots
+        bne FindHideCommands
+        beq Ret
+Found:	LDA #$26	;show command
+        sta CharCommands::ID,X
+        lda #$08	;target enemy?
+        sta CharCommands::Targetting,X
+        inx
+        iny
+        bra FindHideCommands
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $26 (Show)
+.proc CommandTable25
+
+_12B3:
+        ldx AttackerOffset
+        lda CharStruct::Status4,X
+        and #$FE	;clear hidden
+        sta CharStruct::Status4,X
+        lda #$26	;show ability name
+        jsr GFXCmdAttackNameA
+        lda #$25	;show ability anim
+        jsr GFXCmdAbilityAnim
+        lda ProcSequence
+        tax
+        stz AtkType,X
+        stz MultiTarget,X
+        stz TargetType,X
+        inc UnknownReaction
+        jsr FinishCommandNullTargets
+        lda AttackerIndex
+        sta $24
+        lda #$14	;20, size of CharCommands struct
+        sta $25
+        jsr Multiply_8bit
+        tdc
+        tay
+        ldx $26
+FindShowCommands:
+        lda CharCommands::ID,X
+        cmp #$26	;show command
+        beq Found
+        inx
+        iny
+        cpy #$0004	;4 command slots
+        bne FindShowCommands
+        beq Ret
+Found:
+        lda #$25
+        sta CharCommands::ID,X
+        stz CharCommands::Targetting,X
+        inx
+        iny
+        bra FindShowCommands
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $29 (Flirt)
+.proc CommandTable28
+
+_1306:
+        lda #$29	;flirt ability
+        jsr CopyAbilityInfo
+        jsr GetTargets
+        jsr CheckRetarget
+        jsr BuildTargetBitmask
+        lda #$29	;ability name
+        jsr GFXCmdAttackNameA
+        lda #$28	;ability anim
+        jsr GFXCmdAbilityAnim
+        jsr MagicAtkTypeSingleTarget
+        jsr FinishCommand
+        jsr GFXCmdDamageNumbers
+        lda MessageBoxOffset
+        tax
+        lda #$27	;message
+        sta MessageBoxes,X
+        jmp GFXCmdMessage
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $2A (Dance)
+.proc CommandTable29
+
+_1333:
+        stz ProcSequence	;reset command sequence (no procs)
+        stz NextGFXQueueSlot
+        tdc
+        tax
+        lda #$03
+        jsr Random_X_A		;0..3 random dance
+        sta TempDance
+        ldx AttackerOffset
+        lda CharStruct::ArmorProperties,X
+        and #$04		;sword dance up
+        beq DanceCheck
+        jsr Random_0_99
+        lsr
+        bcs NotSwordDance	;50% chance of sword dance
+        lda #$03		;sword dance
+        sta TempDance
+        bra DanceCheck
+NotSwordDance:
+        jsr Random_0_99
+        lsr
+        stz TempDance
+        rol TempDance		;50% chance of 0 or 1
+DanceCheck:
+        lda TempDance
+        cmp #$03		;sword dance
+        beq SwordDance
+        jsr GetTargets
+        jsr CheckRetarget
+        jsr BuildTargetBitmask
+        jsr CheckMultiTarget
+        clc
+        lda TempDance
+        adc #$79		;offset to dance strings
+        sta Temp+1		;string id / ability id
+        stz Temp		;string table
+        jsr GFXCmdAttackNameFromTemp
+        lda #$29		;dance anim
+        jsr GFXCmdAbilityAnim
+        jsr SelectCurrentProcSequence
+        lda Temp+1		;ability id
+        jsr CopyROMMagicInfo
+        jsr MagicAtkTypeSingleTarget
+        jsr FinishCommand
+        jmp GFXCmdDamageNumbers
+SwordDance:
+        lda #$7D		;sword dance ability
+        sta Temp+1		;string id / ability id
+        stz Temp		;string table
+        jsr GFXCmdAttackNameFromTemp
+        lda #$29		;dance anim
+        jsr GFXCmdAbilityAnim
+        lda ProcSequence
+        tax
+        lda #$7F		;do nothing
+        sta AtkType,X
+        stz MultiTarget,X
+        stz TargetType,X
+        jsr FinishCommandNullTargets
+        jsr GFXCmdDamageNumbers
+        ldx AttackerOffset
+        lda CharStruct::DamageMod,X
+        ora #$D0		;auto hit, damage*2, M*2
+        sta CharStruct::DamageMod,X
+        jmp SimpleFight
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $2B (Mimic)
+.proc CommandTable2A
+
+_13CE:
+        tdc
+        tay
+        ldx AttackerOffset
+:	    LDA !SavedAction,Y
+        sta CharStruct::ActionFlag,X
+        inx
+        iny
+        cpy #$000A	;copy 10 bytes action data
+        bne :-
+        ldx AttackerOffset
+        lda CharStruct::ActionFlag,X
+        and #$FE	;clear "costs mp" bit
+        sta CharStruct::ActionFlag,X
+        lda CharStruct::Command,X
+        jmp DispatchCommand_CommandReady
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $51
+;Flirt Throbbing
+;(null command with a message)
+.proc CommandTable2F
+
+_13EF:
+        jsr FindOpenGFXQueueSlot
+        stz GFXQueue::Flag,X
+        stz GFXQueue::Cmd,X
+        stz GFXQueue::Type,X
+        stz GFXQueue::Data1,X
+        stz GFXQueue::Data2,X
+        lda ProcSequence
+        tax
+        stz AtkType,X
+        stz MultiTarget,X
+        stz TargetType,X
+        jsr FinishCommandNullTargets
+        lda MessageBoxOffset
+        tax
+        lda #$28	;message to display
+        sta MessageBoxes,X
+        jmp GFXCmdMessage
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $52 
+;Jump with a different name
+.proc CommandTable30
+
+_141D:
+        lda #$52	;command name
+        jsr GFXCmdAttackNameA
+        jmp JumpCommand_Anim
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $53
+;Handles weapons that cast effect spells
+;Wind Slash by default, but can be called mid-routine for other effects like Earthquake
+.proc CommandTable31
+
+_1425:
+        lda #$4B	;wind slash spell effect
+        sta TempEffect
+WeaponEffectCommand:	;called here for other weapon effects
+        stz $0E		;hand
+        stz NextGFXQueueSlot
+        ldx AttackerOffset
+        lda CharStruct::RHWeapon,X
+        bne :+
+        lda #$80	;left hand
+        sta $0E
+:	    JSR FindOpenGFXQueueSlot
+        stz GFXQueue::Flag
+        lda #$FC	;exec graphics command
+        sta GFXQueue::Cmd
+        lda #$01	;ability/command anim
+        sta GFXQueue::Type
+        lda #$04	;fight
+        sta GFXQueue::Data1
+        lda $0E		;hand (0 for RH, 80 for LH)
+        sta GFXQueue::Data2
+        lda #$7E	;always miss
+        sta AtkType
+        stz MultiTarget
+        stz TargetType
+        stz CommandTargetBitmask
+        stz CommandTargetBitmask+1
+        inc ProcSequence
+        jsr GFXCmdDamageNumbers
+        lda #$FF
+        sta wMonsterTargets	;**optimize: wasted bytes
+        stz wPartyTargets
+        lda TempEffect
+        sta TempSpell
+        lda #$01
+        sta TempIsEffect
+        sta TempSkipNaming
+        stz TempAttachedSpell
+        jsr CastSpell
+        ldx AttackerOffset
+        lda CharStruct::Command,X
+        cmp #$0C	;capture/mug
+        bne Ret	;removes return address from stack for capture
+        plx 		;likely unreachable since capture cancels procs
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $54
+;Job-specific attack animation
+;likely for credits demo?
+.proc CommandTable32
+
+_1490:
+        ldx AttackerOffset
+        clc
+        lda CharStruct::Job,X
+        adc #$30
+        jsr GFXCmdAbilityAnim
+        lda #$7F	;null attack
+        sta AtkType
+        stz MultiTarget
+        stz TargetType
+        lda #$08	;first monster
+        sta CommandTargetBitmask
+        sta TargetBitmask
+        stz CommandTargetBitmask+1
+        stz TargetBitmask+1
+        inc UnknownReaction
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $55
+;for Double Lance, attacks twice per hand if hand's weapon has this command proc 
+.proc CommandTable33
+
+_14B8:
+        stz ProcSequence	;cancels any other procs
+        stz NextGFXQueueSlot
+        ldx AttackerOffset
+        lda CharStruct::MonsterTargets,X
+        sta MonsterTargets
+        lda CharStruct::PartyTargets,X
+        sta PartyTargets
+        jsr CheckRetarget
+        ldx AttackerOffset
+        lda PartyTargets
+        sta CharStruct::PartyTargets,X
+        lda MonsterTargets
+        sta CharStruct::MonsterTargets,X
+        pha
+        and #$F0
+        lsr
+        lsr
+        lsr
+        lsr
+        ora CharStruct::PartyTargets,X
+        sta TempTargetBitmask
+        pla
+        and #$0F
+        asl
+        asl
+        asl
+        asl
+        sta TempTargetBitmask+1
+        lda AttackerIndex
+        tax
+        lda ROMTimes84,X	;size of one character's gear structs
+        tax
+        stx $0E			;GearStruct offset
+        ldx AttackerOffset
+        lda CharStruct::RHWeapon,X
+        bne RH
+        jmp LH
+RH:	    JSR SelectCurrentProcSequence
+        sty $14
+        stz $12
+        ldx $0E
+:      	LDA !RHWeapon,X
+        sta !AttackInfo,Y
+        inx
+        iny
+        inc $12
+        lda $12
+        cmp #$0C		;copy 12 bytes weapon data
+        bne :-
+        jsr FindOpenGFXQueueSlot
+        stz GFXQueue::Flag,X
+        lda #$FC		;exec graphics command
+        sta GFXQueue::Cmd,X
+        lda #$01		;ability/command animation
+        sta GFXQueue::Type,X
+        lda #$04		;fight
+        sta GFXQueue::Data1,X
+        stz GFXQueue::Data2,X	;right hand, no msword
+        ldx $0E			;GearStruct offset
+        lda RHWeapon::AtkType,X
+        pha
+        lda ProcSequence
+        tax
+        pla
+        sta AtkType,X
+        stz MultiTarget,X
+        stz TargetType,X
+        lda ProcSequence
+        asl
+        tax
+        lda TempTargetBitmask
+        sta CommandTargetBitmask,X
+        lda TempTargetBitmask+1
+        sta CommandTargetBitmask+1,X
+        inc ProcSequence
+        jsr GFXCmdDamageNumbers
+        jsr SelectCurrentProcSequence
+        sty $14
+        stz $12
+        ldx $0E			;GearStruct offset
+        lda RHWeapon::Properties,X
+        and #$02		;command instead of attack
+        beq LH
+        lda RHWeapon::Param3,X
+        cmp #$55		;this command
+        bne LH
+:	    LDA !RHWeapon,X
+        sta !AttackInfo,Y
+        inx
+        iny
+        inc $12
+        lda $12
+        cmp #$0C		;copy 12 bytes data for 2nd attack
+        bne :-
+        lda #$80
+        sta ActionAnimShift	;flag for later anim manipulation
+        jsr FindOpenGFXQueueSlot
+        stz GFXQueue::Flag,X
+        stz GFXQueue::Cmd,X
+        stz GFXQueue::Type,X
+        stz GFXQueue::Data1,X
+        stz GFXQueue::Data2,X
+        ldx $0E			;GearStruct offset
+        lda RHWeapon::AtkType,X
+        pha
+        lda ProcSequence
+        tax
+        pla
+        sta AtkType,X
+        stz MultiTarget,X
+        stz TargetType,X
+        lda ProcSequence
+        asl
+        tax
+        lda TempTargetBitmask
+        sta CommandTargetBitmask,X
+        lda TempTargetBitmask+1
+        sta CommandTargetBitmask+1,X
+        inc ProcSequence
+        jsr GFXCmdDamageNumbers
+LH:	    LDX AttackerOffset
+        lda CharStruct::LHWeapon,X
+        bne :+
+        jmp Ret
+:       JSR SelectCurrentProcSequence
+        sty $12
+        stz $14
+        ldx $0E			;GearStruct offset
+:   	LDA !LHWeapon,X
+        sta !AttackInfo,Y
+        inx
+        iny
+        inc $14
+        lda $14
+        cmp #$0C		;copy 12 bytes weapon data
+        bne :-
+        ldx $0E			;GearStruct offset
+        lda ProcSequence
+        tay
+        lda LHWeapon::AtkType,X
+        sta AtkType,Y
+        jsr FindOpenGFXQueueSlot
+        stz GFXQueue::Flag,X
+        lda #$FC		;exec graphics command
+        sta GFXQueue::Cmd,X
+        lda #$01		;command/ability anim
+        sta GFXQueue::Type,X
+        lda #$04		;fight
+        sta GFXQueue::Data1,X
+        lda #$80		;left hand, no msword
+        sta GFXQueue::Data2,X
+        lda ProcSequence
+        tax
+        stz MultiTarget,X
+        stz TargetType,X
+        lda ProcSequence
+        asl
+        tax
+        lda TempTargetBitmask
+        sta CommandTargetBitmask,X
+        lda TempTargetBitmask+1
+        sta CommandTargetBitmask+1,X
+        inc ProcSequence
+        jsr GFXCmdDamageNumbers
+        jsr SelectCurrentProcSequence
+        sty $12
+        stz $14
+        ldx $0E
+        lda LHWeapon::Properties,X
+        and #$02		;command instead of attack
+        beq Ret
+        lda LHWeapon::Param3,X
+        cmp #$55		;this command
+        bne Ret
+:	    LDA !LHWeapon,X
+        sta !AttackInfo,Y
+        inx
+        iny
+        inc $14
+        lda $14
+        cmp #$0C		;copy 12 bytes weapon data for 2nd atk
+        bne :-
+        lda ActionAnimShift
+        ora #$40
+        sta ActionAnimShift
+        ldx $0E
+        lda ProcSequence
+        tay
+        lda LHWeapon::AtkType,X
+        sta AtkType,Y
+        jsr FindOpenGFXQueueSlot
+        stz GFXQueue::Flag,X
+        stz GFXQueue::Cmd,X
+        stz GFXQueue::Type,X
+        stz GFXQueue::Data1,X
+        stz GFXQueue::Data2,X
+        lda ProcSequence
+        tax
+        stz MultiTarget,X
+        stz TargetType,X
+        lda ProcSequence
+        asl
+        tax
+        lda TempTargetBitmask
+        sta CommandTargetBitmask,X
+        lda TempTargetBitmask+1
+        sta CommandTargetBitmask+1,X
+        inc ProcSequence
+        jsr GFXCmdDamageNumbers
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $56
+;Earthquake weapon effect
+.proc CommandTable34
+
+_16A2:
+        lda #$4A	;earthquake
+        sta TempEffect
+        jmp WeaponEffectCommand
+
+.endproc
