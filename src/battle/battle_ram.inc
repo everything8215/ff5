@@ -671,7 +671,7 @@ MusicData = $1D00
 	Reaction2Damage	.res 1		;207E
 	SpecialtyName		.res 1		;207F
 .endstruct
-;CharStruct = CharStruct.CharRow
+CharStruct = CharStruct::CharRow
 
 
 
@@ -960,7 +960,8 @@ DisplayDamage = $3A4C		;a displayed damage number (16 bit)
 
 ;7 byte structure here (indexed by multicommand*7)
 ;saves data after an action to allow it to be animated by C1 bank code
-.struct ActionAnim
+.macro CreateActionAnim name
+.struct name
 	Flags		.res 1	;$3BCC	;3BD3	;3BDA	;3BE1
 							;80h Attacker was a monster
 							;40h Target was a monster
@@ -978,6 +979,14 @@ DisplayDamage = $3A4C		;a displayed damage number (16 bit)
 	ReflecteeBits		.res 1	;$3BD1	;3BD8
 	CoveredBits 		.res 1	;$3BD2	;3BD9
 .endstruct
+.endmacro
+
+.org $7E3BCC
+CreateActionAnim ActionAnim0
+CreateActionAnim ActionAnim1
+CreateActionAnim ActionAnim2
+CreateActionAnim ActionAnim3
+
 
 BlockType = $3C3C		;type of block
 					;Set to 1 for Hardened/Defender
@@ -1246,7 +1255,7 @@ MonsterMagic = $7E41DE		;spells available to monsters
 	Party		.res 1	;425E
 	Monster	.res 1	;425F
 .endstruct
-;MMTargets = MMTargets.Party
+MMTargets = MMTargets::Party
 
 MonsterOffset16 = $435E		;monster index *16, used in monster atb/ai
 MonsterOffset32 = $4360		;monster index *32, used in monster atb/ai
@@ -1603,13 +1612,23 @@ CurrentChar = $7B7B			;used in some routines to keep track of the current charac
 
 GearChanged = $7B7D			;>0 means equipment was changed in the battle item menu
 
-.struct CombinedStatus		;4 bytes * 16 participant slots, combines StatusX and AlwaysStatusX
+.macro CreateCombinedStatus name
+.struct name		;4 bytes * 16 participant slots, combines StatusX and AlwaysStatusX
 					;4 party, 4 unused?, 8 monsters
 	S1		.res 1	;7B7E 	;7B9E
 	S2		.res 1	;7B7F	;7B9F
 	S3		.res 1	;7B80	;7BA0
 	S4		.res 1	;7B81	;7BA1
 .endstruct
+.endmacro
+
+; Address of first party combined status
+.org $7E7B7E
+CreateCombinedStatus CombinedStatus
+
+; Address of first monster combined status
+.org $7E7B9E
+CreateCombinedStatus MonsterCombinedStatus
 
 BattleOver = $7BDE			;Flag for ending battle
 					;80h: Enemies dead
