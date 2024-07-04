@@ -9338,6 +9338,3821 @@ Finish:
 
 .endproc
 
+; ---------------------------------------------------------------------------
+
+.proc CheckReactionConditions
+
+_3C10:
+        stz AISkipDeadCheck
+        stz AIConditionMet
+        lda ReactingIndex
+        sta MonsterIndex
+        tax
+        lda MonsterReactions,X
+        beq Ret
+        lda MonsterEscaped,X
+        bne Ret
+        lda ReactingIndex
+        asl
+        tax
+        longa
+        clc
+        lda ROMTimes1620w,X	;size of MonsterAI struct
+        adc #MonsterAI::ReactConditions
+        sta AIOffset
+        shorta0
+        stz AICurrentCheckedSet
+CheckSets:		;10 sets of 4 conditions
+        lda AICurrentCheckedSet
+        tax
+        lda ROMTimes17,X	;size of a condition set
+        tay
+        sty AIConditionOffset
+        stz AICheckIndex
+CheckEachCondition:
+        ldy AIConditionOffset
+        lda (AIOffset),Y
+        beq Ret
+        cmp #$FE	;end of condition set
+        beq Ret	;returning here means all consitions succeeded
+        jsr CheckAICondition
+        lda AIConditionMet
+        beq Finish
+        longa
+        clc
+        lda AIConditionOffset
+        adc #$0004	;next condition in set
+        sta AIConditionOffset
+        shorta0
+        inc AICheckIndex
+        bra CheckEachCondition
+Finish:	INC AICurrentCheckedSet
+        lda AICurrentCheckedSet
+        cmp #$0A	;10 sets
+        bne CheckSets
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc SaveActionData
+
+_3C7F:
+        tdc
+        tay
+        ldx AttackerOffset
+:	LDA CharStruct::ActionFlag,X
+        sta SavedAction2,Y
+        inx
+        iny
+        cpy #$000A	;copy 10 bytes of action data
+        bne :-
+        lda ReactingIndex
+        cmp #$04	;monster check
+        bcc Finish
+        sec
+        sbc #$04	;now monster index
+        sta $10
+        asl
+        tax
+        lda ROMTimes100w,X	;size of MonsterAIScript
+        sta $0E
+        lda ROMTimes100w+1,X
+        sta $0F
+        tdc
+        tay
+        ldx $0E		;AI Script Offset
+:	LDA MonsterAIScript,X
+        sta SavedMonsterAIScript,Y
+        inx
+        iny
+        cpy #$0064	;100 bytes copied
+        bne :-
+        lda $10		;monster index
+        jsr ShiftMultiply_16
+        tax
+        stx $0E		;*16
+        asl
+        tax
+        stx $10		;*32
+        tdc
+        tay
+        ldx $0E
+:	LDA MonsterMagic,X
+        sta SavedMonsterMagic,Y
+        inx
+        iny
+        cpy #$0010	;16 bytes copied
+        bne :-
+        tdc
+        tay
+        ldx $10
+:	LDA MMTargets::Party,X
+        sta SavedMMTargets,Y
+        lda MMTargets::Monster,X
+        sta SavedMMTargets+1,Y
+        inx
+        inx
+        iny
+        iny
+        cpy #$0020	;32 bytes copied
+        bne :-
+Finish:		;party target, or finishing up after a monster target
+        lda ReactingIndex
+        asl
+        tax
+        lda ROMTimes11w,X	;**bug: 16 bit table accessed in 8 bit
+        tax
+        lda EnableTimer::ATB,X	;.. so this is for the wrong character
+        sta SavedEnableATB	;.. mitigated by the restore being bugged
+        lda CurrentTimer::ATB,X	;.. in the same way
+        sta SavedCurrentATB
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;restores a bunch of action data which was saved before doing monster reactions
+.proc RestoreActionData
+
+_3D08:
+        lda ReactingIndex
+        jsr CalculateCharOffset
+        tdc
+        tay
+        ldx AttackerOffset	;offset of forced target
+:	LDA SavedAction2,Y
+        sta CharStruct::ActionFlag,X
+        inx
+        iny
+        cpy #$000A	;copy 10 bytes action data
+        bne :-
+        lda ReactingIndex
+        cmp #$04	;monster check
+        bcc Finish
+        sec
+        sbc #$04
+        sta $10		;monster index
+        asl
+        tax
+        lda ROMTimes100w,X
+        sta $0E
+        lda ROMTimes100w+1,X
+        sta $0F
+        tdc
+        tay
+        ldx $0E
+:	LDA SavedMonsterAIScript,Y
+        sta MonsterAIScript,X
+        inx
+        iny
+        cpy #$0064	;100 bytes
+        bne :-
+        lda $10
+        jsr ShiftMultiply_16
+        tax
+        stx $0E
+        asl
+        tax
+        stx $10
+        tdc
+        tay
+        ldx $0E
+:	LDA SavedMonsterMagic,Y
+        sta MonsterMagic,X
+        inx
+        iny
+        cpy #$0010	;16 bytes
+        bne :-
+        tdc
+        tay
+        ldx $10
+:	LDA SavedMMTargets,Y
+        sta MMTargets::Party,X
+        lda SavedMMTargets+1,Y
+        sta MMTargets::Monster,X
+        inx
+        inx
+        iny
+        iny
+        cpy #$0020	;32 bytes
+        bne :-
+Finish:		;either a party target, or after monster data is restored
+        lda ReactingIndex
+        asl
+        tax
+        lda ROMTimes11w,X	;**bug: this is a 16 bit table accessed 8-bit
+        tax 			;.. so X is almost always wrong
+        lda SavedEnableATB	;.. the save was also bugged the same way
+        sta EnableTimer::ATB,X	;.. which mitigates the effects
+        lda SavedCurrentATB
+        sta CurrentTimer::ATB,X
+        lda #$FF
+        sta ReactingIndex
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc ReactionPauseTimerChecks
+
+_3D9C:
+        tdc
+        tax
+        stx $0E
+        lda ReactingIndex
+:	CMP $0E
+        bne :+
+        stz PauseTimerChecks,X
+        bra :++
+:	INC PauseTimerChecks,X
+:	INC $0E
+        inx
+        cpx #$000C	;12 chars
+        bne :---
+        inc PendingReactions
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc UnpauseTimerChecks
+
+_3DBB:
+        tdc
+        tax
+:	STZ PauseTimerChecks,X
+        inx
+        cpx #$000C
+        bne :-
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Runs a Reaction AI Script 
+;Also used for party reactions, called at a point near the end skipping the AI stuff
+.proc ProcessReaction
+
+_3DC7:
+        sec
+        lda ReactingIndex
+        sbc #$04
+        sta MonsterIndex
+        jsr ShiftMultiply_16
+        tax
+        stx MonsterOffset16
+        asl
+        tax
+        stx MonsterOffset32
+        tdc
+        tay
+        ldx MonsterOffset16
+        lda #$FF
+:	STA MonsterMagic,X
+        inx
+        iny
+        cpy #$0010	;init 16 bytes to $FF
+        bne :-
+        ldx AttackerOffset
+        lda #$2C	;Magic (technically MSword L1)
+        sta CharStruct::Command,X
+        lda #$21	;Magic & Costs MP
+        sta CharStruct::ActionFlag,X
+        inc CurrentlyReacting	;indicates a reaction to other routines
+        ldx #$0040		;init 64 byte AI buffer
+        lda #$FF
+:	STA AIBuffer,X
+        dex
+        bpl :-
+        longa
+        clc
+        lda AIOffset
+        adc #$00AA	;in MonsterAI, shift from Conditions to Actions
+        sta AIOffset
+        shorta0
+        lda AICurrentCheckedSet
+        asl
+        tax
+        lda ROMTimes64w,X	;size of one MonsterAI ReactActions entry
+        sta $0E
+        lda ROMTimes64w+1,X
+        sta $0F
+        tdc
+        tax
+        ldy $0E		;Current Action offset
+ProcessScript:
+        lda (AIOffset),Y
+        sta AIBuffer,X
+        iny
+        inx
+        cmp #$FE	;end of entry
+        beq Finish
+        cmp #$FF	;end of ai
+        beq Finish
+        cmp #$FD	;special command
+        bne Finish
+        lda (AIOffset),Y
+        sta AIBuffer,X
+        iny
+        inx
+        cmp #$F7
+        beq CopyExtraBytes
+        cmp #$F0
+        bcs OtherSpecial
+        lda (AIOffset),Y
+        sta AIBuffer,X
+        iny
+        inx
+        lda (AIOffset),Y
+        sta AIBuffer,X
+        bra Finish
+CopyExtraBytes:		;command $F7
+        lda (AIOffset),Y	;number of extra data bytes to copy
+        sta AIBuffer,X		;.. must be at least 1
+        sta $10
+        iny
+        inx
+        lda (AIOffset),Y
+        sta AIBuffer,X
+        iny
+        inx
+        stz $11
+:	LDA (AIOffset),Y
+        sta AIBuffer,X
+        iny
+        inx
+        inc $11			;bytes copied
+        lda $11
+        cmp $10			;bytes to copy
+        bne :-
+        bra Finish
+OtherSpecial:		;>=$F0, but not $F7
+        		;copies 2 more bytes then loops back to continue processing
+        lda (AIOffset),Y
+        sta AIBuffer,X
+        iny
+        inx
+        lda (AIOffset),Y
+        sta AIBuffer,X
+        iny
+        inx
+        bra ProcessScript
+Finish:
+        stz TempCharm
+        jsr DispatchAICommands
+Party:
+        lda ReactingIndex
+        jsr GetTimerOffset
+        lda #$01		;action for next tick
+        sta CurrentTimer::ATB,Y
+        lda #$41		;queued action
+        sta EnableTimer::ATB,Y
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Loads stats and status for all characters, including party equipment and monster AI
+.proc LoadStatsEquipmentAI
+
+_3EA2:
+        tdc
+        tax
+        tay
+        lda #$04		;4 characters
+        sta $10
+CopyCharStatsLoop:
+        lda #$50		;80 bytes per character
+        sta $0E
+;Checks for fight $1F7, which is the Galuf Exdeath battle
+        lda EncounterIndex
+        cmp #$F7
+        bne CopyOneChar
+        lda EncounterIndex+1
+        cmp #$01
+        bne CopyOneChar
+        lda #$08		;Set Always HP Leak
+        sta CharStruct::AlwaysStatus4,Y
+CopyOneChar:
+        lda FieldChar,X
+        sta CharStruct,Y
+        inx
+        iny
+        dec $0E
+        lda $0E
+        bne CopyOneChar
+        longa
+        tya
+        clc
+        adc #$0030		;advance CharStruct index to next character
+        tay
+        shorta0
+        dec $10			;next character
+        lda $10
+        bne CopyCharStatsLoop
+        lda EncounterIndex+1	;1 for boss fights
+        beq DoneLenna
+        lda EncounterIndex
+        cmp #$BA		;Forza/Magisa
+        bne DoneLenna
+        tdc
+        tax
+        tay
+PoisonLenna:
+        lda CharStruct::CharRow,X
+        and #$07		;character bits
+        cmp #$01		;Lenna
+        bne Next
+        lda CharStruct::Status1,X
+        and #$C6		;if Dead/Stone/Zombie/Poison, abort
+        bne DoneLenna
+        lda CharStruct::Status1,X
+        ora #$04		;set poison
+        sta CharStruct::Status1,X
+        bra DoneLenna
+Next:	JSR NextCharOffset
+        iny
+        cpy #$0004
+        bne PoisonLenna
+DoneLenna:
+        jsr StartPartyPoisonTimers
+        jsr ApplyPartyGear
+        tdc
+        tax
+        stx $0E			;MonsterStats offset
+        stx $10			;Monster CharStruct offset
+        stx $12			;current monster index
+        lda #$D0
+        sta $22
+        sta $1E
+        ldx #$9C00
+        stx $20			;$D09C00, ROMAIScriptOffsets
+        									;:					
+LoadMonsterStatsAI:
+        ldx #$0000
+        lda #$02
+        jsr Random_X_A
+        cmp #$02
+        bne :+
+        lda #$FF		;-1
+:	STA $16			;randomly 0, +1 or -1 ($FF)
+        ldx $0E			;MonsterStats offset
+        ldy $10			;Monster CharStruct offset
+        clc
+        lda MonsterStats::Speed,X
+        adc $16			;randomly 0, +1 or -1
+        sta CharStruct4::BaseAgi,Y	;CharStruct4 is the first monster
+        sta CharStruct4::EquippedAgi,Y
+        lda MonsterStats::AttackPower,X
+        sta CharStruct4::MonsterAttack,Y
+        lda MonsterStats::AttackMult,X
+        sta CharStruct4::MonsterM,Y
+        lda MonsterStats::Evade,X
+        sta CharStruct4::Evade,Y
+        lda MonsterStats::Defense,X
+        sta CharStruct4::Defense,Y
+        lda MonsterStats::MagicPower,X
+        sta CharStruct4::BaseMag,Y
+        sta CharStruct4::EquippedMag,Y
+        lda MonsterStats::MDefense,X
+        sta CharStruct4::MDefense,Y
+        lda MonsterStats::MEvade,X
+        sta CharStruct4::MEvade,Y
+        longa
+        lda MonsterStats::HP,X
+        sta CharStruct4::CurHP,Y
+        sta CharStruct4::MaxHP,Y
+        lda MonsterStats::MP,X
+        sta CharStruct4::CurMP,Y
+        lda #$270F			;monsters always have 9999 Max MP
+        sta CharStruct4::MaxMP,Y
+        lda MonsterStats::Exp,X
+        sta CharStruct4::RewardExp,Y
+        lda MonsterStats::Gil,X
+        sta CharStruct4::RewardGil,Y
+        lda MonsterStats::StatusImmune1,X	;also copies StatusImmune2
+        sta CharStruct4::StatusImmune1,Y
+        shorta0
+        sta CharStruct4::CharRow,Y
+        lda MonsterStats::StatusImmune3,X
+        sta CharStruct4::StatusImmune3,Y
+        lda MonsterStats::AttackFX,X
+        sta CharStruct4::RHWeapon,Y
+        lda MonsterStats::EAbsorb,X
+        sta CharStruct4::EAbsorb,Y
+        lda MonsterStats::EImmune,X
+        sta CharStruct4::EImmune,Y
+        lda MonsterStats::CantEvade,X
+        sta CharStruct4::CantEvade,Y
+        lda MonsterStats::EWeak,X
+        sta CharStruct4::EWeak,Y
+        lda MonsterStats::CreatureType,X
+        sta CharStruct4::CreatureType,Y
+        lda MonsterStats::CmdImmunity,X
+        sta CharStruct4::CmdImmunity,Y
+        lda MonsterStats::Level,X
+        sta CharStruct4::Level,Y
+        sta CharStruct4::EquippedVit,Y		;vit = level for monsters
+        phy
+        lda MonsterStats::Status1,X
+        bpl ApplyStatus
+AlwaysStatus:										
+        longa
+        tya
+        clc
+        adc #$0056	;Shift offset so regular status points to always status
+        tay
+        shorta0
+ApplyStatus:														
+        lda MonsterStats::Status1,X
+        and #$7F	;clear high bit since it also means death
+        sta CharStruct4::Status1,Y
+        lda MonsterStats::Status2,X
+        sta CharStruct4::Status2,Y
+        lda MonsterStats::Status3,X
+        sta CharStruct4::Status3,Y
+        lda MonsterStats::Status4,X
+        sta CharStruct4::Status4,Y
+        lda $12			;current monster index
+        asl
+        tay
+        lda MonsterStats::EnemyNameID,X
+        sta MonsterNameID,Y
+        lda BattleMonsterID+1
+        sta MonsterNameID+1,Y
+        lda $12			;current monster index
+        asl
+        tax
+        longa
+        lda BattleMonsterID,X
+        asl
+        tax
+        shorta0
+        lda ROMSpecialtyData::Properties,X
+        sta $1C
+        lda ROMSpecialtyData::Name,X
+        sta $1D
+        ply
+        lda $1C
+        sta CharStruct4::Specialty,Y
+        lda $1D
+        sta CharStruct4::SpecialtyName,Y
+        lda $12			;current monster index
+        asl
+        tax
+        longa
+        lda BattleMonsterID,X
+        asl
+        tay
+        shorta0
+        lda [$20],Y		;$D09C00, ROMAIScriptOffsets
+        sta $1C
+        iny
+        lda [$20],Y
+        sta $1D
+        ldx #$0654
+        stx $2A
+        ldx $12			;current monster index
+        stx $2C
+        jsr Multiply_16bit	;current monster index * 1620
+        ldx $2E			;which is MonsterAI offset
+        stx $08			; there's a table for *1620 in the rom
+        stx $0A			; not sure why it's not being used
+        phx
+        tdc
+        tay
+        sty $0C			;condition/action index
+CopyAI:															
+        ldx $08			;Current MonsterAI Condition offset
+CopyAIConditions:													
+        lda [$1C],Y		;AI script offset in ROM
+        sta MonsterAI::Conditions,X
+        inx
+        iny
+        cmp #$FE		;end of condition entry
+        bne CopyAIConditions
+        ldx $0A			;Current MonsterAI Action offset
+CopyAIActions:														
+        lda [$1C],Y		;AI script offset in ROM, Y is kept from above
+        sta MonsterAI::Actions,X
+        inx
+        iny
+        cmp #$FF		;end of AI script
+        beq AICounters
+        cmp #$FE		;end of action entry
+        bne CopyAIActions
+        longa
+        clc
+        lda $08			;MonsterAI Condition offset
+        adc #$0011		;next condition
+        sta $08
+        clc
+        lda $0A			;MonsterAI Action offset
+        adc #$0040		;next action
+        sta $0A
+        shorta0
+        inc $0C			;next condition/action index
+        lda $0C
+        cmp #$0A		;max 10 condition/action pairs
+        bne CopyAI
+AICounters:
+        plx 			;MonsterAI offset
+        stx $08
+        stx $0A
+        stx $0C
+CopyAIReact:								
+        ldx $08			;Current MonsterAI Condition offset
+CopyAIReactConditions:													
+        lda [$1C],Y		;AI script offset in ROM, Y is kept from above
+        sta MonsterAI::ReactConditions,X
+        inx
+        iny
+        cmp #$FF		;end of AI script
+        beq NextMonster
+        cmp #$FE         	;end of condition entry
+        bne CopyAIReactConditions
+        ldx $12			;current monster index
+        inc MonsterReactions,X
+        ldx $0A
+CopyAIReactActions:													
+        lda [$1C],Y		;AI script offset in ROM, Y is kept from above
+        sta MonsterAI::ReactActions,X
+        inx
+        iny
+        cmp #$FF		;end of AI script
+        beq NextMonster
+        cmp #$FE		;end of action entry
+        bne CopyAIReactActions
+        longa
+        clc
+        lda $08			;MonsterAI Condition offset
+        adc #$0011       	;next react condition
+        sta $08
+        clc
+        lda $0A          	;MonsterAI Action offset
+        adc #$0040       	;next react action
+        sta $0A
+        shorta0
+        inc $0C          	;next condition/action index
+        lda $0C
+        cmp #$0A         	;max 10 condition/action pairs
+        bne CopyAIReact
+NextMonster:
+        ldx $10			;Monster CharStruct offset
+        jsr NextCharOffset
+        stx $10
+        clc
+        lda $0E			;MonsterStats offset
+        adc #$20		;next monster
+        sta $0E
+        inc $12			;next monster index
+        lda $12
+        cmp #$08		;8 monsters
+        beq MonsterStatusTimers
+        jmp LoadMonsterStatsAI
+MonsterStatusTimers:
+        tdc
+        tax
+        lda #$04
+        sta Temp
+MonStatusLoop:														
+        lda Temp
+        jsr CalculateCharOffset
+        lda CharStruct::Status1,X
+        and #$04		;poison
+        beq :+
+        lda #$01		;poison timer
+        jsr StartTimerFromTemp
+:	LDX AttackerOffset
+        lda CharStruct::Status2,X
+        and #$80		;old
+        beq :+
+        lda #$06		;old timer
+        jsr StartTimerFromTemp
+:	LDX AttackerOffset
+        lda CharStruct::Status2,X
+        and #$20		;paralyze
+        beq :+
+        lda #$09		;paralyze timer
+        jsr StartTimerFromTemp
+:	LDX AttackerOffset
+        lda CharStruct::Status2,X
+        and #$04		;mute
+        beq :+
+        lda #$04		;mute timer
+        jsr StartTimerFromTemp
+:	LDX AttackerOffset
+        lda CharStruct::Status3,X
+        and #$80		;reflect
+        beq :+
+        lda #$02		;reflect timer
+        jsr StartTimerFromTemp
+:	LDX AttackerOffset
+        lda CharStruct::Status3,X
+        and #$10		;stop
+        beq :+
+        lda #$00		;stop timer
+        jsr StartTimerFromTemp
+:	LDX AttackerOffset
+        lda CharStruct::Status3,X
+        and #$01		;regen
+        beq :+
+        lda #$07		;regen timer
+        jsr StartTimerFromTemp
+:	LDX AttackerOffset
+        lda CharStruct::Status4,X
+        and #$10		;countdown
+        beq :+
+        lda #$03		;countdown timer
+        jsr StartTimerFromTemp
+:	LDX AttackerOffset
+        lda CharStruct::Status3,X	;**bug: should be Status4
+        and #$08		;Haste, should be HP leak
+        beq :+
+        lda #$05		;HP leak timer
+        jsr StartTimerFromTemp
+:	INC Temp
+        lda Temp
+        cmp #$0C		;doing slots 4-11 for monsters, 12 is too far
+        beq Ret
+        jmp MonStatusLoop
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;(A: #timer, $2620: index) Starts a status timer for a character
+.proc StartTimerFromTemp
+
+_41A3:
+        tax
+        lda #$01
+        sta StatusFixedDur
+        lda Temp	;Party index
+        jmp StartTimer
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;sets up inventory and magic lists
+.proc SetupInventoryMagic
+
+_41AF:
+        tdc
+        tax
+        lda #$80
+				
+:       STA InventoryFlags,X
+        inx
+        cpx #$0100
+        bne :-
+				
+        tdc
+        tax
+        stx $0E
+			
+InitSpells:
+        tdc
+        tay
+        lda #$81
+		
+:	STA CharSpells::Flags,X
+        sta CharSpells::Level,X
+        inx
+        iny
+        cpy #$0082
+        bne :-
+				
+        longa
+        txa
+        clc
+        adc #$0208	;next CharSpells struct
+        tax
+        shorta0
+        inc $0E		;next char index
+        lda $0E
+        cmp #$04	;4 chars
+        bne InitSpells
+				
+        tdc
+        tax
+        stx $0E
+        										;:					
+InitCmdFlags:	
+        tdc
+        tay
+        lda #$80
+        										;:					
+:	STA CharCommands::Flags,X
+        inx
+        iny
+        cpy #$0004	;4 bytes of command data
+        bne :-
+				
+        txa
+        clc
+        adc #$10	;next CharCommands Struct
+        tax
+        inc $0E		;next char index
+        lda $0E
+        cmp #$04	;4 chars
+        bne InitCmdFlags
+        tdc
+        tax
+        stx $0E
+InitHandItemFlags:									;:				
+        tdc
+        tay
+        lda #$80
+:	STA HandItems::Flags,X
+        inx
+        iny
+        cpy #$0002	;structure has room for 4 values but only 2 hands are used
+        bne :-
+        txa
+        clc
+        adc #$0A	;next charcter in HandItems
+        tax
+        inc $0E		;next char index
+        lda $0E
+        cmp #$04	;4 chars
+        bne InitHandItemFlags
+        tdc
+        tay
+        tax
+        sty $0E
+CopyEquipInfo:
+        stz $0E
+        phx
+
+:	LDA CharStruct::EquipWeapons,X
+        sta CharEquippable::Weapons,Y
+        inx
+        iny
+        inc $0E		;next byte
+        lda $0E
+        cmp #$04	;4 bytes of weapon/armor equip data
+        bne :-
+				
+        plx
+        jsr NextCharOffset
+        inc $0F		;next char index
+        lda $0F
+        cmp #$04	;4 chars
+        bne CopyEquipInfo
+				
+        jsl $D0EF78	        ;wtf, code in the data bank
+        tdc 			;it sets items with qty 0 to id 0
+        tax 			;and sets items with id 0 to qty 0
+        tay
+        										;:					
+:	LDA FieldItems,X
+        sta InventoryItems,X
+        inx
+        cpx #$0200		;512, includes item quantities
+        bne :-
+				
+:	LDA InventoryItems,Y
+        jsr SetupInventoryInfo	;sets InventoryFlags and Temp (equipment type)
+        iny
+        cpy #$0100
+        bne :-
+				
+        tdc
+        tay
+        sty $08
+        										;:					
+:	LDY $08
+        jsr GetItemUsableY	;A now holds byte for InventoryUsable
+        ldy $08
+        sta Temp,Y		;**optimize: bypass temp and just save to proper place
+        inc $08
+        lda $08
+        bne :-
+				
+        tdc
+        tax
+        										;: 					
+:	LDA Temp,X
+        sta InventoryUsable,X
+        inx
+        cpx #$0100
+        bne :-
+				
+        tdc
+        tax
+        stx $0E		;MagicBits Index
+        stx $10		;finished spell count
+        stx $18		;blue magic flag
+        inx
+        stx $14		;current spell level 1-6
+MagicBitsLoop:															
+        lda $0E		;MagicBits Index
+        cmp #$0C	;12 bytes of non-blue magic
+        bcc :+
+        sec
+        lda $0E
+        sbc #$0C	;-12	back to start
+        clc
+        adc #$10	;+16	start of blue magic
+        tax
+        bra :++
+:	LDX $0E		;MagicBits Index
+:	LDA MagicBits,X
+        sta $12		;current byte of MagicBits
+        ldy #$0008	;bit counter
+ProcessMagicBit:
+        ldx $10
+        cpx #$0081
+        bne CheckMagicBit
+        jmp EnableSpells
+CheckMagicBit:
+        asl $12		;current byte of MagicBits
+        bcs CheckBlue
+        lda #$FF
+        StoreOffsetX CharSpells, ID, 0
+        StoreOffsetX CharSpells, ID, 1
+        StoreOffsetX CharSpells, ID, 2
+        StoreOffsetX CharSpells, ID, 3
+        bra NextSpell
+CheckBlue:									
+        txa
+        cmp #$5F	;end of non-blue magic
+        bcc SetupSpell
+        sec
+        sbc #$5F	;remove offset from other spells so first blue is 0
+        clc
+        adc #$80	;first blue now $80
+        pha
+        lda #$FF	;clear the "original" blue magic position
+        StoreOffsetX CharSpells, ID, 0
+        StoreOffsetX CharSpells, ID, 1
+        StoreOffsetX CharSpells, ID, 2
+        StoreOffsetX CharSpells, ID, 3
+        pla
+        dex 		;blue spells offset the whole structure by -2
+        dex		;because there's 2 empty bits in the first blue byte
+SetupSpell:									
+        stx $20		;temp index
+        StoreOffsetX CharSpells, ID, 0
+        StoreOffsetX CharSpells, ID, 1
+        StoreOffsetX CharSpells, ID, 2
+        StoreOffsetX CharSpells, ID, 3
+        lda $14		;current spell level
+        StoreOffsetX CharSpells, Level, 0
+        StoreOffsetX CharSpells, Level, 1
+        StoreOffsetX CharSpells, Level, 2
+        StoreOffsetX CharSpells, Level, 3
+        InstructionOffsetX lda, CharSpells, ID, 0
+        longa
+        jsr ShiftMultiply_8
+        tax
+        shorta0
+        lda ROMMagicInfo::Targetting,X
+        pha
+        lda ROMMagicInfo::MPCost,X
+        and #$7F	;just MP Cost
+        ldx $20
+        StoreOffsetX CharSpells, MP, 0
+        StoreOffsetX CharSpells, MP, 1
+        StoreOffsetX CharSpells, MP, 2
+        StoreOffsetX CharSpells, MP, 3
+        pla
+        StoreOffsetX CharSpells, Targetting, 0
+        StoreOffsetX CharSpells, Targetting, 1
+        StoreOffsetX CharSpells, Targetting, 2
+        StoreOffsetX CharSpells, Targetting, 3
+NextSpell:	
+        inc $15		;counter for spells in a spell Level
+        lda $15
+        cmp #$03	;max 3
+        bne NextSpellCount
+        stz $15
+        inc $14		;next spell level
+        lda $14
+        cmp #$07	;only 6 spell levels
+        bne NextSpellCount
+        lda #$01	;reset to spell level 1
+        sta $14
+NextSpellCount:
+        inc $10		;finished spell count
+        lda $18		;blue magic flag
+        bne NextSpellBit
+        lda $10
+        cmp #$5F	;last non-blue magic spell
+        bcc NextSpellBit
+        inc $18		;blue magic flag
+        bra NextSpellByte
+NextSpellBit:									
+        dey 		;bit counter
+        beq NextSpellByte
+        jmp ProcessMagicBit
+NextSpellByte:															
+        inc $0E		;MagicBits Index (next)
+        jmp MagicBitsLoop
+EnableSpells:															
+        tdc
+        tay
+        tax
+UnpackEnableSpells:											;:			
+        stz $0E
+        phx
+UnpackOne:											;:				
+        lda CharStruct::EnableSpells,X
+        pha
+        jsr ShiftDivide_16
+        inc
+        sta Temp,Y	;high 4 bits to first temp byte
+        pla
+        and #$0F
+        inc
+        sta Temp+1,Y	;low 4 bits to second temp byte
+        iny
+        iny
+        inx
+        inc $0E
+        lda $0E
+        cmp #$03	;3 bytes for 6 magic types
+        bne UnpackOne
+				
+        plx
+        jsr NextCharOffset
+        cpy #$0018	;6 bytes * 4 characters
+        bne UnpackEnableSpells
+				
+        tdc
+        tax
+        tay
+        sty $12		;character index
+        sty HalfMP	;
+        sty HalfMP+2
+AllCharSpellConditions:											;:			
+        stz $1A		;half mp for current character
+        phx
+        lda $12		;character index
+        longa
+        jsr ShiftMultiply_128
+        tax
+        shorta0
+        lda CharStruct::ArmorProperties,X
+        and #$08	;half mp cost
+        beq :+
+        lda $12		;character index
+        tax
+        inc HalfMP,X
+        inc $1A		;half mp for current character
+:	PLX
+        stz $10			;spell type counter
+        stz $14			;spell counter
+CheckAllSpellConditions:											;:		
+        stz $0E
+CheckSpellCond:										;:					
+        lda $14			;spell counter
+        cmp #$57		;stop at 87 spells
+        beq NextSpellType
+        lda CharSpells::Level,X
+        cmp Temp,Y		;magic level enabled for current Type
+        bcs LevelFail
+        lda EncounterInfo::Flags
+        and #$04	;Always Void
+        bne NextSpellCond
+        stz CharSpells::Flags,X
+        lda $1A		;half mp for current character
+        beq NextSpellCond
+        lsr CharSpells::MP,X
+        bcc NextSpellCond
+        inc CharSpells::MP,X	;min 1
+        bra NextSpellCond
+LevelFail:
+        lda #$FF
+        sta CharSpells::ID,X
+        inc
+        sta CharSpells::MP,X
+NextSpellCond:
+        inc $14			;spell counter
+        inx
+        inc $0E
+        lda $0E
+        cmp #$12		;18 spells per type
+        bne CheckSpellCond
+NextSpellType:									
+        iny 			;index for magic level enabled table at Temp
+        inc $10			;spell type counter
+        lda $10
+        cmp #$05		;checking first 5 types
+        bne CheckAllSpellConditions
+        longa
+        txa
+        clc
+        adc #$0233		;$57 + $233 is the size of the CharSpells Struct
+        tax 			;next character in CharSpells
+        shorta0
+        iny
+        inc $12			;character index
+        lda $12
+        cmp #$04		;4 characters
+        bne AllCharSpellConditions
+				
+        lda EncounterInfo::Flags
+        and #$04		;always void
+        bne DoneSongBlue
+        stz $0E			;character index
+        ldx #$0057		;first spell after summons (songs then blue)
+        stx $12			;first song offset
+        										;:					
+AllSongBlue:
+        lda $0E			;character index
+        tax
+        lda HalfMP,X
+        sta $1A			;half mp for current character
+        stz $10			;spell counter
+        ldx $12			;first song offset
+SongBlue:										;:					
+        lda CharSpells::ID,X
+        cmp #$FF
+        beq NextSongBlue
+        stz CharSpells::Flags,X
+        lda $1A			;half mp for current character
+        beq NextSongBlue
+        lsr CharSpells::MP,X
+        bcc NextSongBlue
+        inc CharSpells::MP,X	;min 1
+NextSongBlue:
+        inx 			;charspell index
+        inc $10			;spell counter
+        lda $10
+        cmp #$28		;40 spells (total of 128)
+        bne SongBlue
+        longa
+        clc
+        lda $12			;first song offset
+        adc #$028A		;size of CharSpells struct
+        sta $12			;first song offset for next character
+        shorta0
+        inc $0E			;character index
+        lda $0E
+        cmp #$04		;4 characters
+        bne AllSongBlue
+DoneSongBlue:															
+        tdc
+        tax
+        tay
+        sty $0E
+        sty $10			;character counter
+        										;:					
+AllSetupCmds:
+        stz $11			;command counter
+        ldx $0E			;CharStruct offset
+        										;:					
+SetupCmds:
+        phx
+        lda CharStruct::BattleCommands,X
+        beq NextCmd
+        cmp #$50		;there are no commands $50 or higher
+        bcs NextCmd
+        cmp #$1D		;Catch Command
+        bne OtherCmd
+        ldx $0E
+        lda CharStruct::CaughtMonster,X
+        cmp #$FF		;no monster caught
+        beq Catch
+        lda #$1E		;Release Command
+        bra OtherCmd
+Catch:
+        lda #$1D
+OtherCmd:	
+        sta CharCommands::ID,Y
+        longa
+        jsr ShiftMultiply_8
+        tax
+        shorta0
+        lda ROMAbilityInfo::Targetting,X
+        sta CharCommands::Targetting,Y
+NextCmd:
+        plx 			;CharStruct offset
+        iny 			;next command id slot
+        inx 			;next command byte in CharStruct
+        inc $11			;command counter
+        lda $11
+        cmp #$04		;4 commands
+        bne SetupCmds
+				
+        ldx $0E
+        jsr NextCharOffset
+        stx $0E
+        tya
+        clc
+        adc #$10		;next CharCommands character
+        tay
+        inc $10			;character counter
+        lda $10
+        cmp #$04		;4 characters
+        bne AllSetupCmds
+        tdc
+        tax
+        tay
+        sty $0E
+        sty $10			;character counter
+AllSetupHandItems:
+        stz $11			;hand counter
+        ldx $0E			;charstruct offset
+SetupHandItems:													
+        phx
+        lda CharStruct::RHWeapon,X
+        bne :+
+        lda CharStruct::RHShield,X
+:	CMP #$01
+        bne :+
+        tdc 			;item 1 -> 0
+:	STA HandItems::ID,Y
+        pha
+        cmp #$80
+        bcc Weapon
+        sec
+        sbc #$80		;remove armor offset
+        longa
+        jsr ShiftMultiply_4
+        sta $12
+        asl
+        clc
+        adc $12
+        tax 			;Armor ID *12
+        shorta0
+        lda #$5A
+        sta HandItems::Flags,Y
+        lda ROMArmor::EquipmentType,X
+        bra SetHandUsable
+Weapon:
+        longa
+        jsr ShiftMultiply_4
+        sta $12
+        asl
+        clc
+        adc $12
+        tax              	;Weapon ID *12
+        shorta0
+        lda ROMWeapons::Targetting,X
+        sta HandItems::Targetting,Y
+        lda ROMWeapons::DoubleGrip,X
+        and #$80		;double grip bit
+        jsr ShiftDivide_32	;shift to 3rd bit
+        sta HandItems::Flags,Y
+        lda ROMWeapons::EquipmentType,X
+        pha
+        and #$C0			;usable? and throwable
+        ora #$1A			;set some more bits ?
+        ora HandItems::Flags,Y	;double grip bit from before
+        sta HandItems::Flags,Y
+        pla 			;equipment type
+SetHandUsable:
+        jsr GetItemUsableA
+        sta HandItems::Usable,Y
+        pla 			;current hand's item id
+        beq NextHand
+        tdc
+        inc
+        sta HandItems::Level,Y
+NextHand:
+        plx
+        iny 			;structure offsets increase to left hand
+        inx
+        inc $11			;hand counter
+        lda $11
+        cmp #$02		;2 hands to process
+        bne SetupHandItems
+				
+        ldx $0E			;charstruct offset
+        jsr NextCharOffset
+        stx $0E
+        tya
+        clc
+        adc #$0A		;next HandItems character
+        tay
+        inc $10			;character counter
+        lda $10
+        cmp #$04		;4 characters
+        beq Ret
+        jmp AllSetupHandItems
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Calculate Item Usability
+;(A: item data equipment type (byte 2/12), returns A = Useable byte, 2 bits per char)
+.proc GetItemUsableA
+
+_455E:
+        phy
+        and #$3F		;strip flags
+        jsr ShiftMultiply_4
+        tax
+        tdc
+        tay
+        									;:					
+:	LDA ROMItemEquippable,X
+        sta TempEquippable,Y
+        inx
+        iny
+        cpy #$0004		;2 weapon bytes, 2 armor bytes
+        bne :-
+        									;.					
+        tdc
+        tax
+        tay
+        lda #$AA		;usable for none
+        sta $14			;in-progress usable byte
+DetermineEquippableLoop:
+        lda CharEquippable::Weapons,X
+        and TempEquippable::Weapons,Y
+        bne Match
+        lda CharEquippable::Weapons+1,X
+        and TempEquippable::Weapons+1,Y
+        bne Match
+        lda CharEquippable::Armor,X
+        and TempEquippable::Armor,Y
+        bne Match
+        lda CharEquippable::Armor+1,X
+        and TempEquippable::Armor+1,Y
+        beq NextChar
+Match:	
+        txa
+        jsr ShiftDivide_4
+        bne Check1
+        lda $14		;in-progress usable byte
+        and #$7F	;clear first character bit
+        sta $14
+        bra NextChar
+Check1:								
+        cmp #$01
+        bne Check2
+        lda $14
+        and #$DF	;clear second character bit
+        sta $14
+        bra NextChar
+Check2:								
+        cmp #$02
+        bne Other
+        lda $14
+        and #$F7	;clear third character bit									
+        sta $14
+        bra NextChar
+Other:								
+        lda $14
+        and #$FD	;clear fourth character bit
+        sta $14
+NextChar:
+        inx
+        inx
+        inx
+        inx
+        cpx #$0010	;4 bytes * 4 characters
+        bne DetermineEquippableLoop
+        									;.					
+        lda $14
+        ply
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Start party poison status timers
+.proc StartPartyPoisonTimers
+
+_45D5:
+        tdc
+        tax
+        stx $22		;CharStruct Offset
+        stx Temp	;Party index
+StartTimersLoop:														
+        ldx $22
+        lda CharStruct::Status1,X
+        ora CharStruct::AlwaysStatus1,X
+        and #$04	;Poison
+        beq Next
+        lda #$01
+        jsr StartTimerFromTemp
+Next:	LDX $22
+        jsr NextCharOffset
+        stx $22
+        inc Temp	;next party member
+        lda Temp
+        cmp #$04
+        bne StartTimersLoop
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command $05 (Fight)
+;**optimize: seems like there should be a better way than duplicating all the code for each hand
+.org $45FF
+.proc FightCommand
+
+_45FF:
+CommandTable04:
+        ldx AttackerOffset
+        lda CharStruct::MonsterTargets,X
+        sta MonsterTargets
+        lda CharStruct::PartyTargets,X
+        sta PartyTargets
+        jsr CheckRetarget
+        ldx AttackerOffset
+        lda PartyTargets
+        sta CharStruct::PartyTargets,X
+        lda MonsterTargets
+        sta CharStruct::MonsterTargets,X
+        pha
+        and #$F0
+        lsr
+        lsr
+        lsr
+        lsr
+        ora CharStruct::PartyTargets,X
+        sta TempTargetBitmask	;targets, CCCC MMMM
+        pla
+        and #$0F
+        asl
+        asl
+        asl
+        asl
+        sta TempTargetBitmask+1	;targets 2nd byte, MMMM 0000
+        lda AttackerIndex
+        tax
+        lda ROMTimes84,X		;multiplies by 84
+        tax
+        stx $0E				;offset into character equipment
+        ldx AttackerOffset
+        lda CharStruct::RHWeapon,X
+        bne RightHand
+        jmp LeftHand
+RightHand:
+        ldx $0E				;offset into character equipment
+        lda RHWeapon::Properties,X
+        sta $10				;RH Weapon Properties
+        and #$02			;command instead of attack
+        beq NormalAttack
+        lda CurrentlyReacting
+        bne NormalAttack
+        ldx AttackerOffset
+        lda CharStruct::Status1,X
+        and #$02      			;Zombie
+        bne NormalAttack
+        lda CharStruct::Status2,X
+        and #$10			;Charm
+        bne NormalAttack
+        jsr Random_0_99
+        ldx $0E				;offset into character equipment
+        cmp RHWeapon::Param2,X		;proc chance
+        bcs NormalAttack
+        lda RHWeapon::Param3,X		;proc command
+        jmp DispatchCommand_CommandReady	;dispatch the new command
+NormalAttack:								
+        jsr SelectCurrentProcSequence	;Y and $0C = AttackInfo offsets
+        sty $14				;AttackInfo offset
+        stz $12
+        ldx $0E				;offset into character equipment
+CopyAttackInfo:										
+        lda RHWeapon,X
+        sta AttackInfo,Y
+        inx
+        iny
+        inc $12
+        lda $12
+        cmp #$0C			;12 byte structure size
+        bne CopyAttackInfo
+        ldx $0E				;offset into character equipment
+        lda RHWeapon::Properties,X
+        and #$04			;Magic Sword OK
+        bne MSword
+        tdc
+        bra :+
+MSword:	LDX AttackerOffset
+        lda CharStruct::MSwordAnim,X
+        and #$7F			;Right Hand clears high bit
+:	PHA
+        jsr FindOpenGFXQueueSlot
+        stz GFXQueue::Flag,X
+        lda #$FC
+        sta GFXQueue::Cmd,X
+        lda #$01
+        sta GFXQueue::Type,X
+        lda #$04
+        sta GFXQueue::Data1,X
+        pla
+        sta GFXQueue::Data2,X		;created command $00,FC,01,04,<MSword>
+        ldx $0E				;offset into character equipment
+        lda RHWeapon::AtkType,X
+        pha
+        lda ProcSequence
+        tax
+        pla
+        sta AtkType,X
+        stz MultiTarget,X
+        stz TargetType,X
+        lda ProcSequence
+        asl
+        tax
+        lda TempTargetBitmask
+        sta CommandTargetBitmask,X
+        lda TempTargetBitmask+1
+        sta CommandTargetBitmask+1,X
+        inc ProcSequence
+        jsr GFXCmdDamageNumbers		;creates GFX cmd $00,FC,06,00,00
+        lda $10				;RH Weapon Properties
+        and #$01			;Wonder Rod
+        beq NoWonder
+        clc
+        lda BattleData::WonderRod
+        adc #$12			;+18
+        sta $10				;Wonder Rod Spell + 18
+        clc
+        lda BattleData::WonderRod
+        bne :+
+        inc 				;min 1 (skips scan)
+:	ADC #$01			;
+        cmp #$24			;36
+        bne :+
+        tdc 				;clear wonder rod if it got too high
+:	STA BattleData::WonderRod
+        bra MagicProc
+NoWonder:								
+        lda $10				;RH Weapon Properties
+        and #$08			;Magic on hit
+        beq LeftHand
+        jsr Random_0_99
+        ldx $0E				;offset into character equipment
+        cmp RHWeapon::Param2,X		;Proc Chance
+        bcs LeftHand
+        lda RHWeapon::Param3,X		;Proc Magic
+        sta $10				;Proc Magic
+MagicProc:
+        ldy $14				;AttackInfo offset
+        tya
+        clc
+        adc #$0C			;+12, size of AttackInfo
+        tay
+        sty $14				;next AttackInfo offset
+        lda $10				;Proc or Wonder Magic
+        pha
+        jsr CopyROMMagicInfo
+        lda ProcSequence
+        tax
+        ldy $14				;AttackInfo offset
+        lda AttackInfo::MagicAtkType,Y
+        and #$7F
+        sta AtkType,X
+        jsr FindOpenGFXQueueSlot
+        pla 				;Proc or Wonder Magic
+        sta GFXQueue::Data1,X
+        stz GFXQueue::Flag,X
+        stz GFXQueue::Data2,X
+        lda #$FC
+        sta GFXQueue::Cmd,X
+        lda #$07
+        sta GFXQueue::Type,X		;created command $00,FC,07,<Magic>,00
+        lda ProcSequence
+        tax
+        stz MultiTarget,X
+        lda #$10
+        sta TargetType,X
+        lda ProcSequence
+        asl
+        tax
+        lda TempTargetBitmask
+        sta CommandTargetBitmask,X
+        sta TargetBitmask,X
+        lda TempTargetBitmask+1
+        sta CommandTargetBitmask+1,X
+        sta TargetBitmask+1,X
+        inc ProcSequence
+        jsr GFXCmdDamageNumbers		;creates Action $00,FC,06,00,00
+LeftHand:	;very similar to RH code, but does a bunch of stuff in a different order
+        ldx AttackerOffset
+        lda CharStruct::LHWeapon,X
+        bne :+
+        rts 			;no LH weapon, we're done
+:	LDX $0E			;offset into character equipment
+        lda LHWeapon::Properties,X
+        sta $10			;LH Weapon Properties
+        and #$02		;Command instead of attack
+        beq NormalAttackLH
+        lda CurrentlyReacting
+        bne NormalAttackLH
+        ldx AttackerOffset
+        lda CharStruct::Status1,X
+        and #$02		;Zombie
+        bne NormalAttackLH
+        lda CharStruct::Status2,X
+        and #$10		;Charm
+        bne NormalAttackLH
+        jsr Random_0_99
+        ldx $0E			;offset into character equipment
+        cmp LHWeapon::Param2,X			;proc chance
+        bcs NormalAttackLH
+        lda LHWeapon::Param3,X			;proc command
+        jmp DispatchCommand_CommandReady	;dispatch the new command
+NormalAttackLH:
+        jsr SelectCurrentProcSequence	;Y and $0C = AttackInfo offsets
+        sty $12				;AttackInfo offset
+        stz $14
+        ldx $0E
+CopyAttackInfoLH:
+        lda LHWeapon,X
+        sta AttackInfo,Y
+        inx
+        iny
+        inc $14
+        lda $14
+        cmp #$0C			;12 byte structure size
+        bne CopyAttackInfoLH
+        ldx $0E			;offset into character equipment
+        lda ProcSequence
+        tay
+        lda LHWeapon::AtkType,X
+        sta AtkType,Y
+        jsr FindOpenGFXQueueSlot
+        stz GFXQueue::Flag,X
+        lda #$FC
+        sta GFXQueue::Cmd,X
+        lda #$01
+        sta GFXQueue::Type,X
+        lda #$04
+        sta GFXQueue::Data1,X
+        stx $08			;command queue slot offset
+        ldx $0E			;offset into character equipment
+        lda LHWeapon::Properties,X
+        and #$04		;Magic Sword OK
+        bne MSwordLH
+        lda #$80
+        bra :+
+MSwordLH:
+        ldx AttackerOffset
+        lda CharStruct::MSwordAnim,X
+        ora #$80		;Left Hand sets high bit
+:	LDX $08			;command queue slot offset
+        sta GFXQueue::Data2,X	;created command $00,FC,01,04,<MSword/Hand>
+        lda ProcSequence
+        tax
+        stz MultiTarget,X
+        stz TargetType,X
+        lda ProcSequence
+        asl
+        tax
+        lda TempTargetBitmask
+        sta CommandTargetBitmask,X
+        lda TempTargetBitmask+1
+        sta CommandTargetBitmask+1,X
+        inc ProcSequence
+        jsr GFXCmdDamageNumbers	;creates GFX command $00,FC,06,00,00
+        lda $10			;LH Weapon Properties
+        and #$01		;Wonder Rod
+        beq NoWonderLH
+        clc
+        lda BattleData::WonderRod
+        adc #$12		;+18
+        sta $10			;Wonder Rod Spell + 18
+        clc
+        lda BattleData::WonderRod
+        bne :+
+        inc 			;skip scan
+:	ADC #$01
+        cmp #$24		;36
+        bne :+
+        tdc 			;clear wonder rod if it got too high
+:	STA BattleData::WonderRod
+        bra MagicProcLH
+NoWonderLH:
+        lda $10			;LH Weapon Properties
+        and #$08		;magic on hit
+        beq Ret
+        jsr Random_0_99
+        ldx $0E			;offset into character equipment
+        cmp LHWeapon::Param2,X	;Proc chance
+        bcs Ret
+        lda LHWeapon::Param3,X	;Proc Magic
+        sta $10			;Proc Magic
+MagicProcLH:
+        ldy $12			;AttackInfo offset
+        tya
+        clc
+        adc #$0C		;+12, size of AttackInfo
+        tay
+        sty $12			;next AttackInfo offset
+        ldx $0E			;offset into character equipment
+        lda $10			;Proc or Wonder Magic
+        pha
+        jsr CopyROMMagicInfo
+        ldy $12			;AttackInfo offset
+        lda ProcSequence
+        tax
+        lda AttackInfo::MagicAtkType,Y
+        and #$7F
+        sta AtkType,X
+        jsr FindOpenGFXQueueSlot
+        stz GFXQueue::Flag,X
+        stz GFXQueue::Data2,X
+        lda #$FC
+        sta GFXQueue::Cmd,X
+        lda #$07
+        sta GFXQueue::Type,X
+        pla 			;Proc or Wonder Magic
+        sta GFXQueue::Data1,X	;created command $00,FC,07,<Magic>,00
+        lda ProcSequence
+        tax
+        stz MultiTarget,X
+        lda #$10
+        sta TargetType,X
+        lda ProcSequence
+        asl
+        tax
+        lda TempTargetBitmask
+        sta CommandTargetBitmask,X
+        sta TargetBitmask,X
+        lda TempTargetBitmask+1
+        sta CommandTargetBitmask+1,X
+        sta TargetBitmask+1,X
+        inc ProcSequence
+        jsr GFXCmdDamageNumbers	;creates GFX cmd $00,FC,06,00,00
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.org $48BD
+.proc ProcessTurn
+
+_48BD:
+        lda AttackerIndex
+        jsr CalculateCharOffset
+        ldx AttackerOffset
+        lda CharStruct::CurHP,X
+        sta CurrentHP
+        lda CharStruct::CurHP+1,X
+        sta CurrentHP+1
+        ldx CurrentHP
+        cpx #$270F	;9999
+        bcc :+
+        ldx #$270F	;cap at 9999
+        stx CurrentHP
+:	LDX AttackerOffset
+        jsr CopyStatsWithBonuses
+        jsr WipeDisplayStructures
+        jsr WipeActionData
+        jsr DispatchCommand
+        jsr ProcessCommands
+        jsr CheckLearnBlue
+        lda WasMonsterReleased
+        beq :+
+        jsr RestoreStatsAfterRelease
+:	LDA ActionAnimShift
+        beq :+
+        jsr ShiftActionAnims
+:	LDA #$0A	;C1 Routine: execute graphics script
+        jsr CallC1
+        lda EncounterInfo::IntroFX
+        bpl :+
+        lda AttackerIndex      ;this section for credits demo
+        cmp #$04		;monster check
+        bcs :+
+        lda #$20
+        sta BattleOver		;battle ends after one action
+:	LDA #$FF
+        sta ReleasedMonsterID
+        inc TurnProcessed
+        stz PendingReactions
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc ShiftActionAnims
+_4923:
+        lda ActionAnimShift
+        bpl Finish
+        LoadOffset ActionAnim0, TargetBits, 0
+        InstructionOffset ora, ActionAnim0, TargetBits, 1
+        beq :+
+        LoadOffset ActionAnim0, OrigTargetBits, 0
+        InstructionOffset sta, ActionAnim0, TargetBits, 0
+:	TDC
+        tax
+ShiftActionAnims:
+        InstructionOffsetX lda, ActionAnim0, Flags, 2
+        StoreOffsetX ActionAnim0, Flags, 1
+        inx
+        cpx #$0023	;35 bytes, which is 5 ActionAnim structures
+        bne ShiftActionAnims
+        lda ActionAnimShift
+        and #$40
+        beq Ret
+        LoadOffset ActionAnim0, TargetBits, 1
+        InstructionOffset ora, ActionAnim0, TargetBits, 2
+        beq Finish
+        LoadOffset ActionAnim0, OrigTargetBits, 1
+        InstructionOffset sta, ActionAnim0, TargetBits, 1
+Finish:
+        tdc
+        tax
+ShiftActionAnims2:
+        InstructionOffsetX lda, ActionAnim0, Flags, 3
+        StoreOffsetX ActionAnim0, Flags, 2
+        inx
+        cpx #$0023	;35 bytes, which is 5 ActionAnim structures
+        bne ShiftActionAnims2
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Dispatches Commands to their command routines
+.proc DispatchCommand
+
+_4968:
+        ldx AttackerOffset
+        lda CharStruct::Status1,X
+        and #$02			;Zombie
+        bne :+
+        lda CharStruct::Status2,X
+        and #$18      			;Charm or Berserk
+        beq :++
+:	LDA CharStruct::CmdCancelled,X
+        bne :+				;already cancelled player command
+        lda #$01
+        sta CharStruct::CmdCancelled,X
+        stz CharStruct::Command,X
+        lda #$80
+        sta CharStruct::ActionFlag,X
+:	LDA CharStruct::Status2,X
+        and #$40      			;Sleep
+        beq :+
+        stz CharStruct::Command,X
+        lda #$80
+        sta CharStruct::ActionFlag,X
+:	CPX #$0200    			;AttackerOffset is a monster
+        bcs ActionReady
+        lda CharStruct::Command,X
+        beq ActionReady
+        cmp #$25			;Hide
+        beq ActionReady
+        cmp #$26			;Show
+        beq ActionReady
+        cmp #$2B			;Mimic
+        beq ActionReady
+        cmp #$4E			;Nothing 4E and above
+        bcs ActionReady
+        lda CharStruct::Status1,X
+        and #$02			;Zombie
+        bne ActionReady
+        lda CharStruct::Status2,X
+        and #$18			;Charm or Berserk
+        bne ActionReady
+        tdc
+        tay
+CopyActionInfo:		;copies 10 bytes of command and cursor selection info from CharStruct
+        lda CharStruct::ActionFlag,X
+        sta SavedAction,Y
+        inx
+        iny
+        cpy #$000A
+        bne CopyActionInfo
+ActionReady:
+        ldx AttackerOffset
+        lda CharStruct::Command,X
+CommandReady:		;routine can be called from here directly.  If so, A is a command (mimic or a weapon proc)
+        pha
+        longa
+        jsr ShiftMultiply_8
+        tax
+        lda ROMAbilityInfo::CmdStatus,X	;holds command status and damage mod
+        ldx AttackerOffset
+        sta CharStruct::CmdStatus,X
+        shorta0
+        pla
+        tax
+        lda ROMCommandMap,X	;maps commands to command table..
+        sta CommandOffset	;mostly just decrements by 1,
+        asl 			;except for magic or internal commands after
+        tax
+        lda f:CommandTable,X
+        sta $08
+        lda f:CommandTable+1,X
+        sta $09
+        lda #$C2 ; Current bank
+        sta $0A
+        stz UnknownReaction
+        stz DelayedFight
+        stz SearchGFXQueue
+        stz MPTaken
+        stz MessageBoxOffset
+        stz MessageBoxDataOffset
+        stz WasMonsterReleased
+        stz ActionAnimShift
+        stz MissInactive
+        stz HitsJumping
+        tdc
+        tax
+:	STZ HitsInactive,X
+        inx
+        cpx #$0010
+        bne :-
+        jmp [$0008]		;jumps to command from command table
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.org $4A2F
+.proc RestoreStatsAfterRelease
+
+_4A2F:
+        lda AttackerIndex
+        jsr CalculateCharOffset
+        ldx AttackerOffset
+        lda SavedCharStats::Level
+        sta CharStruct::Level,X
+        lda SavedCharStats::MonsterAttack
+        sta CharStruct::MonsterAttack,X
+        lda SavedCharStats::MonsterM
+        sta CharStruct::MonsterM,X
+        lda SavedCharStats::EquippedMag
+        sta CharStruct::EquippedMag,X
+        lda SavedCharStats::CharRow
+        sta CharStruct::CharRow,X
+        lda CharStruct::Status1,X
+        ora SavedCharStats::Status1
+        and #$7F	;clear dead status
+        sta CharStruct::Status1,X
+        tdc
+        tay
+StatusLoop:	;Adds original Status1-4, CmdStatus, DamageMod, Passives1-2, ElementUp
+        lda CharStruct::Status1,X
+        ora SavedCharStats::Status1,Y
+        sta CharStruct::Status1,X
+        inx
+        iny
+        cpy #$0009
+        bne StatusLoop
+        tdc
+        tay
+        ldx AttackerOffset
+MSwordLoop:
+        lda SavedCharStats::MSwordElemental1,Y
+        sta CharStruct::MSwordElemental1,X
+        inx
+        iny
+        cpy #$0006
+        bne MSwordLoop
+        tdc
+        tay
+        ldx AttackerOffset
+MiscLoop:	;copies Always Status, Bonus Stats, and Magic Sword Animation
+        lda SavedCharStats::AlwaysStatus1,Y
+        sta CharStruct::AlwaysStatus1,X
+        inx
+        iny
+        cpy #$000B
+        bne MiscLoop
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.org $C24A94
+.proc CommandTable
+
+_4A94:
+
+.word $0511, $0570, $0791, $07A4, $45FF, $07A9, $07AE, $07CF
+.word $090B, $0933, $094E, $096F, $0990, $0AA4, $0ADC, $0AFA
+.word $0B0F, $0B6F, $0B7A, $0B9B, $0BBF, $0C67, $0C6F, $0DE4
+.word $0DA2, $0DC3, $0EE0, $0EFE, $0F1F, $0F40, $1125, $0570
+.word $1169, $118A, $11B2, $0511, $125E, $12B3, $5B9F, $5B9F
+.word $1306, $1333, $13CE, $5B9F, $0814, $09DD, $0A7D, $13EF
+.word $141D, $1425, $1490, $14B8, $16A2
+
+.endproc
+.reloc
+
+; ---------------------------------------------------------------------------
+
+;Retargets a single target attack if necessary (dead/hidden/etc)
+;**optimize: this routine is extremely ineffecient in both speed and size
+.org $4AFE
+.proc CheckRetarget
+
+_4AFE:
+        ldx AttackerOffset
+        phx
+        stz $0E
+        lda MonsterTargets
+        beq NoMon
+        inc $0E			;flag for monsters targetted
+        jsr CountSetBits
+        dex
+        beq SingleTarget
+        jmp Finish		;abort if multiple monster targets
+NoMon:	LDA PartyTargets
+        bne Party
+        jmp Finish		;abort if no targets selected
+Party:	JSR CountSetBits
+        dex
+        beq SingleTarget
+        jmp Finish		;abort if multiple party targets
+SingleTarget:
+        lda MonsterTargets	;monsters 0-7
+        pha
+        and #$F0		;select monsters 0-3
+        jsr ShiftDivide_16	;shift into slots 4-7
+        ora PartyTargets	;party into slots 0-3
+        sta $10			;first byte of target bitmask
+        pla
+        jsr ShiftMultiply_16	;shift monsters 4-7 into slots 8-11
+        sta $11			;second byte of target bitmask
+        tdc
+        tax
+FindTargetLoop:									
+        asl $11
+        rol $10
+        bcs FoundTarget
+        inx 			;due to earlier checks
+        bra FindTargetLoop	;there should always be a target to escape loop
+FoundTarget:								
+        lda ActiveParticipants,X	;is target active?
+        beq Retarget
+        txa
+        jsr CalculateCharOffset
+        lda CharStruct::Status1,X
+        and #$C0		;Dead or Stone	(but still active, somehow?)
+        bne Retarget
+        lda CharStruct::Status4,X
+        and #$81		;Erased or Hidden
+        bne Retarget
+        lda CharStruct::CmdStatus,X
+        and #$10		;Jumping
+        beq Finish		;target is fine, we're done
+Retarget:									
+        lda $0E			;flag for monsters targetted
+        bne RetargetMonster
+        stz $12
+        lda #$04
+        sta $13
+        jsr CheckValidTargetsExist	;checks 0-3 for party
+        bne Finish			;give up if it failed
+        tdc
+        tax
+        lda #$03
+        jsr Random_X_A
+        bra TryNewTarget
+        							;:skip3
+RetargetMonster:
+        lda #$04
+        sta $12
+        lda #$0C
+        sta $13
+        jsr CheckValidTargetsExist	;checks 4-11 for monsters
+        bne Finish			;give up if it failed
+        lda SandwormBattle
+        beq :+
+        ldx #$0004		;only retarget to holes for sandworm fight
+        lda #$06
+        bra :++
+:	LDX #$0004		;otherwise retarget to any monster slot
+        lda #$0B
+:	JSR Random_X_A
+TryNewTarget:
+        sta $10
+        tax
+        lda ActiveParticipants,X
+        beq Retarget		;if we chose an invalid target, start over
+        lda $10
+        jsr CalculateCharOffset
+        lda CharStruct::Status1,X
+        and #$C0		;Stone or Dead
+        bne Retarget
+        lda CharStruct::Status4,X
+        and #$81		;Erased or Hidden
+        bne Retarget
+        lda CharStruct::CmdStatus,X
+        and #$10		;Jumping
+        bne Retarget
+        lda $0E			;flag for monsters targetted
+        bne SetMonsterTargets
+        lda $10
+        tax
+        tdc
+        jsr SetBit_X
+        sta PartyTargets
+        bra Finish
+SetMonsterTargets:								
+        sec
+        lda $10
+        sbc #$04
+        tax
+        tdc
+        jsr SetBit_X
+        sta MonsterTargets
+Finish:	PLX 			;original AttackerOffset
+        stx AttackerOffset
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Checks if any of the slots in a range are valid targets
+;$12 is the first target to consider
+;$13 is where to stop (one past the targets to check)
+;result is in A and NewTargetFailed, and (as it's used) also the zero flag
+;returns 0 if retargetting succeeded, 1 if not
+;new target offset is in X
+.proc CheckValidTargetsExist
+
+_4BD7:
+        lda $12
+        tay
+        lda ActiveParticipants,Y
+        beq CheckNext
+        lda $12
+        longa
+        jsr ShiftMultiply_128
+        tax
+        shorta0
+        lda CharStruct::Status1,X
+        and #$C0		;Dead or Stone
+        bne CheckNext
+        lda CharStruct::Status4,X
+        and #$81		;Erased or Hidden
+        bne CheckNext
+        lda CharStruct::CmdStatus,X
+        and #$10		;Jumping
+        bne CheckNext
+        tdc
+        bra Finish
+CheckNext:								
+        inc $12
+        lda $12
+        cmp $13
+        bne CheckValidTargetsExist
+        lda #$01
+Finish:								
+        sta NoValidTargets
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+;Check if the last attack was learnable blue magic, 
+;and queue it for learning if needed
+.proc CheckLearnBlue
+
+_4C10:
+        lda AttackerIndex
+        cmp #$04		;monster check
+        bcs Monster
+        rts 			;can only learn from monsters
+Monster:
+        sec
+        sbc #$04		;now monster index
+        jsr ShiftMultiply_16
+        longa
+        clc
+        adc #MonsterMagic
+        sta $3D			;address of monster blue magic table?
+        shorta0
+        tdc
+        tay
+        sty $3F			;spell table index
+CheckBlueLoop:
+        ldy $3F
+        lda ($3D),Y
+        sta $08			;monster blue magic (potentially)
+        beq EarlyRet
+        cmp #$FF
+        beq EarlyRet
+        cmp #$82		;first blue magic
+        bcc NotBlue
+        cmp #$A0		;after last blue magic
+        bcc ValidBlue
+NotBlue:
+        jmp NextSpell
+EarlyRet:
+        rts
+ValidBlue:
+        stz $0E
+        lda $3F			;spell table index
+        tax
+        lda ROMTimes7,X  	;*7, size of ActionAnim struct
+        tax
+        lda ActionAnim0::TargetBits,X
+        sta $0F			;target bits
+        lda ActionAnim0::Flags,X
+        and #$40		;target was a monster
+        beq :+
+        lda ActionAnim0::ReflecteeBits,X
+        sta $0E			;target after reflect
+        stz $0F			;original target doesn't matter
+:	LDA $0F
+        ora $0E
+        sta $0E			;final target bits
+        beq NextSpell		;no targets
+        tdc
+        tax
+        stx $10
+TargetLoopLDX:
+        ldx $10
+TargetLoop:
+        asl $0E
+        inc $10
+        bcs TargetHit
+        inx
+        cpx #$0008
+        bne TargetLoop
+        bra NextSpell
+TargetHit:
+        longa
+        txa 		;target index
+        jsr ShiftMultiply_128
+        tay 		;target offset
+        shorta0
+        lda CharStruct::Passives1,Y
+        and #$10	;learning
+        beq TargetLoopLDX
+        lda $08		;monster blue magic
+        longa
+        jsr ShiftMultiply_8
+        tax
+        shorta0
+        lda ROMMagicInfo::Misc,X
+        and #$F0	;flags
+        sta $10
+        bmi NextSpell  ;monster bit (monster only?)
+        and #$40	;learnable
+        beq :+
+        lda #$64       	;100%
+        bra CheckLearn
+:	LDA $10
+        and #$20	;learnable (never used)
+        beq :+
+        lda #$32       	;50%
+        bra CheckLearn
+:	LDA $10
+        and #$10	;learnable (never used)
+        beq NextSpell
+        lda #$0A       	;10%
+CheckLearn:
+        sta $0E
+        jsr Random_0_99
+        cmp $0E
+        bcs NextTarget
+        lda BlueLearnedCount
+        cmp #$08       	;max 8
+        beq Ret
+        tax
+        lda $08		;blue spell learned
+        sta BlueLearned,X
+        inc BlueLearnedCount
+        bra NextSpell
+NextTarget:
+        bra TargetLoopLDX
+NextSpell:	
+        inc $3F			;spell table index
+        jmp CheckBlueLoop
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc StartBattle
+_4CE0:
+        jsr InitBattle
+        tdc
+        tax
+:	ADC a:$0000,X		;Sum first 1000 bytes of ram
+        inx
+        cpx #$03E8
+        bne :-
+        										;					
+        adc RNGSeed		;add RNG seed
+        sta RNGA
+        										;					
+:	ADC a:$0000,X		;Sum another 1000 bytes of ram
+        inx
+        cpx #$07D0
+        bne :-
+        										;					
+        sta RNGB
+        tdc
+        tax
+:	LDA ROMGlobalTimer,X		;copies table of constants for status timers
+        sta GlobalTimer,X
+        inx
+        cpx #$000B
+        bne :-
+        										;					
+        lda Config1
+        and #$0F		;battle mode and speed
+        tax
+        lda ROMBattleSpeedTable,X
+        sta ATBWaitTime
+        longa
+        lda EncounterIndex
+        jsr ShiftMultiply_16
+        tax
+        shorta0
+        tay
+        										;					
+:	LDA ROMEncounterInfo,X
+        sta EncounterInfo,Y	;copy encounter info from rom
+        iny
+        inx
+        cpy #$0010
+        bne :-
+        jsr CheckOneTimeEncounters
+        tdc
+        tax
+        tay
+CopyMonsterIDs:
+        lda EncounterInfo::MonsterID,X
+        sta BattleMonsterID,Y
+        cmp #$FF
+        bne :+
+        sta BattleMonsterID+1,Y
+        bra :++
+:	LDA EncounterInfo::Flags
+        and #$20		;boss battle
+        beq :+
+        lda #$01
+        sta BattleMonsterID+1,Y
+:	INX
+        iny
+        iny
+        cpy #$0010		;8 monster slots *2
+        bne CopyMonsterIDs
+        tdc
+        tay
+        tax
+        stx $10
+        lda #$D0
+        sta $14
+        ldy #$0000
+        sty $12			;$12 now holds $D00000 address
+        ldy $10
+        lda BattleMonsterID+1,Y
+        beq CopyMonsterStats
+        lda #$D0
+        sta $14			;set this again, for some reason
+        ldy #$2000		;shift to boss section of the table
+        sty $12
+CopyMonsterStats:
+        ldy $10
+        lda EncounterInfo::MonsterID,Y
+        longa
+        jsr ShiftMultiply_32
+        tay
+        shorta0
+        stz $0E
+        										;					
+:	LDA [$12],Y		;ROMMonsterStats
+        sta MonsterStats,X
+        iny
+        inx
+        inc $0E
+        lda $0E
+        cmp #$20		;struct is 32 bytes long
+        bne :-
+        										;					
+        inc $10
+        lda $10
+        cmp #$08		;8 monsters
+        bne CopyMonsterStats
+;set up visible and active monster tracking										;	
+        tdc
+        tax
+        lda EncounterInfo::Visible
+        sta MonstersVisibleUnused
+        sta MonstersVisible
+        sta MonsterKillTracker
+        pha
+        eor #$FF
+        sta InactiveMonsters
+        pla
+        										;					
+:	ASL
+        bcc :+
+        inc InitialMonsters,X
+:	INX
+        cpx #$0008
+        bne :--
+        										;					
+        longa
+        lda EncounterIndex
+        jsr ShiftMultiply_8
+        tax
+        shorta0
+        tdc
+        tay
+;set up monster X/Y coordinates on screen											
+:	LDA ROMMonsterCoordinates,X
+        sta MonsterCoordinates,Y
+        inx
+        iny
+        cpy #$0008
+        bne :-
+        										;					
+        tdc
+        tax
+;override monster ID $FF to be active
+:	LDA EncounterInfo::MonsterID,X
+        cmp #$FF
+        bne :+
+        lda MonsterKillTracker
+        jsr SetBit_X
+        sta MonsterKillTracker
+:	INX
+        cpx #$0008
+        bne :--
+        										;					
+        jsr LoadStatsEquipmentAI
+        jsr SetupInventoryMagic
+        jsr RandomizeOrder
+        jsr ResetATBAll
+        jsr UpdateMonsterList
+        jsr CopyHPMPStatus
+        jsr SetupMusic
+        jsr CheckAmbushes
+        lda #$02		;C1 routine: init battle graphics
+        jsr CallC1
+        jsr AdvanceStartingATB
+        lda MessageBoxes
+        beq :+
+        lda #$0A		;C1 routine: execute graphics script
+        jsr CallC1
+:	JMP MainBattleLoop
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;set up sandworm and one-time encounters
+.proc CheckOneTimeEncounters
+
+_4E25:
+        lda EncounterInfo::Flags
+        and #$10	;sandworm
+        beq OneTimeEncounters
+        inc SandwormBattle
+        rts
+OneTimeEncounters:
+        tdc
+        tax
+        stx $10
+CheckEncountersLoop:													
+        ldx $10
+        lda EncounterIndex
+        cmp ROMOneTime::Encounter,X
+        bne Next
+        lda EncounterIndex+1
+        cmp ROMOneTime::Encounter+1,X
+        bne Next
+        lda ROMOneTime::Replacement,X
+        sta $12
+        lda ROMOneTime::Replacement+1,X
+        sta $13
+        txa 			;always 0-28 and a multiple of 4
+        jsr ShiftDivide_4	;0-7
+;**optimize: this whole section is pointless, but maybe they had more than 8 of these at one point
+        stz $0E
+        lsr
+        ror $0E
+        lsr
+        ror $0E
+        lsr
+        ror $0E
+        tay 			;always 0
+        lda $0E
+        jsr ShiftDivide_32	;this recovers the original 0-7 number
+        tax
+        lda BattleData::EventFlags+1,Y	;Y is always 0 here
+        jsr SelectBit_X			;selects event flag for this fight
+        bne ChangeEncounter		;change the fight if we've done it
+Next:	INC $10
+        inc $10
+        inc $10
+        inc $10				;+4 for next encounter replacement
+        lda $10
+        cmp #$20			;8 total replacements in table
+        bne CheckEncountersLoop
+        rts
+ChangeEncounter:
+        longa
+        lda $12			;replacement encounter
+        sta EncounterIndex
+        jsr ShiftMultiply_16
+        tax
+        shorta0
+        tay
+:	LDA ROMEncounterInfo,X
+        sta EncounterInfo,Y
+        iny
+        inx
+        cpy #$0010		;16 byte struct
+        bne :-
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Advances ATB so that the lowest ATB gets their turn immediately
+;also applies Masamune's Initiative effect but it's buggy
+.org $4E9F
+.proc AdvanceStartingATB
+
+_4E9F:
+        lda #$FF
+        sta $0E
+        tdc
+        tax
+        tay
+FindLowestATB:													
+        lda ActiveParticipants,Y
+        beq NextLowestATB
+        lda CurrentTimer::ATB,X
+        cmp $0E
+        bcs NextLowestATB
+        sta $0E			;current lowest
+NextLowestATB:													
+        txa
+        clc
+        adc #$0B	;next char timer offset
+        tax
+        iny
+        cpy #$000C	;12 participants
+        bne FindLowestATB
+        sec
+        lda $0E		;lowest atb
+        sbc #$02	;-2
+        bcs :+
+        tdc		;min 0
+:	STA $0E
+        tdc
+        tax
+        tay
+SubtractLowestATB:
+        lda ActiveParticipants,Y
+        beq NextSubtractLowest
+        sec
+        lda CurrentTimer::ATB,X
+        sbc $0E		;lowest ATB -2
+        sta CurrentTimer::ATB,X
+NextSubtractLowest:
+        txa
+        clc
+        adc #$0B	;next char timer offset
+        tax
+        iny
+        cpy #$000C    	;12 participants
+        bne SubtractLowestATB
+        tdc
+        tax
+        tay
+        ;**bug: they forgot to init $0E to zero here,
+        ;so this writes 1 to random timer values after setting up initiative
+        ;luckily, the range it can reach is all within CurrentTimer and InitialTimer
+        ;and the 1s written there seem fairly harmless
+CheckInitiative:	;this generally loops ~200 times due to the bug						   
+        lda EncounterInfo::IntroFX
+        bmi NextInitiative	;80h: credits demo battle
+        lda CharStruct::WeaponProperties,X
+        and #$20      		;initiative
+        beq NextInitiative
+        lda #$01
+        sta CurrentTimer::ATB,Y
+NextInitiative:													
+        tya
+        clc
+        adc #$0B      	;next char timer offset
+        tay
+        jsr NextCharOffset
+        inc $0E		;should be char index, but is likely >4
+        lda $0E
+        cmp #$04	;4 characters, will loop until the byte wraps around
+        bne CheckInitiative
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.org $4F0A
+.proc InitBattle
+
+_4F0A:
+        ldx #$0067
+        tdc
+:	STA $00,X	;Clears $00-67
+        dex
+        bpl :-
+        ldx #$5CD7
+        tdc
+:	STA $2000,X	;Clears all of the ram used in battle, except ResetBattle
+        dex
+        bpl :-
+        txa 		;A now $FF
+        sta ATBReadyQueue
+        sta ATBReadyQueue+1
+        sta ATBReadyQueue+2
+        sta ATBReadyQueue+3
+        sta ATBReadyQueue+4
+        sta DisplayInfo::CurrentChar
+        sta ReleasedMonsterID
+        ldx #$01FF
+:	STA GFXQueue,X		;Init gfx queue to $FF, which is considered empty
+        dex
+        bpl :-
+        tdc
+        tax
+:	LDA FieldData,X	;copy data like Escape count and battle event flags
+        sta BattleData,X	;from field structure to battle structure
+        inx
+        cpx #$0020
+        bne :-
+        lda FieldTimerEnable
+        sta BattleTimerEnable
+        lda FieldTimer
+        sta BattleTimer
+        lda FieldTimer+1
+        sta BattleTimer+1
+        inc MonsterNextForm
+        lda #$40			;set this bit for all monsters
+        InstructionOffset sta, CharStruct, CharRow, 4
+        InstructionOffset sta, CharStruct, CharRow, 5
+        InstructionOffset sta, CharStruct, CharRow, 6
+        InstructionOffset sta, CharStruct, CharRow, 7
+        InstructionOffset sta, CharStruct, CharRow, 8
+        InstructionOffset sta, CharStruct, CharRow, 9
+        InstructionOffset sta, CharStruct, CharRow, 10
+        InstructionOffset sta, CharStruct, CharRow, 11
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;(check for and set up preemptive and back attacks)
+.proc CheckAmbushes
+
+_4F7A:
+        tdc
+        tax
+        tay
+:	LDA CharStruct::CharRow,X
+        sta SavedCharRow,Y
+        jsr NextCharOffset
+        iny
+        cpy #$0004	;4 characters
+        bne :-
+        lda BattleMonsterID+1	;indicates boss	Monster
+        bne CheckBackAttack
+        InstructionOffset lda, CharStruct, Passives2, 0
+        InstructionOffset ora, CharStruct, Passives2, 1
+        InstructionOffset ora, CharStruct, Passives2, 2
+        InstructionOffset ora, CharStruct, Passives2, 3
+        sta $0E			;combined passives2
+        and #$04      		;caution
+        bne CheckPreemptive
+CheckBackAttack:							
+        lda EncounterInfo::Flags
+        bmi _BackAttack		;80h: Always Back Attack
+        lda BattleMonsterID+1
+        bne Finish		;boss
+        lda EncounterInfo::IntroFX
+        bmi Finish		;80h: Credits Demo
+        lda ResetBattle
+        bne CheckPreemptive
+        tdc
+        tax
+        lda #$FF
+        jsr Random_X_A
+        cmp #$10      		;16/256 chance, or 1 in 16
+        bcs CheckPreemptive
+_BackAttack:
+        inc BackAttack
+        jsr SetupBackAttack
+        bra Finish
+CheckPreemptive:													
+        lda #$20	;32/256 by default, or 1 in 8
+        sta $10		;preemptive chance
+        lda $0E		;combined passives2
+        and #$02      	;pre-emptive
+        beq :+
+        lda #$40	;64/256, or 1 in 4
+        sta $10
+:	TDC
+        tax
+        lda #$FF
+        jsr Random_X_A
+        cmp $10       	;preemptive chance
+        bcs Finish
+        jsr Preemptive
+        						;:
+Finish:	STZ ResetBattle
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;(sets up back attack)
+.proc SetupBackAttack
+
+_4FEA:
+        lda #$1C	;back attack message
+        sta MessageBoxes
+        tdc
+        tax 		;first character offset to adjust ATB
+        tay 		;timer offset
+        sty $0E		;first char index to adjust
+        lda #$04
+        sta $10		;char index to finish on
+        stz $12		;0 to flip rows
+        lda #$3C
+        sta $16		;ATB adjustment
+        jmp AdjustATB
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;(sets up pre-emptive strikes)
+.proc Preemptive
+
+_5001:
+        lda #$1B	;pre-emptive strike message
+        sta MessageBoxes
+        ldx #$0200	;first character offset to adjust ATB
+        ldy #$002C	;timer offset
+        lda #$04
+        sta $0E		;first char index to adjust
+        lda #$0C
+        sta $10		;char index to finish on
+        sta $12		;don't flip rows
+        lda #$5A
+        sta $16		;ATB adjustment
+        jmp AdjustATB
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;(finishes pre-emptive/back attack processing, but written such it could be used in different ways)
+;X: first character offset to adjust ATB
+;Y: timer offset
+;$0E: first char index to adjust
+;$10: char index to finish on
+;$12: 0 to flip rows
+;$16: ATB adjustment
+.proc AdjustATB
+
+_501D:
+        lda CharStruct::WeaponProperties,X
+        and #$20	;initiative
+        bne SwapRow	;skips atb adjustment for back attack
+        clc
+        lda CurrentTimer::ATB,Y
+        adc $16
+        bcc :+
+        lda #$FF	;cap at 255
+:	STA CurrentTimer::ATB,Y
+        lda $12
+        bne Next
+SwapRow:														
+        lda CharStruct::CharRow,X
+        and #$7F
+        sta $14		;everything but row
+        lda CharStruct::CharRow,X
+        and #$80	;row
+        eor #$80	;flip row
+        ora $14		;recombine
+        sta CharStruct::CharRow,X
+Next:								
+        jsr NextCharOffset
+        tya
+        clc
+        adc #$0B	;next character timer offset
+        tay
+        inc $0E		;char index
+        lda $0E
+        cmp $10		;end index
+        bne AdjustATB
+        tdc
+        jmp GFXCmdMessageClearAnim
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;set up combat music
+.org $505C
+.proc SetupMusic
+
+_505C:
+        lda EncounterInfo::Music
+        bmi Ret
+        lda EncounterInfo::Music
+        jsr ShiftDivide_8
+        tax
+        lda ROMMusicTable,X
+        jsr MusicChange
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc EndBattle
+
+_5070:
+        jsr WipeDisplayStructures
+        ldx #$0007		;clear 8 bytes
+:	STZ FieldItemsWon,X
+        stz BattleItemsWon,X
+        dex
+        bpl :-
+        lda ResetBattle
+        beq CheckDead
+        jmp Finish
+CheckDead:
+        lda BattleOver
+        and #$40		;party dead
+        beq CheckEscaped
+        lda #$01
+        jsr GFXCmdMessageClearAnim
+        lda #$75    		;game over music
+        jsr MusicChange
+        lda #$01		;game over flag
+        sta BattleData::EventFlags
+        lda #$2A		;message
+        sta MessageBoxes
+        jmp MessageDisplay
+CheckEscaped:
+        lda BattleOver
+        and #$01		;escaped
+        beq CheckVictory
+        lda #$02		;escaped flag
+        sta BattleData::EventFlags
+        lda #$80		;??
+        sta ActionAnim0::TargetBits
+        lda #$0C		;C1 routine
+        jsr CallC1
+        jsr ResetStats
+        jsr ApplyPartyGear
+        jsr UpdateFieldData
+        lda #$2B		;message
+        sta MessageBoxes
+        tdc
+        jsr GFXCmdMessageClearAnim
+        clc
+        lda BattleData::Escapes
+        adc #$01
+        bcc :+
+        lda #$FF    		;255 cap
+:	STA BattleData::Escapes
+        bra MessageDisplay
+CheckVictory:
+        stz BattleData::EventFlags	;victory
+        jsr ResetStats
+        lda BattleOver
+        bpl NoReward		;ended in a way other than enemies dying
+        lda EncounterInfo::Flags
+        and #$02		;no reward flag
+        bne NoReward
+        lda EncounterInfo::Music
+        bmi :+			;no track change
+        lda #$70    		;victory music
+        jsr MusicChange
+:	LDA #$0D		;C1 routine
+        jsr CallC1
+        lda #$01
+        jsr GFXCmdMessageClearAnim
+        lda #$29		;message
+        sta MessageBoxes
+        lda #$0A		;C1 routine: execute graphics script
+        jsr CallC1
+        jsr GetLootExp
+NoReward:
+        jsr ApplyPartyGear
+        jsr UpdateFieldData
+        bra CleanupItems
+MessageDisplay:			;maybe also item drop window?
+        lda #$0A		;C1 routine: execute graphics script
+        jsr CallC1
+CleanupItems:
+        jsl $D0EF78 ;CleanupFieldItems_D0 ; very strange code, its code in the data bank
+        jsr MergeItemDupes
+        tdc
+        tax
+CopyBattleData:
+        lda BattleData,X
+        sta FieldData,X
+        inx
+        cpx #$0020		;32 bytes data copied
+        bne CopyBattleData
+        lda BattleTimer
+        sta FieldTimer
+        lda BattleTimer+1
+        sta FieldTimer+1
+        lda #$0E		;C1 routine
+        jsr CallC1
+Finish:
+        tdc
+        tax
+:	ORA BattleItemsWon,X
+        inx
+        cpx #$0008
+        bne :-
+        pha 		;non-zero A means there was an item drop
+        pla
+        bne Ret
+        lda EncounterInfo::Music
+        bmi Ret	;no track change
+        lda #$7F
+        jsr MusicChange
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc ResetStats
+
+_515C:
+        tdc
+        tay
+        tax
+        stx $0E
+CopyBaseStats:
+        lda FieldChar::Level,Y
+        sta CharStruct::Level,X
+        lda FieldChar::BaseStr,Y
+        sta CharStruct::BaseStr,X
+        lda FieldChar::BaseAgi,Y
+        sta CharStruct::BaseAgi,X
+        lda FieldChar::BaseVit,Y
+        sta CharStruct::BaseVit,X
+        lda FieldChar::BaseMag,Y
+        sta CharStruct::BaseMag,X
+        jsr NextCharOffset
+        longa
+        tya
+        clc
+        adc #$0050		;size of FieldChar struct
+        tay
+        shorta0
+        inc $0E
+        lda $0E
+        cmp #$04		;4 chars
+        bne CopyBaseStats
+        tdc
+        tax
+        stx $0E
+        stx $10
+ClearEffects:
+        ldx $0E
+        stz CharStruct::CmdStatus,X
+        stz CharStruct::DamageMod,X
+        stz CharStruct::ElementUp,X
+        tdc
+        tay
+ClearResists:	;resists, status immunities, weapon/armor properties
+        stz CharStruct::EAbsorb,X
+        inx
+        iny
+        cpy #$000A		;10 bytes data cleared
+        bne ClearResists
+        ldx $0E
+        jsr NextCharOffset
+        stx $0E
+        inc $10
+        lda $10
+        cmp #$04		;4 chars
+        bne ClearEffects
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Checks for any duplicate item ids, and merge them together if they match
+.proc MergeItemDupes
+
+_51C2:
+        tdc
+        tax
+BaseLoop:
+        txy
+        iny
+SearchLoop:
+        lda FieldItems,X
+        beq NextBaseItem
+        cmp FieldItems,Y
+        bne NextSearchItem
+        clc
+        lda FieldItemsQty,X	;match, merge quantities into base item
+        adc FieldItemsQty,Y
+        cmp #$63
+        bcc :+
+        lda #$63		;max 99
+:	STA FieldItemsQty,X
+        tdc 			;clear dupe's old slot
+        sta FieldItems,Y
+        sta FieldItemsQty,Y
+NextSearchItem:
+        iny
+        cpy #$0100
+        bne SearchLoop
+NextBaseItem:
+        inx
+        cpx #$00FF
+        bne BaseLoop
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Restores original Max HP and resists
+;Copies character stats and inventory from battle to field structures
+;Updates play time frame count
+.proc UpdateFieldData
+
+_51F4:
+        tdc
+        tax
+        tay
+        sty $10
+        stx $12
+CopyCharLoop:
+        stz $0E
+        lda $10			;char index
+        tax
+        lda GiantDrink,X
+        beq ResetStatus
+        phy
+        lda $10
+        asl
+        tay
+        longa
+        lda OriginalMaxHP,Y 	;resets giant drink hp increase
+        ldx $12			;char offset
+        sta CharStruct::MaxHP,X
+        cmp CharStruct::CurHP,X
+        bcs :+
+        sta CharStruct::CurHP,X
+:	TDC
+        shorta
+        ply
+ResetStatus:			;keeps Status1 though
+        ldx $12			;char offset
+        stz CharStruct::Status2,X
+        stz CharStruct::Status3,X
+        stz CharStruct::Status4,X
+        stz CharStruct::CmdStatus,X
+        ldx $10			;char index
+        lda SavedCharRow,X
+        ldx $12
+        sta CharStruct::CharRow,X
+CopyStats:
+        lda CharStruct,X
+        sta FieldChar,Y
+        inx
+        iny
+        inc $0E
+        lda $0E
+        cmp #$46		;70 bytes
+        bne CopyStats
+        longa
+        tya
+        clc
+        adc #$000A		;10 bytes, adding up to size of FieldChar
+        tay
+        shorta0
+        ldx $12
+        jsr NextCharOffset
+        stx $12
+        inc $10
+        lda $10
+        cmp #$04		;4 chars
+        bne CopyCharLoop
+        ldx #$00FF
+CopyInventory:
+        lda InventoryItems,X
+        sta FieldItems,X
+        bne CopyQty
+        tdc 			;Qty 0 for empty slot
+        bra :+
+CopyQty:
+        lda InventoryQuantities,X
+:	STA FieldItemsQty,X
+        bne :+
+        sta FieldItems,X		;Empty slot for Qty 0
+:	DEX
+        bpl CopyInventory
+        ;update played time (32 bit frame count)
+        longa
+        clc
+        lda FieldFrameCount
+        adc a:BattleFrameCount
+        sta FieldFrameCount
+        lda FieldFrameCount+2
+        adc a:BattleFrameCount+2
+        sta FieldFrameCount+2
+        bcc :+
+        lda #$FFFF
+        sta FieldFrameCount
+        sta FieldFrameCount+2
+:	TDC
+        shorta
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Adds Gil, Exp and AP from monsters
+;queues up any item drops to be collected later
+;applies level and job level ups
+.org $52A2
+.proc GetLootExp
+
+_52A2:
+        lda MonsterKillTracker
+        eor #$FF
+        sta MonsterKillTracker	;inverted, anything killed is now set
+        jsr CountSetBits
+        longa
+        txa
+        clc
+        adc MonsterKillCount
+        bcc :+
+        lda #$FFFF		;max 65535 tracked kills
+:	STA MonsterKillCount
+        shorta0
+        tdc
+        tax
+        stx VictoryGil
+        stx VictoryGil+2	;also clears first byte of VictoryExp
+        stx VictoryExp+1
+        stx TempMonsterIndex
+        ldy #$0200		;first monster offset
+        sty TempMonsterOffset
+TallyLoot:	;gil, exp and drops
+        ldx TempMonsterIndex	;monster index
+        lda MonsterKillTracker
+        jsr SelectBit_X
+        beq NextLoot
+        clc
+        lda VictoryGil
+        adc CharStruct::RewardGil,Y
+        sta VictoryGil
+        lda VictoryGil+1
+        adc CharStruct::RewardGil+1,Y
+        sta VictoryGil+1
+        lda VictoryGil+2
+        adc #$00		;for carry
+        sta VictoryGil+2
+        clc
+        lda VictoryExp
+        adc CharStruct::RewardExp,Y
+        sta VictoryExp
+        lda VictoryExp+1
+        adc CharStruct::RewardExp+1,Y
+        sta VictoryExp+1
+        lda VictoryExp+2
+        adc #$00		;for carry
+        sta VictoryExp+2
+        jsr DropMonsterLoot
+NextLoot:
+        ldy TempMonsterOffset
+        longa
+        tya
+        clc
+        adc #$0080		;next monster offset
+        tay
+        shorta0
+        sty TempMonsterOffset
+        inc TempMonsterIndex	;monster index
+        lda TempMonsterIndex
+        cmp #$08		;8 monsters
+        bne TallyLoot
+        clc
+        lda Gil
+        adc VictoryGil
+        sta Gil
+        lda Gil+1
+        adc VictoryGil+1
+        sta Gil+1
+        lda Gil+2
+        adc VictoryGil+2
+        sta Gil+2
+        sec 			;cap gil at 9999999
+        lda Gil
+        sbc #$7F
+        lda Gil+1
+        sbc #$96
+        lda Gil+2
+        sbc #$98
+        bcc AddAP
+        lda #$7F
+        sta Gil
+        lda #$96
+        sta Gil+1
+        lda #$98
+        sta Gil+2
+AddAP:
+        lda EncounterInfo::AP
+        tax
+        stx $0E			;encounter ap
+        tdc
+        tax
+        stx $10
+        stx $12
+APLoop:
+        lda $12			;char index
+        tay
+        lda ActiveParticipants,Y
+        beq NextAP
+        inc $10			;count of active chars
+        longa
+        clc
+        lda CharStruct::AP,X
+        adc $0E			;encounter ap
+        bcc :+
+        lda #$FFFF		;cap at 65535
+:	STA CharStruct::AP,X
+        shorta0
+NextAP:
+        jsr NextCharOffset
+        inc $12			;char index
+        lda $12
+        cmp #$04		;4 chars
+        bne APLoop
+        lda VictoryExp
+        ora VictoryExp+1
+        ora VictoryExp+2
+        beq :+
+        jsr DivideExp
+:	LDA MonsterKillTracker
+        bne AddExp
+        stz VictoryExp		;didn't kill anything, so no exp
+        stz VictoryExp+1
+        stz VictoryExp+2
+AddExp:
+        tdc
+        tax
+        stx $0E
+ExpLoop:
+        lda $0E				;char index
+        tay
+        lda ActiveParticipants,Y
+        beq NextExp
+        clc
+        lda CharStruct::Exp,X
+        adc VictoryExp
+        sta CharStruct::Exp,X
+        lda CharStruct::Exp+1,X
+        adc VictoryExp+1
+        sta CharStruct::Exp+1,X
+        lda CharStruct::Exp+2,X
+        adc VictoryExp+2
+        sta CharStruct::Exp+2,X
+        sec
+        lda CharStruct::Exp,X		;cap exp at 9999999
+        sbc #$7F
+        lda CharStruct::Exp+1,X
+        sbc #$96
+        lda CharStruct::Exp+2,X
+        sbc #$98
+        bcc NextExp
+        lda #$7F
+        sta CharStruct::Exp,X
+        lda #$96
+        sta CharStruct::Exp+1,X
+        lda #$98
+        sta CharStruct::Exp+2,X
+NextExp:
+        jsr NextCharOffset
+        inc $0E				;char index
+        lda $0E
+        cmp #$04
+        bne ExpLoop			;4 members
+;Display exp/gil/ap message boxes
+        lda #$FF			;flag for unused message box
+        sta MessageBoxes
+        lda #$01
+        jsr GFXCmdMessageClearAnim
+        tdc
+        tax
+        lda VictoryGil
+        sta MessageBoxData
+        lda VictoryGil+1
+        sta MessageBoxData::_1
+        lda VictoryGil+2
+        sta MessageBoxData+2
+        lda VictoryGil
+        ora VictoryGil+1
+        ora VictoryGil+2
+        beq :+
+        lda #$2C			;gil message
+        sta MessageBoxes,X
+        inx 				;increment message box slot if used
+:	LDA VictoryExp
+        sta MessageBoxData1+0		;data slots are hardcoded tho
+        lda VictoryExp+1		;..maybe they fix it later
+        sta MessageBoxData1::_1
+        lda VictoryExp+2
+        sta MessageBoxData1+2
+        lda VictoryExp
+        ora VictoryExp+1
+        ora VictoryExp+2
+        beq :+
+        lda #$2D			;exp message
+        sta MessageBoxes,X
+        inx
+:	LDA EncounterInfo::AP
+        beq :+
+        sta MessageBoxData2
+        stz MessageBoxData2::_1
+        stz MessageBoxData2::_2
+        jsr CheckHideAP
+        lda $0E				;result, 1 to hide AP
+        bne :+
+        lda #$2E			;ap message
+        sta MessageBoxes,X
+:	LDA MessageBoxes
+        cmp #$FF			;flag for unused message box
+        beq Blue
+        lda #$0A			;C1 routine: exec graphics script
+        jsr CallC1
+        lda #$FF
+        sta MessageBoxes+1
+Blue:
+        lda BlueLearnedCount
+        beq CheckLevelUp
+        tdc
+        tax
+        stx $3D
+BlueLoop:
+        ldx $3D				;learned blue index
+        lda BlueLearned,X
+        beq CheckLevelUp
+        cmp #$82			;first blue spell
+        bcc CheckLevelUp
+        cmp #$A0			;after blue spells
+        bcs CheckLevelUp
+        sta MessageBoxData+0
+        stz MessageBoxData+1
+        stz MessageBoxData+2
+        stz $0E
+        lsr
+        ror $0E
+        lsr
+        ror $0E
+        lsr
+        ror $0E
+        tay 				;MagicBits offset
+        lda $0E
+        jsr ShiftDivide_32
+        tax 				;MagicBits spell
+        lda MagicBits,Y
+        jsr SelectBit_X
+        bne NextBlue			;already know this one
+        lda MagicBits,Y
+        jsr SetBit_X
+        sta MagicBits,Y
+        lda #$01
+        jsr GFXCmdMessageClearAnim
+        lda #$32			;learned blue message
+        sta MessageBoxes
+        lda #$0A			;C1 routine: exec graphics script
+        jsr CallC1
+NextBlue:
+        inc $3D				;learned blue index
+        bra BlueLoop			;**bug?: no range check
+        				;..relies on the next byte never being a valid blue spell if 8 blue spells were used
+        				;..fortunately it seems to always be 0 or 1
+CheckLevelUp:
+        tdc
+        tax
+        stx $3D
+        stx $3F
+LevelLoop:		;will run multiple times for a single character if they gain multiple levels at once
+        lda $3D				;char index
+        tay
+        lda ActiveParticipants,Y
+        beq NextChar
+        ldx $3F				;char offset
+        lda CharStruct::Level,X
+        cmp #$63			;skip check if already 99
+        bcs NextChar
+        tax
+        stx $0E				;current level
+        longa
+        lda $0E
+        asl
+        sta $10				;level *2
+        clc
+        adc $0E				;level *3
+        tax
+        lda ROMLevelExp,X
+        sta $0E				;required exp (low bytes)
+        shorta0
+        lda ROMLevelExp+2,X
+        sta $12				;required exp (high byte)
+        ldx $3F				;char offset
+        sec 				;subtract requirement from current exp
+        lda CharStruct::Exp,X
+        sbc $0E
+        lda CharStruct::Exp+1,X
+        sbc $0F
+        lda CharStruct::Exp+2,X
+        sbc $12
+        bcc NextChar			;not enough exp
+        jsr LevelUp
+        ldx $3F				;char offset
+        inc CharStruct::Level,X
+        ldx $3F				;still char offset
+        lda CharStruct::CharRow,X
+        and #$07			;character bits
+        sta MessageBoxData+0
+        stz MessageBoxData+1
+        stz MessageBoxData+2
+        lda #$2F			;level up message
+        sta MessageBoxes
+        lda #$0A			;C1 routine: exec graphics command
+        jsr CallC1
+        bra LevelLoop
+NextChar:
+        ldx $3F				;char offset
+        jsr NextCharOffset
+        stx $3F
+        inc $3D				;char index
+        lda $3D
+        cmp #$04			;4 chars to check
+        bne LevelLoop
+        tdc
+        tax
+        stx $3D
+        stx $3F
+JobUpLoop:
+        lda #$FF
+        sta MessageBoxes+1
+        sta MessageBoxes+2
+        lda $3D
+        tay
+        lda ActiveParticipants,Y
+        bne JobLevelLoop
+        jmp NextJobCheck
+JobLevelLoop:	;run multiple times in case we gained more than 1 job level
+        ldx $3F				;char offset
+        lda CharStruct::JobLevel,X
+        sta $10
+        lda CharStruct::Job,X
+        cmp #$15			;freelancer/normal
+        beq GoNextJobCheck
+        tax
+        asl
+        sta $0E
+        lda $10
+        cmp ROMJobLevels,X
+        bne :+
+GoNextJobCheck: ;***
+        jmp NextJobCheck
+:	LDA $0E
+        tax
+        lda ROMJobPointers,X
+        sta $12
+        lda ROMJobPointers+1,X
+        sta $13
+        lda #$D1; Bank of ROMJobPointers
+        sta $14
+        lda $10			;job level
+        asl
+        clc
+        adc $10			;job level*3
+        tay
+        lda [$12],Y
+        sta $10			;ap cost (low)
+        iny
+        lda [$12],Y
+        sta $11			;ap cost (hi)
+        iny
+        lda [$12],Y
+        sta $12			;ability
+        ldx $3F			;char offset
+        sec
+        lda CharStruct::AP,X
+        sbc $10
+        lda CharStruct::AP+1,X
+        sbc $11
+        bcs :+
+        jmp NextJobCheck	;not enough ap
+:	SEC
+        lda CharStruct::AP,X
+        sbc $10
+        sta CharStruct::AP,X
+        lda CharStruct::AP+1,X
+        sbc $11
+        sta CharStruct::AP+1,X
+        inc CharStruct::JobLevel,X
+        lda $3D			;char index
+        asl
+        tax
+        lda ROMAbilityListPointers,X
+        sta $0E			;now holds address of char's FieldAbilityList
+        lda ROMAbilityListPointers+1,X
+        sta $0F
+        lda $12			;ability learned
+        bpl :+
+        and #$7F		;passive, this clears the passive flag bit
+        clc
+        adc #$4E      		;start at slot after the last active ability
+:	ASL
+        tax
+        lda RomAbilityBitInfo,X
+        tay 			;offset of byte containing ability in list
+        lda RomAbilityBitInfo+1,X
+        tax 			;bit number of ability
+        lda ($0E),Y
+        jsr SetBit_X
+        sta ($0E),Y		;ability now in known list
+        lda $3D			;char index
+        tax
+        inc FieldAbilityCount,X
+        ldx $3F			;char offset
+        lda CharStruct::CharRow,X
+        and #$07		;character bits
+        sta MessageBoxData+0
+        stz MessageBoxData+1
+        stz MessageBoxData+2
+        lda #$30		;job level up message
+        sta MessageBoxes
+        lda #$0A		;c1 routine
+        jsr CallC1
+        lda #$31		;ability learned message
+        sta MessageBoxes
+        lda $12			;ability learned
+        sta MessageBoxData
+        cmp #$2C		;first normal magic command
+        bcc :+
+        cmp #$4C		;end of normal magic commands
+        bcs :+
+        sec
+        sbc #$2C		;adjust first magic command to start at 0
+        tax
+        lda ROMJobMagicLevels,X	;look up table for magic level
+        sta MessageBoxData1
+        lda #$33		;alternate ability learned message
+        sta MessageBoxes	;..which shows magic level
+:	STZ MessageBoxData+1	;clear high bytes of message box data
+        stz MessageBoxData+2
+        stz MessageBoxData1::_1
+        stz MessageBoxData1+2
+        lda #$0A		;c1 routine
+        jsr CallC1
+        jmp JobLevelLoop
+NextJobCheck:
+        ldx $3F			;char offset
+        jsr NextCharOffset
+        stx $3F
+        inc $3D			;next char index
+        lda $3D
+        cmp #$04		;4 chars to check
+        beq Ret
+        jmp JobUpLoop
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Sets a flag to hide AP display if all present/living characters are freelancers
+.proc CheckHideAP
+
+_5674:
+        phx
+        tdc
+        tax
+        tay
+        stx $0E
+Loop:	;searches for a character that's alive and not a freelancer
+        lda CharStruct::CharRow,X
+        and #$40		;not on the team
+        bne Next
+        lda CharStruct::Job,X
+        cmp #$15		;normal/freelancer
+        beq Next
+        lda ActiveParticipants,Y
+        bne Finish
+Next:	JSR NextCharOffset
+        iny
+        cpy #$0004		;4 chars
+        bne Loop
+        inc $0E			;all chars dead or freelancer
+Finish:	PLX
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc DropMonsterLoot
+
+_569A:
+        lda EncounterIndex+1
+        beq Normal
+        lda EncounterIndex
+        cmp #$BF		;sandworm fight
+        bne Normal
+        rts 			;you get nothing
+Normal:
+        tdc
+        tax
+        lda #$FF
+        jsr Random_X_A    	;0..255
+        sta $0E			;random roll
+        lda TempMonsterIndex	;monster index
+        asl
+        tax
+        longa
+        lda BattleMonsterID,X
+        jsr ShiftMultiply_4
+        tax
+        shorta0
+        ldy TempMonsterIndex
+        lda ROMLoot::AlwaysDrop,X
+        beq CheckRare
+        cmp #$80
+        beq CheckRare
+        cmp #$FF
+        beq CheckRare
+        sta BattleItemsWon,Y
+        rts
+CheckRare:	;only checked if AlwaysDrop is $00, $80, or $FF (empty or Item FF)
+        lda $0E			;random roll
+        cmp #$10		;16/256 chance
+        bcs Ret
+        lda ROMLoot::RareDrop,X
+        beq Ret
+        cmp #$80
+        beq Ret
+        cmp #$FF
+        beq Ret
+        sta BattleItemsWon,Y
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Applies HP/MP and other changes for a character level up
+;**bug: updates max hp without updating the value used for giant drink, which is retored after this
+.proc LevelUp
+
+_56EC:
+        ldx $10		;old level*2
+        lda ROMLevelHP,X
+        sta $0E
+        sta $2A
+        lda ROMLevelHP+1,X
+        sta $0F
+        sta $2B
+        ldx $3F		;char offset
+        lda CharStruct::BaseVit,X
+        tax
+        stx $2C
+        jsr Multiply_16bit	;Rom HP * Vit
+        ldx #$0005
+:	;loop divides by 32
+        lsr $31
+        ror $30
+        ror $2F
+        ror $2E
+        dex
+        bne :-
+        ldx $3F		;char offset
+        longa
+        clc
+        lda $0E		;rom hp
+        adc $2E		;+ (rom hp * vit)/32
+        cmp #$270F
+        bcc :+
+        lda #$270F	;max 9999
+:	STA $08
+        lda #$270F
+        sta $0A		;save 9999 cap for later routine
+        shorta0
+        tdc
+        tay
+CheckHPCommands:	;looks for HP up passives in command slots
+        lda CharStruct::BattleCommands,X
+        cmp #$8E	;after HP +30%
+        bcs NextHPCommandCheck
+        cmp #$8B	;HP +10%
+        bcc NextHPCommandCheck
+        phx
+        ldx $10		;old level*2
+        phx
+        jsr ApplyHPMPPassives
+        plx
+        stx $10
+        plx
+NextHPCommandCheck:
+        inx
+        iny
+        cpy #$0004
+        bne CheckHPCommands
+        ldx $3F		;char offset
+        lda $08		;new hp
+        sta CharStruct::MaxHP,X
+        lda $09
+        sta CharStruct::MaxHP+1,X
+        ldx $10		;old level*2
+        lda ROMLevelMP,X
+        sta $0E
+        sta $2A
+        lda ROMLevelMP+1,X
+        sta $0F
+        sta $2B
+        ldx $3F		;char offset
+        lda CharStruct::BaseMag,X
+        tax
+        stx $2C
+        jsr Multiply_16bit	;Rom MP * Mag
+        ldx #$0005
+:	;loop divides by 32
+        lsr $31
+        ror $30
+        ror $2F
+        ror $2E
+        dex
+        bne :-
+        ldx $3F		;char offset
+        longa
+        clc
+        lda $0E		;rom mp
+        adc $2E		;+ (rom mp * mag)/32
+        cmp #$03E7	;cap at 999
+        bcc :+
+        lda #$03E7
+:	STA $08
+        lda #$03E7
+        sta $0A		;save 999 cap for later routine
+        shorta0
+        tdc
+        tay
+CheckMPCommands:	
+        lda CharStruct::BattleCommands,X
+        cmp #$90	;after mp +30%
+        bcs NextMPCommandCheck
+        cmp #$8E	;mp +10%
+        bcc NextMPCommandCheck
+        jsr ApplyHPMPPassives
+NextMPCommandCheck:
+        inx
+        iny
+        cpy #$0004
+        bne CheckMPCommands
+        ldx $3F		;char offset
+        lda $08		;new mp
+        sta CharStruct::MaxMP,X
+        lda $09
+        sta CharStruct::MaxMP+1,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
 
 ;============================ Stud Definitions for compilation purposes =====
 
@@ -9396,11 +13211,6 @@ Finish:
         rts
 .endproc
 
-.org $4AFE
-.proc CheckRetarget
-        rts
-.endproc
-
 .org $5CE1
 .proc CastSpell
         rts
@@ -9418,21 +13228,6 @@ Finish:
 
 .org $49D5
 .proc DispatchCommand_CommandReady
-        rts
-.endproc
-
-.org $45FF
-.proc FightCommand
-        rts
-.endproc
-
-;.org 
-;.proc MSword
-;        rts
-;.endproc
-
-.org $48BD
-.proc ProcessTurn
         rts
 .endproc
 
@@ -9466,37 +13261,52 @@ Finish:
         rts
 .endproc
 
-.org $3DBB
-.proc UnpauseTimerChecks
-        rts
-.endproc
-
 .org $3E91
 .proc ProcessReaction_Party
         rts
 .endproc
 
-.org $3D9C
-.proc ReactionPauseTimerChecks
+.org $9A5E
+.proc ApplyPartyGear
         rts
 .endproc
 
-.org $3DC7
-.proc ProcessReaction
+.org $27BF
+.proc CheckAICondition
         rts
 .endproc
 
-.org $3C7F
-.proc SaveActionData
+.org $9427
+.proc ProcessCommands
         rts
 .endproc
 
-.org $3C10
-.proc CheckReactionConditions
+.org $5872
+.proc MainBattleLoop
         rts
 .endproc
 
-.org $3D08
-.proc RestoreActionData
+.org $5921
+.proc CopyHPMPStatus
+        rts
+.endproc
+
+.org $5A41
+.proc UpdateMonsterList
+        rts
+.endproc
+
+.org $57C7
+.proc ApplyHPMPPassives
+        rts
+.endproc
+
+.org $5847
+.proc GFXCmdMessageClearAnim
+        rts
+.endproc
+
+.org $57E6
+.proc DivideExp
         rts
 .endproc

@@ -17,7 +17,7 @@ func main() {
 	skipFirst := 0
 	fmt.Printf("Skipped first %d mistakes\n", skipFirst)
 
-	for i := startPos; i < startPos + 0x4000; i++ {
+	for i := startPos; i < startPos + 0x57C0; i++ {
 		if genFile[i] != origFile[i] {
 			if skipFirst > 0 {
 				skipFirst--
