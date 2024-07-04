@@ -405,8 +405,9 @@ FieldTimerEnd = $0AFE		;16 bit
 
 MusicData = $1D00
 
-.struct CharStruct
-.org $2000
+.macro CreateCharStruct name, addr
+.struct name
+.org addr
 	CharRow 	 	.res 1     	;$2000
 						;For Characters: first 3 bits indicate who it is(Butz, etc.) as a list
 						;then, 	08h	Gender (Male=0 / Female=1)
@@ -671,8 +672,10 @@ MusicData = $1D00
 	Reaction2Damage	.res 1		;207E
 	SpecialtyName		.res 1		;207F
 .endstruct
-CharStruct = CharStruct::CharRow
-
+name = name::CharRow
+.endmacro
+CreateCharStruct CharStruct, $2000
+CreateCharStruct CharStruct4, $2200
 
 
 .struct SavedCharStats	;saved before releasing a monster (which overwrites stats), then later restored
@@ -818,6 +821,24 @@ InventoryUsable = $2C34	;2 bits per character (256 items)
 				;$AA means not usable for anyone
 				;unsure what the 2nd bit is for (nothing maybe)
 
+;Macros to replicate asar behaviour of indexing sequential structs in memory with Struct[i]
+.macro InstructionOffset instr, struct, field, index
+	instr struct::field + (.sizeof(struct)*index)
+.endmacro
+
+.macro InstructionOffsetX instr, struct, field, index
+	instr struct::field + (.sizeof(struct)*index), X
+.endmacro
+
+; Very commonly used lda and sta,X functions
+.macro LoadOffset struct, field, index
+	InstructionOffset lda, struct, field, index
+.endmacro
+
+.macro StoreOffsetX struct, field, index
+	InstructionOffsetX sta, struct, field, index
+.endmacro
+
 .struct CharSpells	;650 bytes * 4 characters
 .org $2D34
 	ID		.res 130	;2D34
@@ -861,6 +882,7 @@ InventoryUsable = $2C34	;2 bits per character (256 items)
 .endstruct
 
 .struct CharVitals	;8 bytes * 4 characters
+.org $382C
 	CurHP		.res 2
 	MaxHP		.res 2
 	CurMP		.res 2
@@ -1013,15 +1035,22 @@ MessageBoxes = $3C5F	;24 bytes of messages to display, uses single byte constant
 			;actually there's two 24 byte arrays here, one for each command of x-magic
 			;might be four?
 
-MessageBoxData = $3CBF		;12 bytes of numbers to use in message boxes, 4x 3 byte numbers
+;MessageBoxData = $3CBF		;12 bytes of numbers to use in message boxes, 4x 3 byte numbers
 				;use varies by which message is set in MessageBoxes
 
-.struct MessageBoxData	;basic 3-byte struct to make things look a bit nicer
- .res 1
- .res 1
- .res 1
+.macro CreateMessageBoxData name, addr
+.struct name	;basic 3-byte struct to make things look a bit nicer
+.org addr
+_0 .res 1
+_1 .res 1
+_2 .res 1
 .endstruct
+name = name::_0
+.endmacro
 
+CreateMessageBoxData MessageBoxData, $3CBF
+CreateMessageBoxData MessageBoxData1, $3CC2
+CreateMessageBoxData MessageBoxData2, $3CC5
 
 MessageBoxOffset = $3CEF
 MessageBoxDataOffset = $3CF0
@@ -1149,6 +1178,7 @@ BattleMonsterID = $4020		;2 bytes per monster, >255 indicates boss
 MonsterReactions = $4030		;1 byte per monster, number of scripted AI reactions
 
 .struct MonsterSlots		;4 bytes * 4 posible monster types
+.org $4038
 	ID		.res 2
 	Count		.res 2		;max 8, despite the 2 bytes
 .endstruct
@@ -1299,6 +1329,7 @@ SavedCurrentATB = $4745
 
 
 .struct CurrentCommand
+.org $4746
 	ID       		.res 1	;4746	;index into command jump table (Steal, Jump, etc), post remap
 	Magic        	  	.res 1	;4747
 	Item	       	 	.res 1	;4748
@@ -1307,7 +1338,7 @@ SavedCurrentATB = $4745
 	Targets		.res 1  ;474B	;one byte, either party or monster targets
 	Damage		.res 1	;474C	;both bytes of damage OR'd together
 .endstruct
-;CurrentCommand = CurrentCommand.ID
+CurrentCommand = CurrentCommand::ID
 
 CommandOffset = $474D			;Current Command, but adjusted to match the order of the command table
 					;mostly just subtracts 1 vs the menu commands,
@@ -1837,6 +1868,7 @@ ROMMonsterReleaseActions = $D08600	;monster actions for release
 ROMMonsterCoordinates = $D08900
 
 .struct ROMSpecialtyData		;monster specialty attacks, 2 bytes * 384 monsters
+.org $D09900
 	Properties		.res 1
 	Name			.res 1
 .endstruct
@@ -1906,14 +1938,15 @@ ROMToadOK = $D0EF58		;1 bit per spell, determines whether magic can be used as a
 .endstruct
 
 .struct ROMOneTime	;4 bytes * 8 entries for one-time encounters
+.org $D0FFE0
 	Encounter		.res 2
 	Replacement		.res 2
 .endstruct
 
 CreateAttackInfoStruct ROMItems, $D10000		;12 bytes, 256 entries, ends at $D10BFF
 							;identical to AttackInfo .struct at, see that for details
-ROMWeapons := ROMItems
-ROMArmor := ROMItems + $600	;$D10600
+CreateAttackInfoStruct ROMWeapons, $D10000
+CreateAttackInfoStruct ROMArmor, $D10600
 ;consumable items use the 8 byte magic/ability structure instead
 
 .macro CreateMagicInfoStruct name, addr
