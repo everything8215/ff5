@@ -265,7 +265,7 @@ _Finish:
 
 
 ;.if !_StaticMode
-.org $C20148
+;.org $C20148
 ;A block of JIS japenese text is here
 ; since this isn't the encoding the game uses for text 
 ; it's likely a hidden programmer message and isn't used in-game
@@ -301,54 +301,49 @@ _Finish:
 ; ---------------------------------------------------------------------------
 
 ;Multiplication by 256, 128, 64, 32, 16, 8, 4 or 2 via shifts
-.proc ShiftMultiply
+;.proc ShiftMultiply
 
 _01B1:
-_256:
+ShiftMultiply_256:
         asl
-_128:
+ShiftMultiply_128:
         asl
-_64:
+ShiftMultiply_64:
         asl
-_32:
+ShiftMultiply_32:
         asl
-_16:
+ShiftMultiply_16:
         asl
-_8:
+ShiftMultiply_8:
         asl
-_4:
+ShiftMultiply_4:
         asl
-_2:
+ShiftMultiply_2:
         asl
         rts
-
-.endproc
 
 ; ---------------------------------------------------------------------------
 
 ;Division by 256, 128, 64, 32, 16, 8, 4 or 2 via shifts
-.proc ShiftDivide
 
 _01BA:
-_256:
+ShiftDivide_256:
         lsr
-_128:
+ShiftDivide_128:
         lsr
-_64:
+ShiftDivide_64:
         lsr
-_32:
+ShiftDivide_32:
         lsr
-_16:
+ShiftDivide_16:
         lsr
-_8:
+ShiftDivide_8:
         lsr
-_4:
+ShiftDivide_4:
         lsr
-_2:
+ShiftDivide_2:
         lsr
         rts
-
-.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -427,7 +422,7 @@ _01E0:
 
 _01EC:
         longa
-        jsr ShiftMultiply::_128
+        jsr ShiftMultiply_128
         tax
         shorta0
         stx AttackerOffset
@@ -476,7 +471,8 @@ _0207:
 
 ;Wipes structures related to pending animations, message boxes, and damage displays
 .proc WipeDisplayStructures
-
+.a16
+.i16
 _0218:
         ldx #$0090
 WipeAnimBlocks:		;wipes Anim structure and blocking information after it, $3BCC-$3C5B
@@ -486,7 +482,7 @@ WipeAnimBlocks:		;wipes Anim structure and blocking information after it, $3BCC-
         txa 		;A now $FF
         ldx #$037F
 WipeGFXQueueDamage:	;wipes GFXQueue structure and DisplayDamage after it with $FF, $384C-$3BCB
-        sta !GFXQueue,X
+        sta GFXQueue,X
         dex
         bpl WipeGFXQueueDamage
         ldx #$005F
@@ -513,7 +509,8 @@ WipeMessageBoxData:	;wipes numbers used for message boxes, $3CBF-$3CEE
 
 ;Recalculate Stats+Level w/Song(X: Character Offset)
 .proc CopyStatsWithBonuses
-
+.a8
+.i16
 _0248:
         phx
         phy
@@ -567,9 +564,10 @@ _0276:
 ; ---------------------------------------------------------------------------
 
 .proc WipeActionData
-
+.a8
+.i16
 _028A:
-        stz wTargetIndex	;**optimize: wastes a byte
+        stz a:wTargetIndex	;**optimize: wastes a byte
         ldx #$0133
 :	stz $79F9,X	;clears memory $79F9 - $7B2C
         dex
@@ -701,13 +699,13 @@ Ret:	rts
 
 _0324:
         longa
-        jsr ShiftMultiply::_8	;Size of Magic Data
+        jsr ShiftMultiply_8	;Size of Magic Data
         tax
         shorta0
         stz $3D
 CopyFirst5:                                                                                                            
-        lda !ROMMagicInfo,X
-        sta !AttackInfo,Y
+        lda ROMMagicInfo,X
+        sta AttackInfo,Y
         inx
         iny
         inc $3D
@@ -719,8 +717,8 @@ CopyFirst5:
         iny
         iny
 CopyLast3:
-        lda !ROMMagicInfo,X
-        sta !AttackInfo,Y
+        lda ROMMagicInfo,X
+        sta AttackInfo,Y
         inx
         iny
         inc $3D
@@ -781,8 +779,8 @@ Equipment:		;**optimize: this whole section is basically a copy of the GetItemUs
         tdc
         tay
         									;:					
-:	lda !ROMItemEquippable,X
-        sta !TempEquippable,Y
+:	lda ROMItemEquippable,X
+        sta TempEquippable,Y
         inx
         iny
         cpy #$0004
@@ -901,7 +899,7 @@ Weapon:
         shorta0
         lda ROMWeapons+4,X
         and #$80
-        jsr ShiftDivide::_32	;shift to 04h bit
+        jsr ShiftDivide_32	;shift to 04h bit
         sta InventoryFlags,Y
         lda ROMWeapons,X
         sta InventoryTargetting,Y
@@ -1059,8 +1057,8 @@ Monster:
         tay
         ldx $0E
 CopyGFXQueue:		;copy 100 bytes from monster ai to GFXQueue
-        lda !MonsterAIScript,X
-        sta !GFXQueue,Y
+        lda MonsterAIScript,X
+        sta GFXQueue,Y
         inx
         iny
         cpy #$0064
@@ -1118,13 +1116,13 @@ ConsumableItem:
         sec
         sbc #$E0	;now consumable item index
         longa
-        jsr ShiftMultiply::_8
+        jsr ShiftMultiply_8
         tax
         shorta0
         ldy $0C		;ProcSequence*12
         stz $0A
-:       lda !ROMConsumables,X
-        sta !AttackInfo,Y
+:       lda ROMConsumables,X
+        sta AttackInfo,Y
         inx
         iny
         inc $0A
@@ -1135,8 +1133,8 @@ ConsumableItem:
         iny
         iny
         iny
-:	    lda !ROMConsumables,X
-        sta !AttackInfo,Y
+:	lda ROMConsumables,X
+        sta AttackInfo,Y
         inx
         iny
         inc $0A
@@ -1147,12 +1145,12 @@ ConsumableItem:
         bne TargetOK
         ldy $0C		;ProcSequence*12
         lda AttackInfo::MagicAtkType,Y
-        bpl CheckRetarget
+        bpl _CheckRetarget
         lda ProcSequence
         tax
         inc HitsInactive,X	;can hit dead targets
         bra TargetOK
-CheckRetarget:
+_CheckRetarget:
         jsr CheckRetarget
 TargetOK:
         jsr BuildTargetBitmask
@@ -1277,7 +1275,7 @@ TargetOK:
         bpl Ret
 BreakOnUse:	;80h indicates item should now break
         lda AttackerIndex
-        jsr ShiftMultiply::_4
+        jsr ShiftMultiply_4
         sta $0E
         asl
         clc
@@ -1491,8 +1489,8 @@ RH:
         sty $14			;AttackInfo Offset
         stz $12			;loop index
         ldx $0E			;gear stats offset
-:	lda !RHWeapon,X
-        sta !AttackInfo,Y
+:	lda RHWeapon,X
+        sta AttackInfo,Y
         inx
         iny
         inc $12
@@ -1541,8 +1539,8 @@ LH:
         sty $12			;AttackInfo Offset
         stz $14			;loop index
         ldx $0E			;gear stats offset
-:	lda !LHWeapon,X
-        sta !AttackInfo,Y
+:	lda LHWeapon,X
+        sta AttackInfo,Y
         inx
         iny
         inc $14
@@ -1742,8 +1740,8 @@ _09DD:
 RH:	jsr SelectCurrentProcSequence
         stz $12
         ldx $0E
-:	lda !RHWeapon,X
-        sta !AttackInfo,Y
+:	lda RHWeapon,X
+        sta AttackInfo,Y
         inx
         iny
         inc $12
@@ -1768,8 +1766,8 @@ LH:	LDX AttackerOffset
 :	jsr SelectCurrentProcSequence
         stz $12
         ldx $0E			;gear stats offset
-:	lda !LHWeapon,X
-        sta !AttackInfo,Y
+:	lda LHWeapon,X
+        sta AttackInfo,Y
         inx
         iny
         inc $12
@@ -2039,12 +2037,12 @@ _0BBF:
 Chosen:
         sta TempSpell
         longa
-        jsr ShiftMultiply::_8
+        jsr ShiftMultiply_8
         tax
         shorta0
         tdc
         tay
-:	lda !ROMEffectInfo,X
+:	lda ROMEffectInfo,X
         sta Temp,Y
         inx
         iny
@@ -2164,8 +2162,8 @@ RH:	JSR SelectCurrentProcSequence
         sty $14			;AttackInfo offset
         stz $12
         ldx $0E			;gearstats offset
-:	lda !RHWeapon,X
-        sta !AttackInfo,Y
+:	lda RHWeapon,X
+        sta AttackInfo,Y
         inx
         iny
         inc $12
@@ -2207,8 +2205,8 @@ LH:	LDX AttackerOffset
         sty $12
         stz $14
         ldx $0E		;gearstats offset
-:	lda !LHWeapon,X
-        sta !AttackInfo,Y
+:	lda LHWeapon,X
+        sta AttackInfo,Y
         inx
         iny
         inc $14
@@ -2341,7 +2339,7 @@ PickRandomSummon:
         ror $0E
         tay 			;MagicBits offset
         lda $0E
-        jsr ShiftDivide::_32
+        jsr ShiftDivide_32
         tax 			;MagicBits spell
         lda MagicBits,Y
         jsr SelectBit_X
@@ -2351,12 +2349,12 @@ MagicLamp:			;Magic Lamp use jumps in here
         stz MonsterTargets
         lda TempSpell
         longa
-        jsr ShiftMultiply::_8
+        jsr ShiftMultiply_8
         tax
         shorta0
         tdc
         tay
-:	    lda !ROMMagicInfo,X
+:	    lda ROMMagicInfo,X
         sta Temp,Y
         inx
         iny
@@ -2515,13 +2513,13 @@ _0F40:
         lda ROMMonsterReleaseActions,X
         sta TempSpell
         longa
-        jsr ShiftMultiply::_8
+        jsr ShiftMultiply_8
         tax
         shorta0
         tdc
         tay
-:  	    lda !ROMMagicInfo,X
-        sta !TempMagicInfo,Y
+:  	    lda ROMMagicInfo,X
+        sta TempMagicInfo,Y
         inx
         iny
         cpy #$0008		;8 bytes magic data
@@ -2529,8 +2527,8 @@ _0F40:
         jsr SelectCurrentProcSequence
         tdc
         tax
-:	    lda !TempMagicInfo,X
-        sta !AttackInfo,Y
+:	    lda TempMagicInfo,X
+        sta AttackInfo,Y
         inx
         iny
         cpx #$0005		;copy first 5 bytes
@@ -2539,8 +2537,8 @@ _0F40:
         iny
         iny
         iny
-:	    lda !TempMagicInfo,X
-        sta !AttackInfo,Y
+:	lda TempMagicInfo,X
+        sta AttackInfo,Y
         inx
         iny
         cpx #$0008		;then copy remaining 3 bytes
@@ -2597,12 +2595,12 @@ TargetSet:
         jsr CheckMultiTarget
         bne Multi
         lda TempMagicInfo::AtkType
-        bpl CheckRetarget
+        bpl _CheckRetarget
         lda ProcSequence
         tax
         inc HitsInactive,X
         bra TargetOK
-CheckRetarget:
+_CheckRetarget:
         jsr CheckRetarget
         bra TargetOK
 Multi:
@@ -2716,7 +2714,7 @@ CopyMisc:
         bne CopyMisc
         lda ReleasedMonsterID
         longa
-        jsr ShiftMultiply::_32
+        jsr ShiftMultiply_32
         tax
         shorta0
         ldy AttackerOffset
@@ -2848,7 +2846,7 @@ _11B2:
 Chosen:
         sta $0E		;terrain spell slot 0-3
         lda TerrainType
-        jsr ShiftMultiply::_4
+        jsr ShiftMultiply_4
         clc
         adc $0E
         tax
@@ -2856,12 +2854,12 @@ Chosen:
         sta TempSpell
         lda TempSpell	;pointless load?
         longa
-        jsr ShiftMultiply::_8
+        jsr ShiftMultiply_8
         tax
         shorta0
         tdc
         tay
-:	    lda !ROMEffectInfo,X
+:	    lda ROMEffectInfo,X
         sta Temp,Y
         inx
         iny
@@ -3127,7 +3125,7 @@ _13CE:
         tdc
         tay
         ldx AttackerOffset
-:	    lda !SavedAction,Y
+:	lda SavedAction,Y
         sta CharStruct::ActionFlag,X
         inx
         iny
@@ -3220,8 +3218,8 @@ WeaponEffectCommand:	;called here for other weapon effects
         inc ProcSequence
         jsr GFXCmdDamageNumbers
         lda #$FF
-        sta wMonsterTargets	;**optimize: wasted bytes
-        stz wPartyTargets
+        sta a:wMonsterTargets	;**optimize: wasted bytes
+        stz a:wPartyTargets
         lda TempEffect
         sta TempSpell
         lda #$01
@@ -3313,8 +3311,8 @@ RH:	    JSR SelectCurrentProcSequence
         sty $14
         stz $12
         ldx $0E
-:      	lda !RHWeapon,X
-        sta !AttackInfo,Y
+:      	lda RHWeapon,X
+        sta AttackInfo,Y
         inx
         iny
         inc $12
@@ -3358,8 +3356,8 @@ RH:	    JSR SelectCurrentProcSequence
         lda RHWeapon::Param3,X
         cmp #$55		;this command
         bne LH
-:	    lda !RHWeapon,X
-        sta !AttackInfo,Y
+:	    lda RHWeapon,X
+        sta AttackInfo,Y
         inx
         iny
         inc $12
@@ -3400,8 +3398,8 @@ LH:	    LDX AttackerOffset
         sty $12
         stz $14
         ldx $0E			;GearStruct offset
-:   	lda !LHWeapon,X
-        sta !AttackInfo,Y
+:   	lda LHWeapon,X
+        sta AttackInfo,Y
         inx
         iny
         inc $14
@@ -3446,8 +3444,8 @@ LH:	    LDX AttackerOffset
         lda LHWeapon::Param3,X
         cmp #$55		;this command
         bne Ret
-:	    lda !LHWeapon,X
-        sta !AttackInfo,Y
+:	    lda LHWeapon,X
+        sta AttackInfo,Y
         inx
         iny
         inc $14
@@ -3502,19 +3500,19 @@ _16A2:
 
 ; ---------------------------------------------------------------------------
 
+.org $16AA
 .proc CopyAbilityInfo
-
 _16AA:
         pha
         jsr SelectCurrentProcSequence
         pla
         longa
-        jsr ShiftMultiply::_8
+        jsr ShiftMultiply_8
         tax
         shorta0
         stz $0A
-:	lda !ROMAbilityInfo,X
-        sta !AttackInfo,Y
+:	lda ROMAbilityInfo,X
+        sta AttackInfo,Y
         inx
         iny
         inc $0A
@@ -3525,8 +3523,8 @@ _16AA:
         iny
         iny
         iny
-:	lda !ROMAbilityInfo,X
-        sta !AttackInfo,Y
+:	lda ROMAbilityInfo,X
+        sta AttackInfo,Y
         inx
         iny
         inc $0A
@@ -4105,7 +4103,7 @@ WeaponAttackDelay:	;despite the calculation, I don't think any weapons have dela
 :	LDX AttackerOffset
         lda CharStruct::LHWeapon,X
         beq :+
-        lda !LHWeapon,Y
+        lda LHWeapon,Y
         and #$03	;delay bits (delay/10)
         tax
         clc
@@ -4123,7 +4121,7 @@ ItemDelay:
         sec
         sbc #$E0	;consumable item offset
         longa
-        jsr ShiftMultiply::_8
+        jsr ShiftMultiply_8
         tax
         shorta0
         lda ROMConsumables::Misc,X
@@ -4140,7 +4138,7 @@ MagicDelay:
         stz $0E
         lda MenuData::SelectedItem
         longa
-        jsr ShiftMultiply::_8
+        jsr ShiftMultiply_8
         tax
         shorta0
         lda ROMMagicInfo::Targetting,X
@@ -4153,7 +4151,7 @@ MagicDelay:
         beq FinishMagic
         lda MenuData::SecondSelectedItem
         longa
-        jsr ShiftMultiply::_8
+        jsr ShiftMultiply_8
         tax
         shorta0
         lda ROMMagicInfo::Targetting,X
@@ -4185,7 +4183,7 @@ WeaponUseDelay:
         and #$7F	;weapon magic to cast
         beq Finish
         longa
-        jsr ShiftMultiply::_8
+        jsr ShiftMultiply_8
         tax
         shorta0
         lda ROMMagicInfo::Targetting,X
@@ -4245,6 +4243,7 @@ Ret:	rts
 
 ;initializes some values when a battle during the credits happens
 ;this range is used by C1 graphics code but unsure what it does
+.org $1C51
 .proc SetupCreditsDemo
 
 _1C51:
@@ -4266,6 +4265,7 @@ _1C51:
 ; ---------------------------------------------------------------------------
 
 ;returns >0 if character has a status that prevents them from taking Action
+.org $1C74
 .proc CheckDisablingStatus
 
 _1C74:
@@ -4496,8 +4496,8 @@ Next:
         ldx $3F		;char offset
         jsr NextCharOffset
         stx $3F
-        inc $003D	;char index
-        lda $003D
+        inc a:$003D	;char index ; TODO: dont know why this is being done?
+        lda a:$003D
         cmp #$04	;4 characters
         bne Loop
         rts
@@ -4508,6 +4508,7 @@ Next:
 
 ;Param X = Char Offset, $3D = Char index
 ;sets up a fight command targetting a random party member
+.org $1E2F
 .proc ZombieAction
 
 _1E2F:
@@ -4574,12 +4575,12 @@ Fight:
         jsr SetBit_X
         plx
         sta CharStruct::PartyTargets,X	;fight random party member
-        jmp QueueUncontrolledAction
+        jmp _QueueUncontrolledAction
 Magic:
         lda $3D		;char index
         tax
         stx $2A
-        ldx .sizeof(CharSpells)	;650, size of CharSpells struct
+        ldx #$028A ; TODO: fixme .sizeof(CharSpells)	;650, size of CharSpells struct
         stx $2C
         jsr Multiply_16bit    ;**optimize: use rom table instead
         ldx $2E
@@ -4613,7 +4614,7 @@ TryRandomSpell:
         beq TryRandomSpell	;is no good either
         pha 			;holds known random spell
         longa
-        jsr ShiftMultiply::_8
+        jsr ShiftMultiply_8
         tax
         shorta0
         lda ROMMagicInfo::Targetting,X
@@ -4626,7 +4627,7 @@ TryRandomSpell:
 TargetSelf:
         longa
         lda $3F			;Char Offset
-        jsr ShiftDivide::_128	;char index (could've just loaded that)
+        jsr ShiftDivide_128	;char index (could've just loaded that)
         tax
         shorta0
         jsr SetBit_X     	;target self if no targetting info
@@ -4684,7 +4685,7 @@ TargetReady:
         stz CharStruct::SecondMonsterTargets,X
         stz CharStruct::SecondPartyTargets,X
         stz CharStruct::SecondSelectedItem,X
-QueueUncontrolledAction:
+_QueueUncontrolledAction:
         jmp QueueUncontrolledAction
 
 .endproc
@@ -4786,7 +4787,7 @@ CheckValueInUse:		;see if we've used this number yet
         									;:					
  _Next:
         cpy #$000C		;12 combatant slots
-        bne RandomizeOrder
+        bne _RandomizeOrder
         									;.					
         rts
 
@@ -4852,24 +4853,24 @@ _2055:							;
         stz $08    	;timer triggered flag
         phy
         ldy $0C		;timer index
-        lda !ProcessTimer,Y	;should process this timer this tick?
+        lda ProcessTimer,Y	;should process this timer this tick?
         beq Finish
         cpy #$000A	;ProcessTimer::ATB
         beq :+
         lda CurrentlyReacting
         bne Finish
-:	lda !EnableTimer,X	;is it enabled?
+:	lda EnableTimer,X	;is it enabled?
         beq Finish
         bmi TimerActive  	;check the 80h timer flag
-        lda !CurrentTimer,X
+        lda CurrentTimer,X
         beq FlagTimer
-        dec !CurrentTimer,X
-        lda !CurrentTimer,X
+        dec CurrentTimer,X
+        lda CurrentTimer,X
         bne TimerActive
 FlagTimer:		;flag EnableTimer when CurrentTimer hits 0
-        lda !EnableTimer,X
+        lda EnableTimer,X
         ora #$81
-        sta !EnableTimer,X
+        sta EnableTimer,X
 TimerActive:
         lda $0C
         bne :+		;doesn't branch anywhere regardless
@@ -4891,16 +4892,16 @@ _2090:
         tdc
         tax
 DecTimer:														
-        lda !GlobalTimer,X
+        lda GlobalTimer,X
         beq Triggered
-        dec !GlobalTimer,X
-        stz !ProcessTimer,X
+        dec GlobalTimer,X
+        stz ProcessTimer,X
         bra :+
 Triggered:								
         lda #$01
-        sta !ProcessTimer,X		;flag timer for processing
-        lda !ROMGlobalTimer,X		;reset timer from rom
-        sta !GlobalTimer,X
+        sta ProcessTimer,X		;flag timer for processing
+        lda ROMGlobalTimer,X		;reset timer from rom
+        sta GlobalTimer,X
         							;:
 :	INX
         cpx #$000B			;11 timers
@@ -4921,7 +4922,7 @@ _20B2:
         tax
         stx $08			;timer index
         tay
-:	sta !TimerEnded,Y
+:	sta TimerEnded,Y
         iny
         cpy #$000B
         bne :-
@@ -4930,11 +4931,11 @@ TimerLoop:	;for each timer, loop finds the first character for whom that timer e
         tax
         stx $0A			;char count
         ldx $08			;timer index
-        lda !RandomOrderIndex,X
+        lda RandomOrderIndex,X
         pha 			;original RandomOrderIndex
 CharLoop:	;searches characters in a "random" order
         ldx $08			;timer index
-        lda !RandomOrderIndex,X
+        lda RandomOrderIndex,X
         tax
         lda RandomOrder,X
         sta $0C			;char index
@@ -4951,7 +4952,7 @@ CharLoop:	;searches characters in a "random" order
         clc
         adc $08
         tax 			;timer offset + index
-        lda !EnableTimer,X
+        lda EnableTimer,X
         bpl NextChar		;80h must be set to contiue
         lda $0C
         tay
@@ -4967,11 +4968,11 @@ CharLoop:	;searches characters in a "random" order
 PoisonCountRegen:	;skips ending timer for these status if they're also erased/hidden/jumping
         phx 		;timer offset + index
         ldx $08
-        lda !RandomOrderIndex,X
+        lda RandomOrderIndex,X
         tax
         lda RandomOrder,X
         longa
-        jsr ShiftMultiply::_128
+        jsr ShiftMultiply_128
         tax
         shorta0
         lda CharStruct::Status4,X
@@ -4987,34 +4988,34 @@ EndTimerPLX:
         plx 		;timer offset + index
 EndTimer:		;sets flag that timer has ended, so effects can be applied later
         pla
-        lda !EnableTimer,X
+        lda EnableTimer,X
         and #$7E	;clear $81
-        sta !EnableTimer,X
+        sta EnableTimer,X
         ldx $08		;timer index
         phx
         lda #$01	;flag that we found someone timer ended for
-        sta !TimerEnded,X
-        lda !RandomOrderIndex,X
+        sta TimerEnded,X
+        lda RandomOrderIndex,X
         tax
         lda RandomOrder,X
         plx 		;timer index
-        sta !TimerReadyChar,X	;which character had their timer end
+        sta TimerReadyChar,X	;which character had their timer end
         bra NextTimer	;don't check any more characters for this timer
 NextChar:	;this character's timer didn't end or isn't eligable, 
         	;keep looking until all have been checked or one is found
         ldx $08		;timer index
-        inc !RandomOrderIndex,X
-        lda !RandomOrderIndex,X
+        inc RandomOrderIndex,X
+        lda RandomOrderIndex,X
         cmp #$0C	;reset index at 12
         bne :+
-        stz !RandomOrderIndex,X
+        stz RandomOrderIndex,X
 :	INC $0A        	;char count
         lda $0A
         cmp #$0C	;12 chars
         beq :+
         jmp CharLoop
 :	PLA 		;original RandomOrderIndex
-        sta !RandomOrderIndex,X
+        sta RandomOrderIndex,X
 NextTimer:	
         inc $08        	;next timer index
         lda $08
@@ -5035,20 +5036,20 @@ _2177:
         stx ProcessingTimer
 Loop:
         ldx ProcessingTimer
-        lda !TimerEnded,X
+        lda TimerEnded,X
         beq NextTimer
-        inc !RandomOrderIndex,X
-        lda !RandomOrderIndex,X
+        inc RandomOrderIndex,X
+        lda RandomOrderIndex,X
         cmp #$0C		;12 chars
         bne :+
-        stz !RandomOrderIndex,X
-:	lda !TimerReadyChar,X
+        stz RandomOrderIndex,X
+:	lda TimerReadyChar,X
         jsr GetTimerOffset    	;sets Y to timer offset
-        lda !TimerReadyChar,X
+        lda TimerReadyChar,X
         jsr CalculateCharOffset
         lda ProcessingTimer
         beq TimerEffect    	;timer 0 is stop, skips below check
-        lda !EnableTimer,Y	;bits 80h and 01 are cleared prev
+        lda EnableTimer,Y	;bits 80h and 01 are cleared prev
         bne NextTimer    	;skip effect if any other bits set
 TimerEffect:
         jsr DispatchTimerEffect
@@ -5071,9 +5072,9 @@ _21B5:
         lda ProcessingTimer
         asl
         tax
-        lda TimerEffectJumpTable,X
+        lda f:TimerEffectJumpTable,X
         sta $08
-        lda TimerEffectJumpTable+1,X
+        lda f:TimerEffectJumpTable+1,X
         sta $09
         lda #$c2 ; Load from bank C2
         sta $0A
@@ -5083,6 +5084,7 @@ _21B5:
 
 ; ---------------------------------------------------------------------------
 
+.org $C221CD
 TimerEffectJumpTable:
 ;.word TimerEffectStop
 ;.word TimerEffectPoison
@@ -5099,6 +5101,7 @@ TimerEffectJumpTable:
 
 ; ---------------------------------------------------------------------------
 
+.reloc
 .proc TimerEffectStop
 
 _21E3:
@@ -5123,7 +5126,7 @@ _21EE:
         longa
         ldx AttackerOffset
         lda CharStruct::MaxHP,X
-        jsr ShiftDivide::_16
+        jsr ShiftDivide_16
         bne :+
         inc 				;min 1 damage
 :	sta $0E				;poison tick damage
@@ -5226,7 +5229,7 @@ StatsLoop:		;applies to all 4 main stats
         cmp #$04	;4 stats
         bne StatsLoop
         ldx ProcessingTimer
-        lda !TimerReadyChar,X
+        lda TimerReadyChar,X
         cmp #$04	;monster check
         bcc Ret
         ldx AttackerOffset
@@ -5269,7 +5272,7 @@ _22AD:
         bne Ret
         longa
         lda $26
-        jsr ShiftDivide::_16
+        jsr ShiftDivide_16
         tax
         bne :+
         inc 		;min 1
@@ -5368,7 +5371,7 @@ _237C:
         and #$DF	;clear paralyze
         sta CharStruct::Status2,X
         ldx ProcessingTimer
-        lda !TimerReadyChar,X
+        lda TimerReadyChar,X
         jmp ResetATB
 
 .endproc
@@ -5430,7 +5433,7 @@ _23DF:
         bne Ret
         lda AttackerIndex
         cmp #$04	;monster check
-        bcs ResetATB
+        bcs _ResetATB
         ldx AttackerOffset
         lda CharStruct::CmdStatus,X
         and #$E0	;clear many flags (jump/flirt/others?)
@@ -5443,7 +5446,7 @@ _23DF:
         lda CharStruct::Status2,X
         ora CharStruct::AlwaysStatus2,X
         and #$18	;charm/berserk
-        beq ResetATB
+        beq _ResetATB
 Uncontrolled:
         lda AttackerIndex
         jsr GetTimerOffset
@@ -5456,7 +5459,7 @@ Uncontrolled:
         lda UncontrolledATB,X
         and #$7F	;max 127
         sta UncontrolledATB,X
-ResetATB:
+_ResetATB:
         inc CheckQuick
         lda AttackerIndex
         jsr ResetATB
@@ -5532,6 +5535,7 @@ Next:
 ; ---------------------------------------------------------------------------
 
 ;initialize ATB (A: character index 0-12)
+.org $2482
 .proc ResetATB
 
 _2482:
@@ -5541,7 +5545,7 @@ _2482:
         jsr CalculateCharOffset
         jsr CopyStatsWithBonuses
         lda CharStruct::EqWeight,X
-        jsr ShiftDivide::_8	;weight/8
+        jsr ShiftDivide_8	;weight/8
         clc
         adc #$78     		;+120
         sec
@@ -5613,7 +5617,7 @@ _24F0:
         plx
         jsr AddTimerOffsetY
         tdc
-        sta !EnableTimer,Y
+        sta EnableTimer,Y
         rts
 
 .endproc
@@ -5634,10 +5638,10 @@ _24FD:
         jsr GetTimerDuration	;also sets up Y
         ldx AttackerOffset	;not actually attacker, in this case
         jsr HasteSlowMod
-        sta !CurrentTimer,Y
-        sta !InitialTimer,Y
+        sta CurrentTimer,Y
+        sta InitialTimer,Y
         lda #$01
-        sta !EnableTimer,Y
+        sta EnableTimer,Y
         stz StatusFixedDur
         rts
 
@@ -5658,9 +5662,9 @@ _2521:
         adc StatusFixedDur     ;uses alternate fixed status duration
         asl
         tax
-        lda TimerDurationJumpTable,X
+        lda f:TimerDurationJumpTable,X
         sta $08
-        lda TimerDurationJumpTable+1,X
+        lda f:TimerDurationJumpTable+1,X
         sta $09
         lda #$c2 ;.b #bank(TimerDurationJumpTable)
         sta $0A
@@ -5671,6 +5675,7 @@ _2521:
 ; ---------------------------------------------------------------------------
 
 ;(X): Y = X + $36 Timer Offset)
+.org $253F
 .proc AddTimerOffsetY
 
 _253F:
@@ -5686,6 +5691,7 @@ _253F:
 ; ---------------------------------------------------------------------------
 
 ;Jump table for timer durations, these all return with A = timer duration
+.org $C2254A
 .proc TimerDurationJumpTable
 
 _254A:
@@ -5711,7 +5717,7 @@ _254A:
 ; .word Dur120mod
 .word $2572, $2576, $2579, $2579, $2572, $2584, $2572, $2587, $2572, $258A
 .word $2572, $259A, $259D, $259D, $25A0, $25A0, $25AF, $25AF, $25B2, $25C3
-
+.reloc
 ; ---------------------------------------------------------------------------
 
 ;Duration = Spell Duration
@@ -5889,7 +5895,7 @@ _25D3:
         lda AttackerIndex
         sbc #$04
         sta MonsterIndex
-        jsr ShiftMultiply::_16
+        jsr ShiftMultiply_16
         tax
         stx MonsterOffset16
         asl
@@ -5917,7 +5923,7 @@ _25D3:
         tay
         ldx $0E		;MonsterIndex *100
         lda #$FF
-:	sta !MonsterAIScript,X
+:	sta MonsterAIScript,X
         inx
         iny
         cpy #$0064	;init 100 bytes to $FF
@@ -5962,7 +5968,7 @@ TryRandomAction:
         tax
         longa
         lda BattleMonsterID,X
-        jsr ShiftMultiply::_4
+        jsr ShiftMultiply_4
         clc
         adc $0E		;random number 0..3
         tax 		;offset into control actions table
@@ -6003,13 +6009,13 @@ Control:
         bra :-
 FoundController:
         lda ControlCommand,Y
-        bne ControlCommand
+        bne _ControlCommand
 Sleep:	;or controlled without a command
         stz CharStruct::Command,X
         lda #$80	;action complete?
         sta CharStruct::ActionFlag,X
         bra GoFinish
-ControlCommand:
+_ControlCommand:
         tdc
         sta ControlCommand,Y
         lda MonsterIndex
@@ -6032,7 +6038,7 @@ Normal:
         longa
         clc
         lda ROMTimes1620w,X	;*1620, size of MonsterAI struct
-        adc #!MonsterAI
+        adc #MonsterAI
         sta AIOffset
         shorta0
         stz AICurrentCheckedSet
@@ -6095,7 +6101,7 @@ Finish:
         ldx MonsterOffset16
         lda MonsterMagic,X
         longa
-        jsr ShiftMultiply::_8
+        jsr ShiftMultiply_8
         tax
         shorta0
         lda ROMMagicInfo::Targetting,X
@@ -6129,9 +6135,9 @@ _27BF:
 :	sta $0E		;condition to check
         asl
         tax
-        lda AICondition,X
+        lda f:AICondition,X
         sta $08
-        lda AICondition+1,X
+        lda f:AICondition+1,X
         sta $09
         lda #$C2    ;.b #bank(AICondition)
         sta $0A
@@ -6172,6 +6178,7 @@ Jump:	JML [$0008]	;jump to AICondition table
 
 ; ---------------------------------------------------------------------------
 
+.org $C22814
 .proc AICondition
 
 _2814:
@@ -6182,6 +6189,7 @@ _2814:
 .word $2B93, $2BC0, $2BFD
 
 .endproc
+.reloc
 
 ; ---------------------------------------------------------------------------
 
@@ -6211,8 +6219,7 @@ _2814:
         tay
 Loop:	longa
         lda AITargetOffsets,Y
-        ; TODO: this fails with Error: Range error (65535 not in [0..255])
-        ;cmp #$FFFF	;end of list or no target found
+        cmp #$FFFF	;end of list or no target found
         bne TargetFound
         shorta0
         bra Finish
@@ -6263,11 +6270,10 @@ _289D:
         jsr GetAITarget
         tdc
         tay
-Loop:	REP #$20
+Loop:	longa
         lda AITargetOffsets,Y
         tax
-        ; TODO: this fails with Error: Range error (65535 not in [0..255])
-        ;cmp #$FFFF	;end of list or no target found
+        cmp #$FFFF	;end of list or no target found
         beq FinishMode
         lda CharStruct::CurHP,X
         cmp AIParam2
@@ -6667,10 +6673,9 @@ _2AD2:
         stx $0E		;Offset within CharStruct
         tdc
         tay
-Loop:	REP #$20
+Loop:	longa
         lda AITargetOffsets,Y
-        ; TODO: this fails with Error: Range error (65535 not in [0..255])
-        ;cmp #$FFFF	;end of list or no target found
+        cmp #$FFFF	;end of list or no target found
         bne TargetFound
         shorta0
         bra Finish
@@ -6703,10 +6708,11 @@ Ret:	rts
 ;AI Condition $0C: Compare with value at $A2?
 ;Param2/3: 16 bit Value to compare, succeeds if >= value at $A2
 .proc AICondition0C
+.reloc
 
 _2B19:
         longa
-        lda $00A2	;something from C1 bank	code
+        lda a:$00A2	;something from C1 bank	code, TODO: why must this be done?
         cmp AIParam2
         bcc :+
         inc AIConditionMet
@@ -6905,14 +6911,14 @@ Fail:	rts
 
 ; ---------------------------------------------------------------------------
 
+.org $2C27
 .proc GetAITarget
-
 _2C27:
         asl
         tax
-        lda AITarget,X
+        lda f:AITarget,X
         sta $08
-        lda AITarget+1,X
+        lda f:AITarget+1,X
         sta $09
         lda #$C2    ;.b #bank(AITarget)
         sta $0A
@@ -6929,6 +6935,7 @@ _2C27:
 
 ; ---------------------------------------------------------------------------
 
+.org $C22C4D
 .proc AITarget
 
 _2C4D:
@@ -6943,6 +6950,7 @@ _2C4D:
 .word $3115, $311B, $3121                                    ; $30
 
 .endproc
+.reloc
 
 ; ---------------------------------------------------------------------------
 
@@ -7118,7 +7126,7 @@ Self:
         lda AttackerIndex
 Target:
         longa
-        jsr ShiftMultiply::_128
+        jsr ShiftMultiply_128
         tax
         shorta0
         stx AITargetOffsets
@@ -7136,7 +7144,7 @@ AITargetMonstersExcept:
         tax
         stx $0E		;first open AITargetOffsets slot
         stx $10		;currently checked monster
-        ldx .sizeof(CharStruct)*4	;first monster offset
+        ldx #.sizeof(CharStruct)*4	;first monster offset
 Loop:
         ldy $10
         lda ActiveParticipants+4,Y
@@ -7621,16 +7629,16 @@ _3019:
         lda AIScriptOffset
         sbc #$1B	;???
         tax
-        lda !MonsterAIScript,X
+        lda MonsterAIScript,X
         beq Ret
         sta $12		;target bits from somewhere in ai script
         lda ReactingIndexType
-        bne ReactingIndex
+        bne _ReactingIndex
         sec
         lda AttackerIndex
         sbc #$04
         bra FindTarget
-ReactingIndex:
+_ReactingIndex:
         lda ReactingIndex
 FindTarget:
         tax
@@ -7653,7 +7661,7 @@ FoundTarget:
         tax
         inc ActiveParticipants,X	;target forced active
         longa
-        jsr ShiftMultiply::_128
+        jsr ShiftMultiply_128
         sta AITargetOffsets
         shorta0
 Ret:	rts
@@ -7738,7 +7746,7 @@ Ret:	rts
 .proc AITarget2D	;acted this tick
         lda ActedIndex
         longa
-        jsr ShiftMultiply::_128
+        jsr ShiftMultiply_128
         sta AITargetOffsets
         shorta0
         rts
@@ -7760,7 +7768,7 @@ Loop:	LDX $0E
         longa
         ldx $10
         lda $0E
-        jsr ShiftMultiply::_128
+        jsr ShiftMultiply_128
         sta AITargetOffsets,X
         inc $10
         inc $10
@@ -7850,6 +7858,7 @@ Ret:	rts
 ; ---------------------------------------------------------------------------
 
 ;Processes the current AI script into the AI command buffer, then executes it
+.org $313B
 .proc ProcessAIScript
 _313B:
         ldx #$0040   	;init 64 byte buffer to $FF
@@ -7977,13 +7986,14 @@ EndSequence:	;FE or FF, resets offset to start of set
 ;	operates from the top of AIBuffer until it hits a $FE or $FF
 ;	$FD indicates a special command in the next byte(s)
 ;	anything else is a spell to cast
+.org $3210
 .proc DispatchAICommands
 
 _3210:
         stz $0E
         ldx MonsterOffset32
 InitMMTargets:
-        stz !MMTargets,X		;targets for monster magic
+        stz MMTargets,X		;targets for monster magic
         inx
         inc $0E			;loop index
         lda $0E
@@ -8111,7 +8121,7 @@ NextMM:
         stz $17
 WipeAIScript:		;wipes 20 bytes of MonsterAIScript 
         lda #$FF
-        sta !MonsterAIScript,X
+        sta MonsterAIScript,X
         inx
         longa
         inc AIScriptOffset
@@ -8288,7 +8298,7 @@ _33EC:
 Loop:	;loop until we run out of targets
         longa
         lda AITargetOffsets,Y
-        jsr ShiftDivide::_128	;offset->index
+        jsr ShiftDivide_128	;offset->index
         tax
         shorta0
         cpx #$000C	;>=12 means we're done
@@ -8418,18 +8428,18 @@ Found:		;now set this status if not set, or clear it if already set
         lda ROMBitUnset,X
         sta $0E
         plx
-        lda !CharStruct,X
+        lda CharStruct,X
         and $0F
         eor $0F
         sta $10
-        lda !CharStruct,X
+        lda CharStruct,X
         and $0E
         ora $10
-        sta !CharStruct,X
+        sta CharStruct,X
 Ret:	rts
 SetDirect:	;for non-status offsets, just set it to the provided value
         lda $0F
-        sta !CharStruct,X
+        sta CharStruct,X
         rts
 
 .endproc
@@ -8495,7 +8505,7 @@ Next:	INX
         jmp Finish
 SpellTargetting:
         longa
-        jsr ShiftMultiply::_8
+        jsr ShiftMultiply_8
         tax
         shorta0
         lda ROMMagicInfo::Targetting,X
@@ -8511,7 +8521,7 @@ SpellTargetting:
         tdc
         jsr SetBit_X
         sta $17
-        jmp Finish ;TODO change this back to BRA
+        bra Finish
 CheckRoulette:
         and #$04	;roulette
         beq NormalTargetting
@@ -8769,7 +8779,7 @@ CheckSleep:
         ora CharStruct::AlwaysStatus2,X
         sta $10		;stored status2
         lda ReactingIndex
-        jsr ShiftMultiply::_4
+        jsr ShiftMultiply_4
         tay
         lda MonsterCombinedStatus::S2,Y	;8 is first monster
         and #$40	;sleep
@@ -8784,7 +8794,7 @@ WakeUp:
         sta CharStruct::Status2,X
 Awake:
         lda ReactingIndex
-        jsr ShiftMultiply::_4
+        jsr ShiftMultiply_4
         tay
         lda MonsterCombinedStatus::S2,Y	;8 is first monster
         and #$10	;charm
@@ -8878,7 +8888,7 @@ PFight:	lda CharStruct::Status2,X
         lda CharStruct::Status4,X
         sta $0F		;saved status4
         lda ReactingIndex
-        jsr ShiftMultiply::_4
+        jsr ShiftMultiply_4
         tay
         lda CombinedStatus::S2,Y
         and #$40	;sleep
@@ -8932,7 +8942,7 @@ CheckBarrier:
         bcc CheckCounter
         longa
         lda CharStruct::MaxHP,X
-        jsr ShiftDivide::_16
+        jsr ShiftDivide_16
         cmp CharStruct::CurHP,X
         bcc CheckCounter16
         shorta0
@@ -8968,7 +8978,7 @@ CheckCounter:
         bne GoCheckTargetsLoopB
         lda ActedIndex
         longa
-        jsr ShiftMultiply::_128
+        jsr ShiftMultiply_128
         tay
         shorta0
         lda CharStruct::Specialty,Y
@@ -9105,7 +9115,7 @@ CheckSleep2:
         ora CharStruct::AlwaysStatus2,X
         sta $10
         lda ReactingIndex
-        jsr ShiftMultiply::_4
+        jsr ShiftMultiply_4
         tay
         lda MonsterCombinedStatus::S2,Y	;8 is first monster
         and #$40	;sleep
@@ -9120,7 +9130,7 @@ WakeUp2:
         sta CharStruct::Status2,X
 Awake2:                                                                                                      
         lda ReactingIndex
-        jsr ShiftMultiply::_4
+        jsr ShiftMultiply_4
         tay
         lda MonsterCombinedStatus::S2,Y
         and #$10	;charm
@@ -9200,7 +9210,7 @@ PFight2:
         lda CharStruct::Status4,X
         sta $0F
         lda ReactingIndex
-        jsr ShiftMultiply::_4
+        jsr ShiftMultiply_4
         tay
         lda CombinedStatus::S2,Y
         and #$40	;sleep
@@ -9254,7 +9264,7 @@ CheckBarrier2:
         bcc CheckCounter2
         longa
         lda CharStruct::MaxHP,X
-        jsr ShiftDivide::_16
+        jsr ShiftDivide_16
         cmp CharStruct::CurHP,X
         bcc CheckCounter2Mode
         shorta0
@@ -9290,7 +9300,7 @@ CheckCounter2:
         bne GoCheckTargets2LoopB
         lda ActedIndex
         longa
-        jsr ShiftMultiply::_128
+        jsr ShiftMultiply_128
         tay
         shorta0
         lda CharStruct::Specialty,Y
@@ -9331,130 +9341,162 @@ Finish:
 
 ;============================ Stud Definitions for compilation purposes =====
 
+.org $25D3
 .proc MonsterATB
         rts
 .endproc
 
+.org $5AB4
 .proc CheckBattleEnd
         rts
 .endproc
 
+.org $618A
 .proc KillCharacter
         rts
 .endproc
 
+.org $6163
 .proc HasteSlowMod
         rts
 .endproc
 
+.org $9A6F
 .proc ApplyGear
         rts
 .endproc
 
+.org $992F
 .proc GFXCmdAttackNameFromTemp
         rts
 .endproc
 
+.org $98FA
 .proc FindOpenGFXQueueSlot
         rts
 .endproc
 
+.org $9923
 .proc SelectCurrentProcSequence
         rts
 .endproc
 
+.org $142A
 .proc WeaponEffectCommand
         rts
 .endproc
 
+.org $98E3
 .proc GFXCmdDamageNumbers
         rts
 .endproc
 
+.org $9F3A
 .proc ReplaceHands
         rts
 .endproc
 
+.org $4AFE
 .proc CheckRetarget
         rts
 .endproc
 
+.org $5CE1
 .proc CastSpell
         rts
 .endproc
 
+.org $0995
 .proc JumpCommand_Anim
         rts
 .endproc
 
+.org $994C
 .proc GFXCmdMessage
         rts
 .endproc
 
+.org $49D5
 .proc DispatchCommand_CommandReady
         rts
 .endproc
 
+.org $45FF
 .proc FightCommand
         rts
 .endproc
 
-.proc MSword
-        rts
-.endproc
+;.org 
+;.proc MSword
+;        rts
+;.endproc
 
+.org $48BD
 .proc ProcessTurn
         rts
 .endproc
 
+.org $30F3
 .proc AITargetPersonDead
         rts
 .endproc
 
+.org $305F
 .proc AITargetPersonJumping
         rts
 .endproc
 
+.org $2DDC 
 .proc AITargetCharRow
         rts
 .endproc
 
+.org $2EB2
 .proc AITargetMonsterStatus
         rts
 .endproc
 
+.org $2D81
 .proc AITargetMonstersExcept
         rts
 .endproc
 
+.org $2CB5
 .proc AITargetPerson
         rts
 .endproc
 
+.org $3DBB
 .proc UnpauseTimerChecks
         rts
 .endproc
 
+.org $3E91
 .proc ProcessReaction_Party
         rts
 .endproc
 
+.org $3D9C
 .proc ReactionPauseTimerChecks
         rts
 .endproc
 
+.org $3DC7
 .proc ProcessReaction
         rts
 .endproc
 
+.org $3C7F
 .proc SaveActionData
         rts
 .endproc
 
+.org $3C10
 .proc CheckReactionConditions
         rts
 .endproc
 
+.org $3D08
 .proc RestoreActionData
         rts
 .endproc

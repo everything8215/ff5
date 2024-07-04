@@ -13,11 +13,18 @@ func main() {
 	//fmt.Println(genFile[startPos])
 
 	top := 5
+	//top := 0
+	skipFirst := 0
+	fmt.Printf("Skipped first %d mistakes\n", skipFirst)
 
-	for i := startPos; i < startPos + 0x3970; i++ {
+	for i := startPos; i < startPos + 0x4000; i++ {
 		if genFile[i] != origFile[i] {
+			if skipFirst > 0 {
+				skipFirst--
+				continue
+			}
 			//fmt.Println("Sheesh")
-			fmt.Printf("Files differ at %4X\n", i)
+			fmt.Printf("Files differ at %4X\n", i - startPos)
 			fmt.Printf("Gen: %2X, Orig: %2X\n", genFile[i], origFile[i])
 			top--
 			if top == 0 {
@@ -25,4 +32,5 @@ func main() {
 			}
 		}
 	}
+	fmt.Println(top)
 }
