@@ -1975,17 +1975,19 @@ CreateMagicInfoStruct ROMMagicInfo, $D10B80		;8 bytes * 256 spells
 
 CreateEquippableStruct ROMItemEquippable, $D12480	;4 bytes * 64 entries
 
-.struct ROMElementDef	
+.struct ROMElementDef
+.org $D12580	
 	Absorb 	.res 1
 	Evade		.res 1
 	Immune	.res 1
 	Half		.res 1
 	Weak		.res 1
 .endstruct
-;ROMElementDef = ROMElementDef.0
+ROMElementDef = ROMElementDef::Absorb
 
 .struct ROMArmorStatus
-	Status0	.res 1		;high bit here indicates always status, for all other status below as well
+.org $9D07
+	Status1	.res 1		;high bit here indicates always status, for all other status below as well
 	Status2       	.res 1		;only the last item per type with an always status will apply
 	Status3       	.res 1		
 	Status4       	.res 1		

@@ -3177,7 +3177,7 @@ _13EF:
 _141D:
         lda #$52	;command name
         jsr GFXCmdAttackNameA
-        jmp JumpCommand_Anim
+        jmp CommandTable0C::Anim
 
 .endproc
 
@@ -3492,11 +3492,9 @@ Ret:	rts
 _16A2:
         lda #$4A	;earthquake
         sta TempEffect
-        jmp WeaponEffectCommand
+        jmp CommandTable31::WeaponEffectCommand
 
 .endproc
-
-; ===========================================================================
 
 ; ---------------------------------------------------------------------------
 
@@ -3867,6 +3865,7 @@ Finish:	sta ControllingB
         rts
 
 .endproc
+
 ; ---------------------------------------------------------------------------
 
 ;copies command data from MenuData struct into CharStruct, and performs any other necessary processing
@@ -4217,6 +4216,7 @@ Finish:
         rts
 
 .endproc 	;**optimize: save space with a clear loop or function
+
 ; ---------------------------------------------------------------------------
 
 ;subtracts 1 from item quantity of item in A
@@ -4262,6 +4262,7 @@ _1C51:
         rts
 
 .endproc
+
 ; ---------------------------------------------------------------------------
 
 ;returns >0 if character has a status that prevents them from taking Action
@@ -5085,7 +5086,7 @@ _21B5:
 ; ---------------------------------------------------------------------------
 
 .org $C221CD
-TimerEffectJumpTable:
+.proc TimerEffectJumpTable
 ;.word TimerEffectStop
 ;.word TimerEffectPoison
 ;.word TimerEffectReflect
@@ -5098,10 +5099,11 @@ TimerEffectJumpTable:
 ;.word TimerEffectParalyze
 ;.word TimerEffectATB
 .word $21E3, $21EE, $222A, $2235, $224E, $2259, $2264, $22AD, $2319, $237C, $238F
+.endproc
+.reloc
 
 ; ---------------------------------------------------------------------------
 
-.reloc
 .proc TimerEffectStop
 
 _21E3:
@@ -5717,6 +5719,8 @@ _254A:
 ; .word Dur120mod
 .word $2572, $2576, $2579, $2579, $2572, $2584, $2572, $2587, $2572, $258A
 .word $2572, $259A, $259D, $259D, $25A0, $25A0, $25AF, $25AF, $25B2, $25C3
+
+.endproc
 .reloc
 ; ---------------------------------------------------------------------------
 
@@ -6787,7 +6791,6 @@ _2B6F:
         bne Met
         rts
 
-.endproc
 Reaction2:		;**bug: didn't load X for this path, but fortunately it's always? correct already
         lda CharStruct::Reaction2Damage,X
         beq Fail
@@ -7548,7 +7551,7 @@ Next:       jsr NextCharOffset
         sta $12		;on the team bit?
         stz $13
         inc AIMultiTarget
-        jmp AITargetCharRow
+        jmp AITarget12::AITargetCharRow
                 
 .endproc
 
@@ -7558,7 +7561,7 @@ Next:       jsr NextCharOffset
         lda #$40
         sta $12		;on the team bit?
         stz $13
-        jmp AITargetCharRow
+        jmp AITarget12::AITargetCharRow
 
 .endproc
 
@@ -9386,7 +9389,7 @@ CheckEachCondition:
         shorta0
         inc AICheckIndex
         bra CheckEachCondition
-Finish:       inc AICurrentCheckedSet
+Finish: inc AICurrentCheckedSet
         lda AICurrentCheckedSet
         cmp #$0A	;10 sets
         bne CheckSets
@@ -9706,6 +9709,10 @@ OtherSpecial:		;>=$F0, but not $F7
 Finish:
         stz TempCharm
         jsr DispatchAICommands
+
+.endproc
+
+.proc ProcessReaction_Party
 Party:
         lda ReactingIndex
         jsr GetTimerOffset
@@ -10760,7 +10767,6 @@ Next:       ldx $22
 ;**optimize: seems like there should be a better way than duplicating all the code for each hand
 .org $45FF
 .proc FightCommand
-
 _45FF:
 CommandTable04:
         ldx AttackerOffset
@@ -10963,7 +10969,7 @@ LeftHand:	;very similar to RH code, but does a bunch of stuff in a different ord
         cmp LHWeapon::Param2,X			;proc chance
         bcs NormalAttackLH
         lda LHWeapon::Param3,X			;proc command
-        jmp DispatchCommand_CommandReady	;dispatch the new command
+        jmp DispatchCommand	;dispatch the new command
 NormalAttackLH:
         jsr SelectCurrentProcSequence	;Y and $0C = AttackInfo offsets
         sty $12				;AttackInfo offset
@@ -11234,6 +11240,10 @@ CopyActionInfo:		;copies 10 bytes of command and cursor selection info from Char
 ActionReady:
         ldx AttackerOffset
         lda CharStruct::Command,X
+
+.endproc
+
+.proc DispatchCommand_CommandReady
 CommandReady:		;routine can be called from here directly.  If so, A is a command (mimic or a weapon proc)
         pha
         longa
@@ -13154,8 +13164,6 @@ NextMPCommandCheck:
 
 ; ---------------------------------------------------------------------------
 
-; ---------------------------------------------------------------------------
-
 .proc ApplyHPMPPassives
 
 _57C7:
@@ -13523,6 +13531,7 @@ NextMonster:									;:
         rts
 
 .endproc
+
 
 ; ---------------------------------------------------------------------------
 
@@ -15495,7 +15504,7 @@ _6898:
         lda AtkMissed
         bne Miss
         jsr CalcFinalDamageMSword
-        lda TargetIndex
+        lda wTargetIndex
         cmp #$04
         bcs :+
         lda EarthWallHP
@@ -16001,7 +16010,7 @@ NotUndead:							;
         jsr HitMagicConditionalAutohit
         lda AtkMissed
         bne Ret
-        lda TargetIndex
+        lda wTargetIndex
         tay
         lda ActiveParticipants,Y
         beq Miss
@@ -17207,7 +17216,7 @@ _7150:
         inc StealNoItems
         bra Miss
 :	SEC
-        lda TargetIndex
+        lda wTargetIndex
         sbc #$04			;now monster 0-7
         asl
         tax
@@ -17496,7 +17505,7 @@ Ret:	RTS
 .proc Attack4F
 
 _72DB:
-        lda TargetIndex
+        lda wTargetIndex
         tay
         lda ActiveParticipants,Y
         bne Miss
@@ -17733,10 +17742,10 @@ Ret:	RTS
 .proc Attack59
 
 _73F0:
-        lda TargetIndex
+        lda wTargetIndex
         cmp #$04		;<4 means party
         bcs Miss
-        lda TargetIndex
+        lda wTargetIndex
         tax
         lda GiantDrink,X
         bne Miss
@@ -17830,7 +17839,7 @@ _743D:
         sta CharStruct::Song,X
         lda #$08
         tax
-        lda TargetIndex
+        lda wTargetIndex
         jsr StartTimer
 Ret:	RTS
 
@@ -18360,7 +18369,7 @@ _77B6:
         tdc
         sta ForcedTarget::Party,Y
         sta ForcedTarget::Monster,Y
-        lda TargetIndex
+        lda wTargetIndex
         cmp #$04
         bcs Monster
         tax
@@ -18451,7 +18460,7 @@ Success:
         lda AttackerIndex
         tax
         stz ControlCommand,X
-        lda TargetIndex
+        lda wTargetIndex
         sta ControlTarget,X
         lda AttackerIndex
         tax
@@ -18459,7 +18468,7 @@ Success:
         tay
         sty $10			;attacker index * structure size
         sec
-        lda TargetIndex
+        lda wTargetIndex
         sbc #$04		;now monster index
         asl
         tax
@@ -18646,7 +18655,7 @@ _794D:
 .proc Attack70
 
 _7956:
-        lda TargetIndex
+        lda wTargetIndex
         tax
         lda ActiveParticipants,X
         bne Miss			;miss on living members
@@ -18918,114 +18927,6058 @@ _7B21:
 
 ; ---------------------------------------------------------------------------
 
-;============================ Stud Definitions for compilation purposes =====
+;(Hit = Attacker Level + Hit - Target Level, Evade = Magic Evade)
+.proc HitCalcLevelMEvade
 
-.org $25D3
-.proc MonsterATB
+_7C0D:
+        ldx AttackerOffset
+        clc
+        lda Param1
+        adc Level
+        sta $0E
+        ldx TargetOffset
+        clc
+        lda CharStruct::Level,X
+        adc CharStruct::BonusLevel,X
+        sta $0F
+        sec
+        lda $0E
+        sbc $0F
+        bcs :+
+        lda #$01
+        bra :++
+:	CMP #$63
+        bcc :+
+        lda #$63
+:	STA HitPercent
+        lda CharStruct::MEvade,X
+        sta EvadePercent
         rts
+
 .endproc
 
-.org $9A6F
-.proc ApplyGear
+; ---------------------------------------------------------------------------
+
+;Hit=Param1, Evade=Target Evade
+.proc SetHitParam1andTargetEvade
+
+_7C3B:
+        lda Param1
+        sta HitPercent
+        ldx TargetOffset
+        lda CharStruct::Evade,X
+        sta EvadePercent
         rts
+
 .endproc
 
-.org $992F
-.proc GFXCmdAttackNameFromTemp
+; ---------------------------------------------------------------------------
+
+;(Hit = 100, Evade = Evade%)
+.proc SetHit100andTargetEvade
+
+_7C47:
+        lda #$64
+        sta HitPercent
+        ldx TargetOffset
+        lda CharStruct::Evade,X
+        sta EvadePercent
         rts
+
 .endproc
 
-.org $98FA
-.proc FindOpenGFXQueueSlot
+; ---------------------------------------------------------------------------
+
+
+;Hit=100%, Evade=Target Evade/2
+.proc SetHit100andHalfTargetEvade
+
+_7C53:
+        lda #$64	;100
+        sta HitPercent
+        ldx TargetOffset
+        lda CharStruct::Evade,X
+        lsr
+        sta EvadePercent
         rts
+
 .endproc
 
-.org $9923
-.proc SelectCurrentProcSequence
+; ---------------------------------------------------------------------------
+
+;Hit=Param1, Evade=Target Evade
+;**optimize: this routine is identical to SetHitParam1andTargetEvade
+.proc SetHitParam1andTargetEvade_Dupe
+
+_7C60:
+        lda Param1
+        sta HitPercent
+        ldx TargetOffset
+        lda CharStruct::Evade,X
+        sta EvadePercent
         rts
+
 .endproc
 
-.org $142A
-.proc WeaponEffectCommand
+; ---------------------------------------------------------------------------
+
+;Hit=Param1
+;Evade=Target Evade/2
+.proc SetHitParam1andHalfTargetEvade
+
+_7C6C:
+        lda Param1
+        sta HitPercent
+        ldx TargetOffset
+        lda CharStruct::Evade,X
+        lsr
+        sta EvadePercent
         rts
+
 .endproc
 
-.org $98E3
-.proc GFXCmdDamageNumbers
+; ---------------------------------------------------------------------------
+
+;Hit=Param1
+;Evade=Target Magic Evade
+.proc SetHitParam1andTargetMagicEvade
+
+_7C79:
+        lda Param1
+        sta HitPercent
+        ldx TargetOffset
+        lda CharStruct::MEvade,X
+        sta EvadePercent
         rts
+
 .endproc
 
-.org $9F3A
-.proc ReplaceHands
-        rts
+; ---------------------------------------------------------------------------
+
+;Steal Success Determination
+.proc HitCalcSteal
+
+_7C85:
+        lda Param1
+        sta HitPercent
+        stz EvadePercent
+        ldx AttackerOffset
+        lda CharStruct::ArmorProperties,X
+        and #$10   		;improved steal
+        beq :+
+        asl HitPercent
+:	RTS
+
 .endproc
 
-.org $0995
-.proc JumpCommand_Anim
-        rts
+; ---------------------------------------------------------------------------
+
+
+;Aegis Shield Check
+.proc CheckAegis
+
+_7C97:
+        ldx TargetOffset
+        lda CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$70   		;sleep/charm/paralyze
+        bne Return
+        lda CharStruct::Status3,X
+        and #$10   		;stop
+        bne Return
+        lda CharStruct::ArmorProperties,X
+        bpl Return
+        jsr Random_0_99
+        cmp #$21 		;33
+        bcs Return
+        lda AttackerIndex
+        cmp wTargetIndex
+        beq Return
+        lda #$07
+        sta ShieldBlock
+        inc AtkMissed
+Return:	RTS
+
 .endproc
 
-.org $49D5
-.proc DispatchCommand_CommandReady
-        rts
+; ---------------------------------------------------------------------------
+
+;Multitargetting effect on Hit%
+;
+;**optimize: we don't need to sort the bits if we're just counting them
+.proc MultiTargetHitPercent
+
+_7CC3:
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::Targetting,X
+        and #$40    		;hits all
+        bne Return
+        lda MultiCommand
+        asl
+        tax
+        lda TargetBitmask,X
+        and #$F0
+        bne :+			;party targetted
+        lda TargetBitmask,X
+        and #$0F
+        jsr ShiftMultiply_16
+        sta $0E
+        lda TargetBitmask+1,X
+        and #$F0
+        jsr ShiftDivide_16
+        ora $0E			;A now contains monsters in order
+:	JSR CountSetBits	;result in X
+        dex
+        beq Return		;if only one target
+        lsr HitPercent
+        lda HitPercent
+        bne Return
+        inc HitPercent
+Return:	RTS
+
 .endproc
 
-.org $30F3
-.proc AITargetPersonDead
+; ---------------------------------------------------------------------------
+
+;Check for Evade, Weapon Block or Elf Cape
+.proc CheckSpecialEvade
+
+_7CFC:
+        ldx TargetOffset
+        lda CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$70
+        bne Return
+        lda CharStruct::Status3,X
+        and #$10
+        bne Return
+        lda CharStruct::Passives1,X
+        and #$40
+        beq :+
+        jsr Random_0_99
+        cmp #$19
+        bcs :+
+        lda AttackerIndex
+        cmp wTargetIndex
+        beq :+
+        lda #$05
+        sta BladeGrasp
+        inc AtkMissed
         rts
+:
+        ldx TargetOffset
+        lda CharStruct::WeaponProperties,X
+        bpl :+
+        jsr Random_0_99
+        cmp #$19
+        bcs :+
+        lda AttackerIndex
+        cmp wTargetIndex
+        beq :+
+        lda #$01
+        sta SwordBlock
+        inc AtkMissed
+        rts
+:							
+        ldx TargetOffset
+        lda CharStruct::WeaponProperties,X
+        and #$40
+        beq :+
+        jsr Random_0_99
+        cmp #$19
+        bcs :+
+        lda AttackerIndex
+        cmp wTargetIndex
+        beq :+
+        lda #$02
+        sta KnifeBlock
+        inc AtkMissed
+        rts
+:									;Check for Elf Cape
+        ldx TargetOffset
+        lda CharStruct::ArmorProperties,X
+        and #$40
+        beq Return
+        jsr Random_0_99
+        cmp #$21
+        bcs Return
+        lda AttackerIndex
+        cmp wTargetIndex
+        beq Return
+        lda #$03
+        sta ElfCape
+        inc AtkMissed
+Return:
+        rts
+
 .endproc
 
-.org $305F
-.proc AITargetPersonJumping
-        rts
+; ---------------------------------------------------------------------------
+
+;Dance Hit Modifier
+.proc DanceHitMod
+
+_7D7F:
+        ldx AttackerOffset
+        lda CharStruct::ArmorProperties,X
+        and #$04   		;dance up
+        beq Ret
+        asl HitPercent
+Ret:	RTS
+
 .endproc
 
-.org $2DDC 
-.proc AITargetCharRow
-        rts
+; ---------------------------------------------------------------------------
+
+;Target Status Effect Modifiers to Magical Hit%
+.proc TargetMHitMod
+
+_7D8B:
+        ldx TargetOffset
+        lda CharStruct::Status3,X
+        ora CharStruct::AlwaysStatus3,X
+        and #$20    			;shell
+        beq :+
+        lsr HitPercent
+        lda HitPercent
+        bne :+
+        inc HitPercent
+:	LDA CharStruct::Status1,X
+        ora CharStruct::AlwaysStatus1,X
+        and #$20    			;toad
+        beq Return
+        stz EvadePercent
+Return:	RTS
+
 .endproc
 
-.org $2EB2
-.proc AITargetMonsterStatus
+; ---------------------------------------------------------------------------
+
+;Target Status Effect Modifiers to Physical Hit%
+.proc TargetPHitMod
+
+_7DAC:
+        ldx TargetOffset
+        lda CharStruct::Status1,X
+        ora CharStruct::AlwaysStatus1,X
+        and #$20     			;toad
+        beq :+
+        stz EvadePercent
+:
+        lda CharStruct::Status1,X
+        ora CharStruct::AlwaysStatus1,X
+        and #$10     			;mini
+        beq Return
+        asl EvadePercent
+        lda EvadePercent
+        cmp #$63
+        bcc Return
+        lda #$63
+        sta EvadePercent
+Return:
         rts
+
 .endproc
 
-.org $2D81
-.proc AITargetMonstersExcept
+; ---------------------------------------------------------------------------
+
+
+;Attacker Status Effect Modifiers to Physical Hit%
+.proc AttackerStatusPHitMod
+
+_7DD1:
+        ldx AttackerOffset
+        lda CharStruct::Status1,X
+        ora CharStruct::AlwaysStatus1,X
+        and #$01
+        beq Return
+        lsr HitPercent
+        lsr HitPercent
+Return:
         rts
+
 .endproc
 
-.org $2CB5
-.proc AITargetPerson
+; ---------------------------------------------------------------------------
+
+;Check for target Image
+.proc CheckTargetImage
+
+_7DE2:
+        ldx TargetOffset
+        lda CharStruct::Status2,X
+        and #$03
+        beq Return
+        jsr LoseOneImage
+        inc AtkMissed
+Return:	
         rts
+
 .endproc
 
-.org $3E91
-.proc ProcessReaction_Party
-        rts
+; ---------------------------------------------------------------------------
+
+;Check for Void
+.proc CheckVoid
+
+_7DF1:
+        lda Void
+        and #$40    		;void
+        beq Ret
+        inc AtkMissed
+        jsr SetupMsgBoxIndexes
+        lda #$1F		;message to display
+        sta MessageBoxes,X
+Ret:	RTS
+
 .endproc
 
-.org $9A5E
-.proc ApplyPartyGear
-        rts
+; ---------------------------------------------------------------------------
+
+;Check for Float
+.proc CheckFloat
+
+_7E03:
+        ldx TargetOffset
+        lda CharStruct::Status1,X
+        ora CharStruct::AlwaysStatus1,X
+        and #$08   	;Float
+        beq Ret
+        inc AtkMissed
+Ret:	RTS
+
 .endproc
 
-.org $27BF
-.proc CheckAICondition
-        rts
+; ---------------------------------------------------------------------------
+
+;Check for Hit
+;Rolls checks against HitPercent($4E) and EvadePercent($4F)
+.proc CheckForHit
+
+_7E12:
+        jsr Random_0_99
+        cmp HitPercent
+        bcs :+
+        jsr Random_0_99
+        cmp EvadePercent
+        bcs Return
+:	INC AtkMissed
+Return:	RTS
+
 .endproc
 
-.org $9427
+; ---------------------------------------------------------------------------
+
+;Check for Physical Hit
+.proc CheckPHit
+
+_7E23:
+        jsr Random_0_99
+        cmp HitPercent
+        bcs Miss
+        ldx TargetOffset
+        lda CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$70
+        bne Return
+        lda CharStruct::Status3,X
+        and #$10
+        bne Return
+        jsr Random_0_99
+        cmp EvadePercent
+        bcs Return
+        ldx TargetOffset
+        lda CharStruct::RHShield,X
+        ora CharStruct::LHShield,X
+        beq Miss
+        lda AttackerIndex
+        cmp wTargetIndex
+        beq Return
+        lda #$06
+        sta ShieldBlock
+Miss:
+        inc AtkMissed
+Return:
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+;Check for hit by Creature Type	
+.proc CheckCreatureType
+
+_7E5B:
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and Param1
+        bne Ret
+        inc AtkMissed
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Hit if Target Level = Multiple of Parameter 1
+.proc CheckLevel
+
+_7E67:
+        ldx TargetOffset
+        lda CharStruct::Level,X
+        tax
+        stx Dividend
+        lda Param1
+        tax
+        stx Divisor
+        jsr Division
+        ldx Remainder
+        beq Ret
+        inc AtkMissed
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Hit% determination for Magic, autohits in some cases
+;Param1 is Hit%, high bit means autohit
+;Param2 high bit means autohit unless it's a Monster attacking Party
+.proc HitMagicConditionalAutohit
+
+_7E81:
+        lda Param1
+        bmi Return
+        lda Param2
+        and #$80
+        beq :++
+        lda AttackerIndex
+        cmp #$04
+        bcs :+		;4 and up means monster	attacker
+        lda wTargetIndex
+        cmp #$04
+        bcc Return	;autohits if attacker and target are both party
+        ;attacker or target is monster
+:	LDA wTargetIndex
+        cmp #$04
+        bcs Return 	;autohits if target is monster
+        ;param2/$58 did not have high bit set
+        ;or it's a monster attacking the party
+:	LDA AttackerOffset2
+        tax
+        lda AttackInfo::Category,X
+        ldx TargetOffset
+        and CharStruct::CantEvade,X
+        bne Return
+        jsr HitCalcLevelMEvade
+        jsr CheckAegis
+        lda AtkMissed
+        bne Return
+        jsr MultiTargetHitPercent
+        jsr TargetMHitMod
+        jsr CheckForHit
+Return:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Hit% Determination for physical						
+.proc HitPhysical
+
+_7EBE:
+        ldx TargetOffset
+        lda CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$70
+        bne :+
+        ldx AttackerOffset
+        lda CharStruct::DamageMod,X
+        bmi :+
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::Category,X
+        ldx TargetOffset
+        and CharStruct::CantEvade,X
+        bne :+
+        jsr CheckSpecialEvade
+        lda AtkMissed
+        bne :++
+        jsr TargetPHitMod
+        jsr AttackerStatusPHitMod
+        jsr CheckPHit
+        lda AtkMissed
+        bne :++
+:
+        jsr CheckTargetImage
+:
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Hit% Determination for Magic
+.proc HitMagic
+
+_7EF6:
+        lda Param1
+        bmi Ret
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::Category,X
+        ldx TargetOffset
+        and CharStruct::CantEvade,X
+        bne Ret
+        jsr HitCalcLevelMEvade
+        jsr CheckAegis
+        lda AtkMissed
+        bne Ret
+        jsr MultiTargetHitPercent
+        jsr TargetMHitMod
+        jsr CheckForHit
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+;Hit% Determination for Physical Magic
+.proc HitPhysicalMagic
+
+_7F1B:
+        lda Param1
+        bmi Return
+        jsr SetHitParam1andTargetEvade
+        jsr CheckSpecialEvade
+        lda AtkMissed
+        bne Return
+        jsr TargetPHitMod
+        jsr CheckPHit
+Return:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Magic Damage Formula
+;Attack = Spell Power + (0 .. Spell Power / 8)
+;M = Level*Magic/256 +4
+;Defense = Target Magic Defense
+.proc NormalMagicDamage
+
+_7F30:
+        tdc
+        tax
+        lda Param2    		;spell power
+        jsr ShiftDivide_8
+        jsr Random_X_A
+        clc
+        adc Param2
+        sta Attack
+        tdc
+        adc #$00
+        sta Attack+1
+        lda Level
+        sta $24
+        lda MagicPower
+        sta $25
+        jsr Multiply_8bit	;result in $26
+        longa
+        lda $26
+        jsr ShiftDivide_256
+        clc
+        adc #$0004
+        sta M
+        shorta0
+        ldx TargetOffset
+        lda CharStruct::MDefense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Flare Magic Damage Formula
+;Spell Power in Param2
+;Attack = Spell Power + (0 .. Spell Power / 32)
+;M = Level*Magic/256 + 4
+;Def = Target Magic Defense / 32
+.proc FlareMagicDamage
+
+_7F6A:
+        tdc
+        tax
+        lda Param2
+        jsr ShiftDivide_32
+        jsr Random_X_A
+        clc
+        adc Param2
+        sta Attack
+        tdc
+        adc #$00
+        sta Attack+1
+        lda Level
+        sta $24
+        lda MagicPower
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_256
+        clc
+        adc #$0004
+        sta M
+        shorta0
+        ldx TargetOffset
+        lda CharStruct::MDefense,X
+        jsr ShiftDivide_32
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Random Magic damage formula
+;Attack = 50..200
+;M = Param2
+;Defense = Target Magic Defense
+.proc RandomMagicDamage
+
+_7FA7:
+        tdc
+        tax
+        lda #$96		;150
+        jsr Random_X_A
+        clc
+        adc #$32   		;50
+        tax
+        stx Attack
+        lda Param2
+        tax
+        stx M
+        ldx TargetOffset
+        lda CharStruct::MDefense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Physical magic damage formula
+;Spell Power in Param2
+;Attack = Spell Power + (0..Spell Power/8)
+;M = Level*Magic/256 + 4
+;Defense = Target Defense
+.proc PhysicalMagicDamage
+
+_7FC2:
+        tdc
+        tax
+        lda Param2
+        jsr ShiftDivide_8
+        jsr Random_X_A
+        clc
+        adc Param2
+        sta Attack
+        tdc
+        adc #$00
+        sta Attack+1
+        lda Level
+        sta $24
+        lda MagicPower
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_256
+        clc
+        adc #$0004
+        sta M
+        shorta0
+        ldx TargetOffset
+        lda CharStruct::Defense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Swords damage formula
+;
+;Attack = Attack Power + 0..Attack Power/8
+;M = Level*Strength/128 + 2
+;Defense = Target Defense
+;if not(!_CombatTweaks) ;this check affects all the damage types through rods
+.proc SwordDamage
+
+_7FFC:
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::AtkPower,X
+        tax
+        stx $0E			;Attack Power
+        jsr ShiftDivide_8
+        ldx #$0000
+        jsr Random_X_A
+        longa
+        clc
+        adc $0E    		;Attack + 0..Attack/8
+        sta Attack
+        shorta0
+        lda Level
+        sta $24
+        lda Strength
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26			;Level*Strength
+        jsr ShiftDivide_128
+        clc
+        adc #$0002
+        sta M			;Level*Strength/128 + 2
+        shorta0
+        ldx TargetOffset
+        lda CharStruct::Defense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+;Fists Damage formula
+;
+;With Brawl:
+;	Attack = Attack Power + Level*2 + 0..Level/4 + (50 with Kaiser Knuckles)
+;	M = Level*Strength/256 + 2
+;Without Brawl:
+;	Attack = Attack Power + 0..Level/4
+;	M = 2
+;Defense = Target Defense
+;**optimize:	use 16 bit mode earlier, remove useless mode switches
+;
+.proc FistDamage
+
+_803E:
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::AtkPower,X
+        tax
+        stx $0E			;Attack Power
+        tdc
+        tax
+        lda Level
+        jsr ShiftDivide_4
+        jsr Random_X_A
+        tax
+        stx $10			;0..Level/4
+        lda Level
+        sta $24
+        lda Strength
+        sta $25
+        jsr Multiply_8bit
+        ldx $26
+        stx $14			;Level*Strength
+        ldx AttackerOffset
+        lda CharStruct::Passives2,X
+        and #$40    		;Brawl
+        beq NoBrawl
+        lda Level
+        tax
+        stx $12
+        asl $12     		;Level *2
+        rol $13
+        clc
+        lda $10			;0..Level/4
+        adc $12
+        sta $10			;Level*2 + 0..Level/4
+        lda $11
+        adc $13
+        sta $11
+        longa
+        clc
+        lda $0E			;Attack Power
+        adc $10     		;+ Level*2 + 0..Level/4
+        sta Attack
+        shorta0
+        longa
+        lda $14			;Level*Strength
+        jsr ShiftDivide_256
+        clc
+        adc #$0002
+        sta M			;Level*Strength/256 + 2
+        shorta0
+        ldx AttackerOffset
+        lda CharStruct::ArmorProperties,X
+        and #$20    		;Improved Brawl
+        beq Def
+        longa
+        clc
+        lda Attack
+        adc #$0032		;+50
+        sta Attack
+        shorta0
+        bra Def
+NoBrawl:	
+        longa
+        clc
+        lda $0E     		;Attack Power
+        adc $10     		;+ 0..Level/4
+        sta Attack
+        shorta0
+        ldx #$0002
+        stx M			;M = 2
+Def:	LDX TargetOffset
+        lda CharStruct::Defense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Knives damage formula
+;Attack = Attack Power + 0..3
+;M = Level*Strength/128 + Level*Agility/128 + 2
+;Defense = Target Defense
+;
+;**bug: knife agility calc only uses low byte, so effectively contributes only 0 or 1 to M
+.proc KnifeDamage
+
+_80D4:
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::AtkPower,X
+        sta $50
+        tdc
+        tax
+        lda #$03
+        jsr Random_X_A
+        clc
+        adc $50
+        tax
+        stx $50
+        lda Strength
+        sta $24
+        lda Level
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_128
+        clc
+        adc #$0002
+        sta $0E
+        shorta0
+        lda Agility
+        sta $24
+        lda Level
+        sta $25
+        jsr Multiply_8bit
+        lda $26		;*bug: this should be in 16 bit mode
+        longa
+        jsr ShiftDivide_128
+        clc
+        adc $0E
+        sta M
+        shorta0
+        ldx TargetOffset
+        lda CharStruct::Defense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Axes Damage formula
+;Attack = Attack Power / 2 + 0..Attack Power
+;M = Level*Strength/128 + 2
+;Defense = Target Defense / 4
+.proc AxeDamage
+
+_812B:
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::AtkPower,X
+        tax
+        stx $0E
+        lsr $0E
+        ldx #$0000
+        jsr Random_X_A
+        longa
+        clc
+        adc $0E
+        sta Attack
+        shorta0
+        lda Strength
+        sta $24
+        lda Level
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_128
+        clc
+        adc #$0002
+        sta M
+        shorta0
+        ldx TargetOffset
+        lda CharStruct::Defense,X
+        jsr ShiftDivide_4
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Bells Damage formula
+;Attack = Attack Power / 2 + 0..(Attack Power / 2)
+;M = Level*Agility/128 + 2 + Level*MagicPower/128
+;Defense = Target Magic Defense
+.proc BellDamage
+
+_816F:
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::AtkPower,X
+        lsr
+        tax
+        stx $0E
+        ldx #$0000
+        jsr Random_X_A
+        longa
+        clc
+        adc $0E
+        sta Attack
+        shorta0
+        lda Agility
+        sta $24
+        lda Level
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_128
+        clc
+        adc #$0002
+        sta $0E
+        shorta0
+        lda MagicPower
+        sta $24
+        lda Level
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_128
+        clc
+        adc $0E
+        sta M
+        shorta0
+        ldx TargetOffset
+        lda CharStruct::MDefense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+;Rods damage formula
+;Attack = (0..Attack Power)*2
+;M = Level*MagicPower/256 + 2
+;Defense = Target Magic Defense
+.proc RodDamage
+
+_81CB:
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::AtkPower,X
+        ldx #$0000
+        jsr Random_X_A
+        longa
+        asl
+        sta Attack
+        shorta0
+        lda MagicPower
+        sta $24
+        lda Level
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_256
+        clc
+        adc #$0002
+        sta M
+        shorta0
+        ldx TargetOffset
+        lda CharStruct::MDefense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+;Level based Damage formula
+;Attack = 10..100
+;M = Level/8 +2
+;Defense = Target Magic Defense
+.proc LevelDamage
+
+_8205:
+        tdc
+        tax
+        lda #$5A		;90
+        jsr Random_X_A
+        clc
+        adc #$0A    		;10
+        tax
+        stx Attack
+        lda Level
+        jsr ShiftDivide_8
+        clc
+        adc #$02
+        tax
+        stx M
+        ldx TargetOffset
+        lda CharStruct::MDefense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Monster damage formula
+;if not(!_CombatTweaks)
+.proc MonsterDamage
+
+_8227:
+        ldx AttackerOffset
+        lda CharStruct::MonsterAttack,X
+        sta $0E
+        jsr ShiftDivide_8
+        ldx #$0000
+        jsr Random_X_A
+        clc
+        adc $0E
+        sta Attack
+        tdc
+        adc #$00
+        sta Attack+1
+        ldx AttackerOffset
+        lda CharStruct::MonsterM,X
+        tay
+        sty M
+        ldx TargetOffset
+        lda CharStruct::Defense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc ItemFormula
+
+_8252:
+        lda Param1
+        tax
+        stx Attack
+        lda Param2
+        tax
+        stx M
+        tdc
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Physical attack but with attack power loaded like a spell
+;Attack = Param2 + 0..Param2
+;M = Strength*Level/128 + 1
+;Defense = Target Defense
+;
+;**optimize: remove extra Attack load
+.proc PhysicalParamDamage
+
+_8261:
+        tdc
+        tax
+        lda Param2
+        jsr Random_X_A
+        sta Attack	;0..Param2
+        clc
+        lda Attack
+        adc Param2
+        sta Attack	;Param2 + 0..Param2
+        tdc
+        adc #$00
+        sta $51
+        lda Level
+        sta $24
+        lda Strength
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_128
+        inc
+        sta M
+        shorta0
+        ldx TargetOffset
+        lda CharStruct::Defense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+;Throw Damage formula
+;Attack = Item Attack Power + (0..Item Attack/8)
+;M = Level*Strength/128 + Level*Agility/128 + 2
+;Defense = Target Defense
+.proc ThrowDamage
+
+_8299:
+        ldx AttackerOffset
+        lda CharStruct::SelectedItem,X
+        sta ThrownItem
+        longa
+        jsr ShiftMultiply_4
+        sta $0E			;ItemID*4
+        asl          		;ItemID*8
+        clc
+        adc $0E			;ItemID*12
+        tax
+        shorta0
+        lda ROMItems::AtkPower,X
+        sta $0E       		;Item Attack
+        jsr ShiftDivide_8     	;Item Attack / 8
+        ldx #$0000
+        jsr Random_X_A     	;0..Item Attack / 8
+        clc
+        adc $0E
+        sta Attack    	;Item Attack + 0..Item Attack / 8
+        tdc
+        adc #$00
+        sta Attack+1
+        lda Strength
+        sta $24
+        lda Level
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_128
+        sta $0E			;Str*Level/128
+        shorta0
+        lda Agility
+        sta $24
+        lda Level
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_128	;Agi*Level/128
+        clc
+        adc $0E
+        adc #$0002    		;+2
+        sta M
+        shorta0
+        ldx TargetOffset
+        lda CharStruct::Defense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;GilToss Damage Formula
+;Attack = Level + 10 (or =0, if poor)
+;M = Param2
+;Defense = Target Defense
+;Gil Cost = Param1 * Level
+;**optimize: uses long addressing to access gil for no reason
+.proc GilTossDamage
+
+_830A:
+        clc
+        lda Level
+        adc #$0A   	;+10
+        tax
+        stx Attack
+        lda Param1
+        sta $24
+        lda Level
+        sta $25
+        jsr Multiply_8bit
+        lda f:Gil+2
+        bne Rich	;>65535 Gil
+        longa
+        lda f:Gil
+        cmp $26
+        bcs GilOK
+        tdc
+        sta Attack	;Not enough Gil, Attack = 0
+        shorta
+        bra Finish
+GilOK:	TDC
+        shorta
+Rich:	SEC 		;manual 24 bit subtraction
+        lda f:Gil
+        sbc $26
+        sta f:Gil
+        lda f:Gil+1
+        sbc $27
+        sta f:Gil+1
+        lda f:Gil+2
+        sbc #$00
+        sta f:Gil+2
+Finish:	LDA Param2
+        tax
+        stx M
+        ldx TargetOffset
+        lda CharStruct::Defense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Multitargetting Modifications
+;
+;**optimize: we don't need to reorder the bits if we're just counting them
+.proc MultiTargetMod
+
+_8366:
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::Targetting,X
+        and #$40   		;hits all targets
+        bne Return
+        lda MultiCommand
+        asl
+        tax
+        lda TargetBitmask,X
+        and #$F0
+        bne :+			;party targetted
+        ;shuffles bits to get monsters in the right order
+        ;don't know why since we're just counting them
+        lda TargetBitmask,X
+        and #$0F
+        jsr ShiftMultiply_16
+        sta $0E
+        lda TargetBitmask+1,X
+        and #$F0
+        jsr ShiftDivide_16
+        ora $0E			;A now contains monsters in order
+:	JSR CountSetBits	;result in X
+        dex
+        beq Return
+        lsr Attack+1
+        ror Attack
+Return:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Back Row Modifications
+;**optimize: save some bytes by shifting in 8 bit mode to avoid mode switches
+.proc BackRowMod
+
+_839B:
+        ldx AttackerOffset
+        lda CharStruct::CmdStatus,X
+        and #$10
+        bne Return
+        lda CharStruct::CharRow,X
+        bpl :+
+        longa
+        lsr M
+        shorta
+:
+        ldx TargetOffset
+        lda CharStruct::CharRow,X
+        bpl Return
+        longa
+        lsr M
+        shorta
+Return:
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Command modifications to damage
+;**optimize: save some bytes by shifting in 8 bit mode to avoid mode switches
+.proc CommandMod
+
+_83BD:
+        ldx AttackerOffset
+        lda CharStruct::DamageMod,X
+        and #$40
+        beq :+
+        longa
+        asl Attack
+        shorta
+:
+        lda CharStruct::DamageMod,X
+        and #$20
+        beq :+
+        longa
+        lsr Attack
+        shorta0
+:
+        lda CharStruct::DamageMod,X
+        and #$10
+        beq :+
+        longa
+        asl M
+        shorta
+:
+        lda CharStruct::DamageMod,X
+        and #$08
+        beq :+
+        longa
+        lsr M
+        shorta0
+:
+        lda CharStruct::DamageMod,X
+        and #$04
+        beq :+
+        tdc
+        tax
+        stx Defense
+:
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        bpl :+
+        ldx AttackerOffset
+        lda CharStruct::DamageMod,X
+        and #$01
+        beq :+
+        longa
+        asl Attack
+        shorta
+:
+        ldx TargetOffset
+        lda CharStruct::CmdStatus,X
+        bpl :+	  				;Defending
+        longa
+        lsr M
+        shorta0
+:
+        lda CharStruct::CmdStatus,X
+        and #$40				;Guarding
+        beq :+
+        tdc
+        tax
+        stx Attack
+:
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Double Grip Damage Multiplier Modifier
+;**optimize: save some bytes by shifting in 8 bit mode to avoid mode switches
+.proc DoubleGripMod
+
+_8430:
+        ldx AttackerOffset
+        lda CharStruct::Passives2,X
+        and #$20    				;Double Grip
+        beq Ret
+        lda CharStruct::RHShield,X
+        ora CharStruct::LHShield,X
+        bne Ret
+        lda CharStruct::RHWeapon,X
+        beq EmptyHand
+        lda CharStruct::LHWeapon,X
+        bne Ret
+EmptyHand:
+        longa
+        asl M
+        shorta
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Check for Jump
+;**optimize: save some bytes by shifting in 8 bit mode to avoid mode switches
+.proc CheckJump
+
+_8452:
+        ldx AttackerOffset
+        lda CharStruct::CmdStatus,X
+        and #$10				;Jumping
+        beq NoJump
+        longa
+        asl M
+        shorta0
+        rts
+        								;
+NoJump:	JSR BackRowMod
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Bonus to Attack, costing MP
+.proc RuneMod
+
+_8467:
+        lda Param3	;MP Cost
+        tax
+        stx $12
+        lda Param2	;Attack Boost
+        tax
+        stx $10
+        longa
+        ldx AttackerOffset
+        lda CharStruct::CurMP,X
+        cmp $12
+        bcc Abort   	;not enough MP
+        sec
+        sbc $12
+        sta CharStruct::CurMP,X
+        clc
+        lda Attack
+        adc $10
+        sta Attack
+        shorta0
+        lda Level
+        sta $24
+        lda MagicPower
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_128
+        clc
+        adc M
+        sta M
+        shorta0
+        inc Crit
+        rts
+        							;
+Abort:	TDC
+        shorta
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Specialty Effect Modifier to Damage
+.proc SpecialtyMod
+
+_84AF:
+        ldx AttackerOffset
+        lda CharStruct::Specialty,X
+        bpl :+ 		  			;Autohit or ignore defense
+        stz Defense
+        stz Defense+1
+:
+        lda CharStruct::Specialty,X
+        and #$01    				;1.5x damage
+        beq Return
+        longa
+        lda Attack
+        lsr
+        clc
+        adc Attack
+        sta Attack
+        shorta0
+Return:
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Medicine modifier to damage
+.proc MedicineMod
+
+_84CF:
+        ldx AttackerOffset
+        lda CharStruct::Passives2,X
+        and #$10   			;Medicine
+        beq Ret
+        asl M
+        rol M+1
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Creature type modification to damage
+.proc CreatureMod
+
+_84DD:
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and Param3
+        beq Ret
+        longa
+        lda Attack
+        jsr ShiftMultiply_8
+        sta Attack
+        shorta0
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Target Status Effect Modifiers to Magical Damage
+.proc TargetStatusModMag
+
+_84F3:
+        ldx TargetOffset
+        lda CharStruct::Status3,X
+        ora CharStruct::AlwaysStatus3,X
+        and #$20   		;shell
+        beq :+
+        lsr M+1
+        ror M
+:	LDA CharStruct::Status1,X
+        ora CharStruct::AlwaysStatus1,X
+        and #$20   		;toad
+        beq Return
+        stz Defense
+        stz Defense+1
+Return:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Target Status Effect Modifiers to Physical Damage
+.proc TargetStatusModPhys
+
+_8512:
+        ldx TargetOffset
+        lda CharStruct::Status1,X
+        ora CharStruct::AlwaysStatus1,X
+        and #$30      				;Toad or Mini
+        beq :+
+        tdc
+        tax
+        stx Defense
+:
+        lda CharStruct::Status3,X
+        ora CharStruct::AlwaysStatus3,X
+        and #$40      				;Armor/Protect
+        beq :+
+        longa
+        lsr M
+        shorta
+:
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Attacker Status Effect Modifiers to Physical Damage
+.proc AttackerStatusModPhys
+
+_8533:
+        ldx AttackerOffset
+        lda CharStruct::Status1,X
+        ora CharStruct::AlwaysStatus1,X
+        and #$30      				;Toad or Mini
+        beq :+
+        ldx #$0003
+        stx Attack
+:                                                                                      
+        lda CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$08      				;Berserk
+        beq :+
+        longa
+        lda Attack
+        asl
+        clc
+        adc Attack
+        lsr
+        sta Attack
+        shorta0
+:
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;8x Bonus and Ignore Def if Equal Level
+.proc EqualLevelMod
+
+_855D:
+        ldx TargetOffset
+        lda CharStruct::Level,X
+        ldx AttackerOffset
+        cmp CharStruct::Level,X
+        bne Ret
+        longa
+        asl Attack
+        asl Attack
+        asl Attack
+        tdc
+        sta Defense
+        shorta
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Brave Blade Damage formula
+;Attack = Attack Power - Escapes (min 0)
+;M = Level*Strength/128 + 2
+;Defense = Target Defense
+;if not(!_CombatTweaks)	;applies through to chicken damage
+.proc BraveDamage
+        lda AttackerOffset2
+        tax
+        sec
+        lda AttackInfo::AtkPower,X
+        sbc BattleData::Escapes
+        bcs :+
+        tdc 			;min 0
+:	TAX
+        stx Attack
+        lda Level
+        sta $24
+        lda Strength
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_128
+        clc
+        adc #$0002
+        sta M
+        shorta0
+        ldx TargetOffset
+        lda CharStruct::Defense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Goblin Punch Damage formula
+;Attack = RH + LH Goblin Attack Power
+;M = Level*Strength/128 + 2, or Monster Attack Modifier
+;Defense = Target Defense
+.proc GoblinDamage
+
+_85AD:
+        ldx AttackerOffset
+        clc
+        lda CharStruct::MonsterAttack,X
+        adc CharStruct::MonsterAttackLH,X
+        sta Attack
+        tdc
+        adc #$00
+        sta Attack+1
+        lda AttackerIndex
+        cmp #$04
+        bcc Party  		;<4 means party
+        lda CharStruct::MonsterM,X
+        tax
+        stx M
+        bra Finish
+Party:	LDA Level
+        sta $24
+        lda Strength
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_128
+        clc
+        adc #$0002
+        sta M
+        shorta0
+Finish:	LDX TargetOffset
+        lda CharStruct::Defense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Strong Fight Damage formula
+;Attack = Monster Attack * 8 + 0..Monster Attack / 8
+;M = Monster M
+;Defense = Target Defense
+;**optimize: use 16 bit mode more to save some bytes
+.proc StrongFightDamage
+
+_85F1:
+        ldx AttackerOffset
+        clc
+        lda CharStruct::MonsterAttack,X
+        pha
+        longa
+        jsr ShiftMultiply_8
+        sta Attack
+        shorta0
+        lda CharStruct::MonsterM,X
+        tax
+        stx M
+        pla
+        jsr ShiftDivide_8
+        ldx #$0000
+        jsr Random_X_A
+        clc
+        adc Attack
+        sta Attack
+        lda Attack+1
+        adc #$00
+        sta Attack+1
+        ldx TargetOffset
+        lda CharStruct::Defense,X
+        tax
+        stx Defense
+        rts
+;
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Chicken Knife Damage Formula
+;Attack = Escapes/2
+;M = Level*Strength/128 + Level*Agility/128 + 2
+;Defense = Target Defense
+.proc ChickenDamage
+
+_8626:
+        lda BattleData::Escapes
+        lsr
+        tax
+        stx Attack
+        lda Level
+        sta $24
+        lda Strength
+        sta $25
+        jsr Multiply_8bit
+        ldx $26
+        stx $0E
+        lda Level
+        sta $24
+        lda Agility
+        sta $25
+        jsr Multiply_8bit
+        longa
+        lda $26
+        jsr ShiftDivide_128
+        sta $10
+        lda $0E
+        jsr ShiftDivide_128
+        clc
+        adc $10
+        adc #$0002
+        sta M
+        shorta0
+        ldx TargetOffset
+        lda CharStruct::Defense,X
+        tax
+        stx Defense
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Magic Element Up Modifier
+.proc ElementUpMod
+
+_866D:
+        ldx AttackerOffset
+        lda CharStruct::ElementUp,X
+        and AtkElement
+        beq Return
+        longa
+        lda Attack
+        lsr
+        clc
+        adc Attack
+        sta Attack
+        shorta0
+Return:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Magic Sword Modifiers to Physical
+.proc MagicSwordMod
+
+_8684:
+        ldx AttackerOffset
+        lda CharStruct::MSwordElemental1,X
+        ora CharStruct::MSwordElemental2,X
+        ora CharStruct::MSwordElemental3,X
+        sta AtkElement
+        ora CharStruct::MSwordStatus1,X
+        ora CharStruct::MSwordStatus2,X
+        ora CharStruct::MSwordStatusSpecial,X
+        beq :+				;no MSword, could go to end but too far away
+        				;so it'll just fail all the checks
+        inc MagicSword
+:	;Magic Sword Flare
+        lda CharStruct::MSwordStatusSpecial,X
+        bpl :+					;flare
+        longa
+        clc
+        lda Attack
+        adc #$0064  				;+100
+        sta Attack
+        lsr Defense
+        lsr Defense
+        shorta0
+        rts
+:	;;Elemental Magic Sword vs Absorb
+        ldx TargetOffset
+        lda CharStruct::EAbsorb,X
+        and AtkElement
+        beq :+
+        inc AtkHealed
+        stz Defense
+        stz Defense+1
+        rts
+:	;;Elemental Magic Sword vs Immune		
+        lda CharStruct::EImmune,X
+        and AtkElement
+        beq :+
+        inc AtkMissed
+        rts
+:	;Elemental Magic Sword vs Resist		
+        lda CharStruct::EHalf,X
+        and AtkElement
+        beq :+
+        lsr M+1
+        ror M
+        rts
+:	;;Elemental Magic Sword L3 vs Weakness
+        lda CharStruct::EWeak,X
+        sta $0E
+        ldx AttackerOffset
+        and CharStruct::MSwordElemental3,X
+        beq :++
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and #$20    				;heavy?
+        beq :+
+        longa
+        asl Attack
+        asl Attack
+        stz Defense
+        shorta
+        rts
+:	;;Elemental Magic Sword L3 Instant Death
+        lda CharStruct::Status1,X		;X is still TargetOffset
+        and #$02     				;zombie
+        bne Return
+        lda CharStruct::Status1,X
+        ora #$80				;dead
+        sta CharStruct::Status1,X
+        inc TargetDead
+        rts
+:	;;Elemental Magic Sword L2 vs Weakness
+        lda $0E					;CharStruct::EWeak for Target
+        and CharStruct::MSwordElemental2,X  	;X is still TargetOffset
+        beq :+
+        longa
+        lda Attack
+        asl
+        clc
+        adc Attack
+        sta Attack
+        tdc
+        sta Defense
+        shorta
+        rts
+:	;;Elemental Magic Sword L1 vs Weakness
+        lda $0E					;CharStruct::EWeak for Target
+        and CharStruct::MSwordElemental1,X  	;X is still TargetOffset
+        beq Return
+        longa
+        asl Attack
+        stz Defense
+        shorta
+Return:
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Elemental Modifiers for Physical
+;
+;**optimize: 	can probably merge elemental damage routines to save space
+;		only difference is the magic one also checks for block, and sets a magic miss flag
+.proc ElementDamageModPhys
+
+_8734:
+        lda MagicSword
+        bne Ret		;Magic Sword Elements handled elsewhere
+        ldx TargetOffset
+        lda CharStruct::EAbsorb,X
+        and AtkElement
+        beq CheckImmune
+        inc AtkHealed
+        stz Defense
+        stz Defense+1
+        rts
+CheckImmune:								;
+        lda CharStruct::EImmune,X
+        and AtkElement
+        beq CheckHalf
+        inc AtkMissed
+        rts
+CheckHalf:								;
+        lda CharStruct::EHalf,X
+        and AtkElement
+        beq CheckWeak
+        lsr Attack+1
+        ror Attack
+        rts
+CheckWeak:								;
+        lda CharStruct::EWeak,X
+        and AtkElement
+        beq Ret
+        asl Attack
+        rol Attack+1
+        stz Defense
+        stz Defense+1
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Elemental Damage Modifiers for Magic
+;
+;**optimize: save some space getting rid of magic sword check
+.proc ElementDamageModMag
+
+_876E:
+        lda MagicSword		;shouldn't ever be set
+        bne Return		;because it's not loaded for magic
+        ldx TargetOffset
+        lda CharStruct::EAbsorb,X
+        and AtkElement
+        beq :+
+        ;absorbed
+        inc AtkHealed
+        stz Defense
+        stz Defense+1
+        rts
+:							
+        lda CharStruct::EBlock,X
+        and AtkElement
+        beq :+
+        ;blocked (is this used?)
+        inc AtkMissed
+        rts
+:						
+        lda CharStruct::EImmune,X
+        and AtkElement
+        beq :+
+        ;immune
+        inc AtkMissed
+        inc MagicNull
+        rts
+:							
+        lda CharStruct::EHalf,X
+        and AtkElement
+        beq :+
+        ;half
+        lsr Attack+1
+        ror Attack
+        rts
+:							
+        lda CharStruct::EWeak,X
+        and AtkElement
+        beq Return
+        asl Attack
+        rol Attack+1
+        stz Defense
+        stz Defense+1
+Return:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Elemental Modifiers to Magic
+;
+;Very similar to ElementDamageModMag ($876E)
+;Will note differences with *
+;
+;**optimize: consolidate with above routine if differences won't cause problems
+.proc ElementDamageModMag2
+
+_87B5:
+        ldx TargetOffset
+        ;check absorb
+        lda CharStruct::EAbsorb,X
+        and AtkElement
+        beq :+
+        inc AtkHealed
+        rts 	;*does not 0 def on absorb like the other routine
+        	;*also doesn't check for Element "block"							
+:	;check immunity
+        lda CharStruct::EImmune,X
+        and AtkElement
+        beq :+
+        inc AtkMissed
+        rts
+:	;check half							
+        lda CharStruct::EHalf,X
+        and AtkElement
+        beq :+
+        lsr Param2    ;*halves param2 instead of Attack ($50)
+        rts
+:	;check weak								
+        lda CharStruct::EWeak,X
+        and AtkElement
+        beq Ret
+        asl Param2    	;*doubles param2 instead of Attack
+        		;*also doesn't 0 def
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Check for Critical Hit
+;Param1: Crit%
+;**optimize: 	save 2 bytes by not switching modes, or by zeroing def while in 16 bit mode
+.proc CheckCrit
+
+_87DF:
+        lda MagicSword	;no crits with magic sword,
+        bne Ret	;in vanilla FF5 no weapons support both anyway
+        jsr Random_0_99
+        cmp Param1
+        bcs Ret
+        lda #$01
+        sta Crit
+        longa
+        asl Attack
+        shorta
+        tdc
+        tax
+        stx Defense
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Check Creature Type for Critical Hit
+.proc CheckCreatureCrit
+
+_87F9:
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and Param1
+        beq Ret
+        lda #$01
+        sta Crit
+        longa
+        asl M
+        shorta
+        tdc
+        tax
+        stx Defense
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Calculate Final Damage w/Magic Sword
+;Damage is returned in different addresses depending on what happens
+;DamageToAttacker = $7B6B		
+;DamageToTarget = $7B6D		
+;HealingToAttacker = $7B6F		
+;HealingToTarget = $7B71
+;
+;**optimize: get rid of pointless code		
+.proc CalcFinalDamageMSword
+
+_8811:
+        jsr CalcBaseDamage
+        ldx BaseDamage
+        bne :+
+        stx DamageToTarget
+        rts
+:											;
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::Category,X
+        ldx TargetOffset
+        and CharStruct::CantEvade,X
+        beq :+
+        longa
+        asl M
+        shorta
+:
+        ldx AttackerOffset
+        lda CharStruct::MSwordStatusSpecial,X
+        and #$40
+        beq :+
+        jmp DrainDamage
+:
+        lda CharStruct::MSwordStatusSpecial,X
+        and #$20
+        beq :+
+        jmp MSwordPsyche
+:
+        lda AtkHealed
+        beq :+
+        ldx BaseDamage
+        stx HealingToTarget
+        rts
+:	;Unsure what this section is for, attacker takes damage but no target healing	
+        lda AttackerDamaged
+        beq :++
+        ldx AttackerOffset			;uses attacker's defense instead
+        lda CharStruct::Defense,X
+        tax
+        stx Defense
+        jsr CalcBaseDamage
+        ldx BaseDamage
+        bne :+					;*pointless code
+        stx DamageToAttacker
+        rts
+:											;
+        stx DamageToAttacker 			;*pointless code
+        rts 					;*pointless code
+:											;
+        ldx BaseDamage
+        stx DamageToTarget
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Gravity Attack Damage, Type 07h
+;Damage is Param2($58) * Current HP of target / 16 unless target is Heavy
+.proc GravityDamage
+
+_8874:
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and #$20    			;heavy
+        beq NotHeavy
+        tdc
+        tax
+        stx BaseDamage
+        stx DamageToTarget
+        rts
+NotHeavy:									;
+        lda CharStruct::CurHP,X
+        sta $2A
+        lda CharStruct::CurHP+1,X
+        sta $2B
+        lda Param2
+        tax
+        stx $2C
+        jsr Multiply_16bit		;Multiply $2A by $2C and store in $2E
+        longa
+        lsr $30				;divide 32 bit result by 16
+        ror $2E
+        lsr $30
+        ror $2E
+        lsr $30
+        ror $2E
+        lsr $30
+        ror $2E
+        shorta
+        ldx $30
+        bne :+
+        ldx $2E
+        cpx #$270F
+        bcc :++
+:	LDX #$270F  			;9999 if result was greater
+:	STX BaseDamage
+        stx DamageToTarget
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Cure, Damage if Undead
+.proc CureTarget
+
+_88C1:
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and #$01			;undead	creature
+        bne :+
+        lda CharStruct::ArmorProperties,X
+        and #$02   			;undead armor
+        beq :++
+:	JMP CalcFinalDamageMSword
+:	JSR CalcBaseDamage
+        ldx BaseDamage
+        stx HealingToTarget
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+;Full Cure, Reduce HP to Critical if Undead
+.proc FullCureTarget
+
+_88DE:
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and #$01			;undead	creature
+        bne :+
+        lda CharStruct::ArmorProperties,X
+        and #$02     			;undead armor
+        beq :++
+:	JMP SetHPCritical
+:	REP #$20
+        lda CharStruct::MaxHP,X
+        sta CharStruct::CurHP,X
+        shorta0
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Reduce HP to Critical
+;Fails vs Heavy
+.proc SetHPCritical
+
+_88FD:
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and #$20   			;heavy
+        beq NotHeavy
+        inc AtkMissed
+        rts
+NotHeavy:								;
+        tdc
+        tax
+        lda #$08
+        jsr Random_X_A
+        inc
+        tax
+        stx $0E
+        longa
+        ldx TargetOffset
+        lda $0E
+        cmp CharStruct::CurHP,X
+        bcs :+
+        sta CharStruct::CurHP,X
+:	TDC
+        shorta
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Magic Sword Drain
+.proc DrainDamage
+
+_8926:
+        jsr CalcBaseDamage
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and #$01   				;undead	creature type
+        bne Undead
+        lda CharStruct::ArmorProperties,X
+        and #$02   				;undead	armor
+        beq NotUndead
+Undead:	
+        ldx BaseDamage
+        stx DamageToAttacker
+        stx HealingToTarget
+        rts
+NotUndead:
+        ldx BaseDamage
+        stx DamageToTarget
+        stx HealingToAttacker
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Magic Sword Psyche
+.proc MSwordPsyche
+
+_894D:
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and #$01				;undead	creature type
+        bne Undead
+        lda CharStruct::ArmorProperties,X
+        and #$02   				;undead	armor
+        beq NotUndead
+Undead:
+        ldx AttackerOffset
+        longa
+        lda CharStruct::CurMP,X
+        jsr ShiftDivide_4
+        sta HealingToTargetMP
+        sta DamageToAttackerMP
+        shorta0
+        rts
+NotUndead:					
+        ldx TargetOffset
+        longa
+        lda CharStruct::CurMP,X
+        jsr ShiftDivide_4
+        sta HealingToAttackerMP
+        sta DamageToTargetMP
+        shorta0
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Psyche Damage
+.proc PsycheDamage
+
+_8985:
+        longa
+        sec
+        lda Attack
+        sbc Defense
+        sta $2A
+        lda M
+        sta $2C
+        shorta0
+        jsr Multiply_16bit
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and #$01			;undead	creature
+        bne Undead
+        lda CharStruct::ArmorProperties,X
+        and #$02   			;undead armor
+        beq NotUndead
+Undead:	REP #$20
+        ldx AttackerOffset
+        lda $2E
+        cmp CharStruct::CurMP,X
+        bcc :+
+        lda CharStruct::CurMP,X
+        sta $2E
+:	LDA $2E
+        sta HealingToTargetMP
+        sta DamageToAttackerMP
+        bra Finish
+NotUndead:
+        longa
+        ldx TargetOffset
+        lda $2E
+        cmp CharStruct::CurMP,X
+        bcc :+
+        lda CharStruct::CurMP,X
+        sta $2E
+:	LDA $2E
+        sta HealingToAttackerMP
+        sta DamageToTargetMP
+Finish:	TDC
+        shorta
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;MP Heal
+.proc MPHeal
+
+_89DE:
+        longa
+        sec
+        lda Attack
+        sbc Defense
+        sta $2A
+        lda M
+        sta $2C
+        shorta0
+        jsr Multiply_16bit
+        ldx $2E
+        stx HealingToTargetMP
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Fully Heal MP
+.proc FullMPHeal
+
+_89F7:
+        longa
+        ldx TargetOffset
+        lda CharStruct::MaxMP,X
+        sta CharStruct::CurMP,X
+        shorta0
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;(8A05)
+;Calculate Final Damage 
+;similar to $8811/CalcFinalDamageMSword but doesn't have Magic Sword checks
+;DamageToAttacker = $7B6B		
+;DamageToTarget = $7B6D		
+;HealingToTarget = $7B71
+;
+;**bugfix: "can't evade" bit should also double damage
+.org $8A05	
+.proc CalcFinalDamage
+
+_8A05:
+        jsr CalcBaseDamage
+        ldx BaseDamage
+        beq Finish
+        ldx M
+        bne :+
+        inc M
+        ;likely bug, the "can't evade"	check here is only hit if M was 0
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::Category,X
+        ldx TargetOffset
+        and CharStruct::CantEvade,X
+        beq :+
+        longa
+        asl M      		;would have doubled damage
+        shorta
+:	LDA AtkHealed
+        beq :+
+        ldx BaseDamage
+        stx HealingToTarget
+        rts
+:	LDA AttackerDamaged	;attacker damaged instead of target
+        beq Finish
+        ldx AttackerOffset
+        lda CharStruct::Defense,X  	;attacker's defense
+        tax
+        stx Defense
+        jsr CalcBaseDamage
+        ldx BaseDamage
+        stx DamageToAttacker
+        rts
+Finish:	LDX BaseDamage
+        stx DamageToTarget
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Calculate Damage from % of Target Max HP
+;**optimize: 	save some space by going to 16 bit mode earlier
+;		and by removeing unnecessary high byte OR
+.proc CalcDamageMaxHP
+
+_8A4E:
+        lda Param2
+        tax
+        stx $2C
+        ldx TargetOffset
+        lda CharStruct::MaxHP,X
+        sta $2A
+        lda CharStruct::MaxHP+1,X
+        sta $2B
+        jsr Multiply_16bit
+        longa
+        lsr $30		;divide result by 16 via shifts
+        ror $2E
+        lsr $30
+        ror $2E
+        lsr $30
+        ror $2E
+        lsr $30
+        ror $2E
+        lda $30
+        bne Cap
+        lda $2E
+        cmp #$270F	;9999
+        bcc :+
+Cap:	LDA #$270F	;cap at 9999
+        sta $2E
+:	LDA $2E
+        ora $30		;*unnecessary
+        bne :+
+        inc $2E		;min 1
+:	TDC
+        shorta
+        ldx $2E
+        lda AtkHealed
+        bne Heal
+        stx DamageToTarget
+        rts
+        							;
+Heal:	STX HealingToTarget
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Calculate Damage from % of Attacker Current HP
+;
+;**optimize: 	save some space by going to 16 bit mode earlier
+;		could also reuse more than half of the code from CalcDamageMaxHP
+.proc CalcDamageAttackerCurHP
+
+_8A9D:
+        lda Param2
+        tax
+        stx $2C
+        ldx AttackerOffset
+        lda CharStruct::CurHP,X
+        sta $2A
+        lda CharStruct::CurHP+1,X
+        sta $2B
+        jsr Multiply_16bit
+        longa
+        lsr $30		;divide result by 16 via shifts
+        ror $2E
+        lsr $30
+        ror $2E
+        lsr $30
+        ror $2E
+        lsr $30
+        ror $2E
+        lda $30
+        bne Cap
+        lda $2E
+        cmp #$270F	;9999
+        bcc :+
+Cap:	LDA #$270F	;cap at 9999
+        sta $2E
+:	LDA $2E
+        ora $30		;*unnecessary
+        bne :+
+        inc $2E		;min 1
+:	TDC
+        shorta
+        ldx $2E
+        lda AtkHealed
+        bne Heal
+        stx DamageToTarget
+        rts
+        						;
+Heal:	STX HealingToTarget
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Calculate Damage from % of Target Current MP
+.proc CalcDamageTargetCurMP
+
+_8AEC:
+        lda Param2
+        tax
+        stx $2C
+        ldx TargetOffset
+        lda CharStruct::CurMP,X
+        sta $2A
+        lda CharStruct::CurMP+1,X
+        sta $2B
+        jsr Multiply_16bit
+        longa
+        lsr $30
+        ror $2E
+        lsr $30
+        ror $2E
+        lsr $30
+        ror $2E
+        lsr $30
+        ror $2E
+        lda $30
+        bne Cap
+        lda $2E
+        cmp #$270F	;9999
+        bcc :+
+Cap:	LDA #$270F 	;cap at 9999
+        sta $2E
+:	LDA $2E
+        ora $30		;*unnecessary
+        bne :+
+        inc $2E		;min 1
+:	TDC
+        shorta
+        ldx $2E
+        stx DamageToTargetMP
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Calculate Damage = Attacker Max HP - Attacker Current HP
+.proc CalcDamageAttackerDiffHP
+
+_8B33:
+        longa
+        ldx AttackerOffset
+        sec
+        lda CharStruct::MaxHP,X
+        sbc CharStruct::CurHP,X
+        cmp #$270F		;9999
+        bcc :+
+        lda #$270F		;cap at 9999
+:	STA DamageToTarget
+        shorta0
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+				
+;Heals HP and MP by half of their max
+.proc RestoreHalfMax
+
+_8B4D:
+        longa
+        ldx TargetOffset
+        lda CharStruct::MaxHP,X
+        lsr
+        clc
+        adc CharStruct::CurHP,X
+        bcs Cap
+        cmp CharStruct::MaxHP,X
+        bcc :+
+Cap:	LDA CharStruct::MaxHP,X
+:	STA CharStruct::CurHP,X
+        lda CharStruct::MaxMP,X
+        lsr
+        clc
+        adc CharStruct::CurMP,X
+        cmp CharStruct::MaxMP,X
+        bcc :+
+        lda CharStruct::MaxMP,X
+:	STA CharStruct::CurMP,X
+        shorta0
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Status Duration Determination
+;Param2($58) is base duration with a flag in the high bit
+;Result in StatusDuration ($3ED8)
+;	if flag is set result is (2*base + level/4)
+;	if no flag set result is (2*base + level/4 - targetlvl/4) or 30 if target is heavy
+;**optimize: this function does some strange things, could be worth optimizing for space
+.proc CalcStatusDuration
+
+_8B7D:
+        stz $0F
+        lda Param2
+        and #$7F			;strips high bit
+        asl        			;shift left, high bit (0) into carry
+        rol $0F				;shifts a 0 bit into a 0? why?
+        sta $0E
+        lda Level
+        jsr ShiftDivide_4
+        clc
+        adc $0E
+        sta $0E
+        lda $0F				;finish 16 bit result
+        adc #$00
+        beq :+
+        lda #$FF			;but we cap at 255 if overflowed
+        sta $0E    			;so why did we finish computing it
+:	LDA Param2
+        bmi Finish
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and #$20   			;heavy
+        beq :+
+        lda #$1E			;duration is 30 if target heavy
+        sta $0E
+        bra Finish
+:	CLC
+        lda CharStruct::Level,X
+        adc CharStruct::BonusLevel,X
+        jsr ShiftDivide_4
+        sta $0F				;target level /4
+        sec
+        lda $0E				;duration
+        sbc $0F    			;target level /4
+        beq :+
+        bcs :++
+:	LDA #$01   			;min duration 1
+:	STA $0E
+Finish:	LDA $0E
+        sta StatusDuration
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply Magic Sword Status Effects
+.proc ApplyMSwordStatus
+
+_8BCF:
+        lda Param3
+        pha 		;Save Param3 to restore later
+        ldx AttackerOffset
+        lda CharStruct::MSwordStatus1,X
+        sta Param3
+        lda #$01
+        sta StatusFixedDur
+        jsr ApplyStatus1
+        ldx AttackerOffset
+        lda CharStruct::MSwordStatus2,X
+        sta Param3
+        lda #$01
+        sta StatusFixedDur
+        jsr ApplyStatus2
+        stz AtkMissed
+        pla
+        sta Param3	;Restore Original Param3
+        stz StatusFixedDur
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply Conditional Status Effects
+;Status Hit% in Param2/$58
+;High bit set means Status1, unset means Status2
+;Status to apply in Param3/$59
+;
+;**optimize: Aborts if Magic Sword is initialized, but I don't think this is used anywhere that can happen
+.proc ApplyConditionalStatus
+
+_8BF9:
+        lda MagicSword
+        bne Miss
+        lda Param2
+        and #$7F
+        sta HitPercent
+        jsr Random_0_99
+        cmp HitPercent
+        bcs Miss
+        lda Param2
+        bpl :++			;check which status byte to mod
+        lda #$01
+        sta StatusFixedDur
+        jsr ApplyStatus1
+        ldx TargetOffset
+        lda CharStruct::Status1,X
+        bpl :+  		;check if target died
+        inc TargetDead
+:	BRA :++
+:	LDA #$01
+        sta StatusFixedDur
+        jsr ApplyStatus2
+:	STZ AtkMissed
+Miss:	STZ StatusFixedDur
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply Monster Specialty Effects
+.proc ApplySpecialtyEffects
+
+_8C2F:
+        stz Param3		;used for status here
+        ldx AttackerOffset
+        lda CharStruct::Specialty,X
+        and #$20  		 	;Poison	Specialty
+        beq :+
+        lda #$04			;Poison Status
+        sta Param3
+:
+        lda CharStruct::Specialty,X
+        and #$10   			;Blind Specialty
+        beq :+
+        lda Param3
+        ora #$01			;Blind Status
+        sta Param3
+:
+        lda #$01
+        sta StatusFixedDur
+        jsr ApplyStatus1
+        stz Param3
+        ldx AttackerOffset
+        lda CharStruct::Specialty,X
+        and #$40   			;Old Specialty
+        beq :+
+        lda #$80			;Old Status
+        sta Param3
+:
+        lda CharStruct::Specialty,X
+        and #$08   			;Paralyze Specialty
+        beq :+
+        lda Param3
+        ora #$20			;Paralyze Status
+        sta Param3
+:	
+        lda CharStruct::Specialty,X
+        and #$04   			;Charm Specialty
+        beq :+
+        phx
+        ldx TargetOffset
+        lda CharStruct::Status4,X
+        plx
+        and #$20   			;Target is Controlled
+        bne :+
+        lda Param3
+        ora #$10			;Charm Status
+        sta Param3
+:
+        lda #$01
+        sta StatusFixedDur
+        jsr ApplyStatus2
+        stz Param3
+        ldx AttackerOffset
+        lda CharStruct::Specialty,X
+        and #$02   			;HP Leak Specialty
+        beq :+
+        lda #$08			;HP Leak Status
+        sta Param3
+        lda #$01
+        sta StatusFixedDur
+        jsr ApplyStatus4
+:
+        stz StatusFixedDur
+        stz AtkMissed
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply Status Effect 1 after checking immunity
+;Special cases for Zombie (players only) and Stone (kills monsters)
+;Status in $59 / Param3
+.proc ApplyStatus1
+
+_8CAC:
+        ldx TargetOffset
+        lda CharStruct::StatusImmune1,X
+        and Param3
+        bne Miss			;Immune to a requested status
+        lda wTargetIndex
+        cmp #$04     			;Slots 4 and up are monsters
+        bcs NotZombie			;zombie doesn't apply to monsters
+        lda Param3
+        and #$02     			;Zombie
+        beq NotZombie
+        lda CharStruct::Status1,X	;Target Status
+        ora CharStruct::AlwaysStatus1,X
+        and #$42     			;Stone or Zombie
+        bne Miss    			;Miss if set
+        ;now applying Zombie status
+        ldx AttackerOffset
+        phx
+        lda wTargetIndex
+        jsr ResetATB
+        ldx AttackerOffset		;ResetATB actually puts target here
+        lda #$80
+        sta CharStruct::ActionFlag,X
+        stz CharStruct::Command,X
+        lda wTargetIndex
+        tax
+        lda CurrentTimer::ATB,Y		;Y is a timer offset from ResetATB
+        cmp #$7F
+        bcc :+
+        lda #$7F			;Cap at 127
+:
+        sta UncontrolledATB,X
+        tdc
+        sta EnableTimer::ATB,Y			;??
+        inc
+        sta CurrentTimer::ATB,Y		;Reset ATB?
+        ldx TargetOffset
+        stz CharStruct::CurHP,X   	;HP = 0
+        stz CharStruct::CurHP+1,X
+        plx 				;Attacker Offset
+        stx AttackerOffset		;Restore original Attacker
+        bra :++
+NotZombie:	
+        lda wTargetIndex
+        cmp #$04			;Slots 4 and up are monsters
+        bcc :+
+        lda Param3
+        and #$40     			;Stone
+        beq :+
+        lda CharStruct::Status1,X	;X is Target here, and is a monster
+        ora #$80     			;Set Wounded/Dead status
+        sta CharStruct::Status1,X	;instead of stone for monsters
+        bra :++
+:
+        ldx TargetOffset
+        lda CharStruct::Status1,X
+        and #$02			;Zombie
+        bne Miss
+        lda CharStruct::Status1,X
+        ora Param3     		;Set any other status
+        sta CharStruct::Status1,X
+:
+        jmp StartStatus1Timer
+Miss:	
+        inc AtkMissed
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply Status Effect 2
+;Special case for charm/berserk (players only) and paralyze
+;Status in $59 / Param3
+.proc ApplyStatus2
+
+_8D2E:
+        ldx TargetOffset
+        lda CharStruct::StatusImmune2,X
+        and Param3
+        beq :+
+        jmp Miss		;Miss if Immune
+:	LDA Param3
+        and #$10		;Charm
+        bne Charm
+        lda Param3
+        and #$08		;Berserk
+        beq :+++
+        lda CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$18		;Berserk or Charm
+        bne Miss   		;Miss if have either
+        lda CharStruct::Status4,X
+        and #$20		;Controlled
+        bne Miss		;Miss if have this status
+        bra :+
+Charm:	LDA CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$18		;Berserk or Charm
+        bne Miss  		;Miss if have either
+        lda CharStruct::Status4,X
+        and #$20		;Controlled
+        bne Miss		;Miss if have this status
+:	LDA wTargetIndex
+        cmp #$04		;04h and up are monsters
+        bcs :++
+        ;berserk or Charm on a player char	
+        ldx AttackerOffset
+        phx 			;save attacker since it gets overwritten
+        lda wTargetIndex
+        jsr ResetATB
+        ldx AttackerOffset	;ResetATB actually puts target here
+        lda #$80
+        sta CharStruct::ActionFlag,X
+        stz CharStruct::Command,X
+        lda wTargetIndex
+        tax
+        lda CurrentTimer::ATB,Y	;Y is a timer offset from ResetATB
+        cmp #$7F
+        bcc :+
+        lda #$7F		;cap at 127
+:	STA UncontrolledATB,X
+        tdc
+        sta EnableTimer::ATB,Y
+        inc
+        sta CurrentTimer::ATB,Y
+        plx
+        stx AttackerOffset	;Restore attacker variable
+        bra :++
+:	;berserk or charm on monster, or other status
+        lda Param3
+        and #$20		;Paralyze
+        beq :+
+        lda CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$20
+        bne Miss   		;Miss if already Paralyzed
+        lda wTargetIndex
+        jsr GetTimerOffset	;Y and $36 = Timer Offset from ROM
+        tdc
+        sta EnableTimer::ATB,Y
+        inc
+        sta CurrentTimer::ATB,Y
+:	LDX TargetOffset
+        lda CharStruct::Status2,X
+        ora Param3
+        sta CharStruct::Status2,X
+        jmp StartStatus2Timer
+Miss:	INC AtkMissed
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply Status Effect 3
+;Status in $59 / Param3
+.proc ApplyStatus3
+
+_8DCB:
+        ldx TargetOffset
+        lda CharStruct::StatusImmune3,X
+        and Param3
+        bne Miss
+        lda Param3
+        and #$10			;Stop
+        beq :+
+        ;stop status
+        lda CharStruct::Status2,X	;Checks Status2 instead of 3
+        ora CharStruct::AlwaysStatus2,X	; likely a bug?
+        and #$10			;Charm
+        bne Miss			;Stop misses if target is charmed
+        lda wTargetIndex
+        jsr GetTimerOffset		;Y and $36 = Timer Offset from ROM
+        lda EnableTimer::ATB,Y
+        and #$40
+        bne :+
+        lda #$01
+        sta EnableTimer::ATB,Y
+:	LDX TargetOffset
+        lda CharStruct::Status3,X
+        ora Param3
+        sta CharStruct::Status3,X
+        jmp StartStatus3Timer
+Miss:	INC AtkMissed
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply Status Effect 4
+.proc ApplyStatus4
+
+_8E05:
+        ldx TargetOffset
+        lda Param3		;Status
+        and #$10		;Countdown
+        beq :+
+        lda CharStruct::Status4,X
+        ora CharStruct::AlwaysStatus4,X
+        and Param3
+        bne Miss		;Miss if already have countdown
+:	LDA CharStruct::Status4,X
+        ora Param3
+        sta CharStruct::Status4,X
+        jmp Status4Timer
+Miss:	INC AtkMissed
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Toggle Status 1
+.proc ToggleStatus1
+
+_8E25:
+        ldx TargetOffset
+        lda CharStruct::StatusImmune1,X
+        and Param3
+        bne Miss
+        lda CharStruct::Status1,X
+        eor Param3
+        sta CharStruct::Status1,X
+        rts
+Miss:									;
+        inc AtkMissed
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+;Apply Flirt, miss if Heavy
+;**optimize: remove extra X load
+.proc ApplyFlirt
+
+_8E3A:
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and #$20   		;heavy
+        beq :+
+        inc AtkMissed
+        rts
+        								;
+:	LDX TargetOffset
+        lda CharStruct::CmdStatus,X
+        ora #$08		;flirted
+        sta CharStruct::CmdStatus,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply Status Effect 3, Mutually exclusive statuses
+;also adjusts status timers for haste and slow
+.proc ApplyStatus3Exclusive
+
+_8E51:
+        ldx TargetOffset
+        lda CharStruct::StatusImmune3,X
+        and Param3
+        bne Miss
+        lda CharStruct::Status3,X
+        sta $0E
+        and Param2
+        ora Param3
+        sta CharStruct::Status3,X
+        lda wTargetIndex
+        jsr GetTimerOffset	;Y = $36 = timer offset
+CheckSlow:	
+        lda CharStruct::Status3,X
+        and #$04		;slow
+        beq CheckHaste
+        lda $0E			;original Status3
+        and #$04		;slow
+        bne CheckHaste		;don't adjust timers if already	slow
+        tdc
+        tax
+SlowTimerLoop:
+        lda CurrentTimer+0,Y
+        beq :++			;is timer active?
+        asl 			;double timer
+        bcc :+
+        lda #$FF		;cap at 255
+:	STA CurrentTimer+0,Y
+:	INY
+        inx
+        cpx #$000B		;10 timers, 11 is too far
+        bne SlowTimerLoop
+        bra Ret
+CheckHaste:	
+        lda CharStruct::Status3,X
+        and #$08		;haste
+        beq Ret
+        lda $0E			;original Status3
+        and #$08		;haste
+        bne Ret		;don't adjust timers if already	hasted
+        tdc
+        tax
+HasteTimerLoop:
+        lda CurrentTimer+0,Y
+        beq :++			;is timer active?
+        lsr 			;halve timer
+        bne :+
+        inc 			;min 1
+:	STA CurrentTimer+0,Y
+:	INY
+        inx
+        cpx #$000B		;10 timers, 11 is too far
+        bne HasteTimerLoop
+Ret:	RTS
+Miss:									;
+        inc AtkMissed
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Remove Status 1
+;Status in Param3, unset bits are to be cleared
+.proc RemoveStatus1
+
+_8EB6:
+        lda Param3
+        eor #$FF		;Invert, set bits are status to clear
+        and #$02		;Zombie
+        beq TestStone		;Clearing Zombie?
+        ldx TargetOffset
+        lda CharStruct::Status1,X
+        and #$02
+        beq TestStone		;Was Zombie set?
+ResetATB:			;need to update ATB if Zombie/Stone was set then cleared
+        ldx AttackerOffset
+        phx
+        lda wTargetIndex
+        jsr ResetATB		;changes AttackerOffset
+        plx
+        stx AttackerOffset	;restore original
+        bra RemoveStatus
+TestStone:
+        lda Param3
+        eor #$FF
+        and #$40		;Stone
+        beq RemoveStatus	;Clearing Stone?
+        ldx TargetOffset
+        lda CharStruct::Status1,X
+        and #$40
+        bne ResetATB		;need ATB updated if clearing Stone
+RemoveStatus:
+        ldx TargetOffset
+        lda CharStruct::Status1,X
+        sta $0E			;original status
+        and Param3
+        sta CharStruct::Status1,X
+        lda Param3
+        sta $0F			;requested status clears
+        eor #$FF		;Invert, set bits are status to clear
+        sta Param3
+        jsr StopStatus1Timer
+        lda $0E			;original status
+        and #$40		;Stone
+        sta $0E			;Stone bit if target was Stone
+        lda $0F			;unset bits are to be cleared
+        eor #$FF		;Invert, set bits are status to clear
+        and $0E
+        beq Ret		;return if we didn't clear Stone
+        lda wTargetIndex
+        tax
+        inc ActiveParticipants,X	;target is now active
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Remove Status 2
+;Status in Param3, unset bits are to be cleared
+.proc RemoveStatus2
+
+_8F11:
+        ldx TargetOffset
+        lda Param3
+        eor #$FF		;Invert, set bits are status to clear
+        and #$10		;Charm
+        beq :+
+        lda CharStruct::Status2,X
+        and #$10
+        bne ResetATB
+:	LDA Param3
+        eor #$FF		;Invert, set bits are status to clear
+        and #$08		;Berserk
+        beq :+
+        lda CharStruct::Status2,X
+        and #$18		;Charm or Berserk
+        bne ResetATB
+:	LDA Param3
+        eor #$FF		;Invert, set bits are status to clear
+        and #$20		;Paralyze
+        beq :+
+        lda CharStruct::Status2,X
+        and #$20
+        bne ResetATB
+:	LDA Param3
+        eor #$FF		;Invert, set bits are status to clear
+        and #$40		;Sleep
+        beq RemoveStatus
+        lda CharStruct::Status2,X
+        and #$40
+        beq RemoveStatus
+ResetATB:	;if we're clearing Charm/Berserk/Poison/Sleep we need to update ATB
+        ldx AttackerOffset
+        phx
+        lda wTargetIndex
+        jsr ResetATB	;changes AttackerOffset
+        plx
+        stx AttackerOffset	;restore original
+RemoveStatus:
+        ldx TargetOffset
+        lda CharStruct::Status2,X
+        and Param3
+        sta CharStruct::Status2,X
+        lda Param3
+        eor #$FF		;Invert, set bits are status to clear
+        sta Param3
+        jsr StopStatus2Timer
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Remove Status 3
+;Status in Param3, unset bits are to be cleared
+.proc RemoveStatus3
+
+_8F6E:
+        ldx TargetOffset
+        lda CharStruct::Status3,X
+        and Param3
+        sta CharStruct::Status3,X
+        lda Param3
+        eor #$FF			;Invert, set bits are status to clear
+        sta Param3
+        jsr StopStatus3Timer
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Kill target, miss if Heavy
+.proc KillNonHeavy
+
+_8F82:
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        and #$20    			;heavy
+        beq NotHeavy
+        inc AtkMissed
+        rts
+NotHeavy:								;
+        jsr HitMagicConditionalAutohit
+        lda AtkMissed
+        bne Ret
+        ldx TargetOffset
+        lda CharStruct::Status1,X
+        and #$02    			;zombie status
+        bne Miss
+        lda CharStruct::Status1,X
+        ora #$80			;dead status
+        sta CharStruct::Status1,X
+        rts
+        								;
+Miss:	INC AtkMissed
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Revive Target
+;Param3/$59 is fraction/4 of max hp to restore
+.proc ReviveTarget
+
+_8FAA:
+        lda wTargetIndex
+        cmp #$04
+        bcc Revive			;<4 is party
+        sec
+        sbc #$04
+        tax 				;now monster index(0-7)
+        lda InactiveMonsters
+        jsr SelectBit_X
+        beq Revive			;check if monster is revivable
+Miss:
+        inc AtkMissed
+        rts
+Revive:									;
+        ldx TargetOffset
+        lda CharStruct::Status1,X
+        and #$02			;zombie
+        bne Miss
+        lda CharStruct::Status1,X
+        and #$7F			;clear dead
+        sta CharStruct::Status1,X
+        lda Param3
+        tax
+        stx $2C
+        ldx TargetOffset
+        lda CharStruct::MaxHP,X
+        sta $2A
+        lda CharStruct::MaxHP+1,X
+        sta $2B
+        jsr Multiply_16bit		;32 bit result in $2E
+        longa
+        lsr $30
+        ror $2E
+        lsr $30
+        ror $2E
+        lsr $30
+        ror $2E
+        lsr $30
+        ror $2E				;divide by 4 via shifts
+        lda $30
+        bne Cap			;cap at 9999 (high bytes)
+        lda $2E
+        cmp #$270F			;cap at 9999 (low bytes)
+        bcc :+
+Cap:	LDA #$270F
+        sta $2E
+:	LDA $2E
+        bne :+
+        inc $2E				;min 1
+:	LDX TargetOffset
+        clc
+        lda CharStruct::CurHP,X
+        adc $2E
+        bcs :+				;check for overflow
+        cmp CharStruct::MaxHP,X
+        bcc :++
+:	LDA CharStruct::MaxHP,X
+:	STA CharStruct::CurHP,X		;set hp to max
+        shorta0
+        lda wTargetIndex
+        tax
+        inc ActiveParticipants,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+;Apply Status 1 to target, bypass Status immunity
+.proc ApplyStatus1Bypass
+
+_902B:
+        ldx TargetOffset
+        lda CharStruct::Status1,X
+        ora Param3
+        sta CharStruct::Status1,X
+        jsr StartStatus1Timer
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply Status 2 to Target, bypasses Status Immunity
+;Still respects mutually exclusive status
+.proc ApplyStatus2Bypass
+
+_9039:
+        ldx TargetOffset
+        lda Param3
+        and #$10   		;charm
+        bne Charm
+        lda Param3
+        and #$08   		;berserk
+        beq CheckPara
+        lda CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$18		;charm or berserk
+        bne Miss
+        lda CharStruct::Status4,X
+        and #$20   		;control
+        bne Miss
+        bra :+
+Charm:	LDA CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$18   		;charm or berserk
+        bne Miss
+        lda CharStruct::Status4,X
+        and #$20   		;control
+        bne Miss
+:	LDA wTargetIndex
+        cmp #$04		;4+ is monster
+        bcs CheckPara
+        ldx AttackerOffset
+        phx 			;store attacker for later
+        lda wTargetIndex
+        jsr ResetATB		;Y=timer offset
+        ldx AttackerOffset	;is now target after ResetATB
+        lda #$80
+        sta CharStruct::ActionFlag,X
+        stz CharStruct::Command,X
+        lda wTargetIndex
+        tax
+        lda CurrentTimer::ATB,Y
+        cmp #$7F		;caps at 127
+        bcc :+
+        lda #$7F
+:	STA UncontrolledATB,X
+        tdc
+        sta EnableTimer::ATB,Y
+        inc
+        sta CurrentTimer::ATB,Y
+        plx 			;restore original attacker
+        stx AttackerOffset
+        bra Finish
+CheckPara:	
+        lda Param3
+        and #$20   		;paralyze
+        beq Finish
+        lda CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$20   		;paralyze
+        bne Miss
+        lda wTargetIndex
+        jsr GetTimerOffset	;Y=timer offset
+        tdc
+        sta EnableTimer::ATB,Y
+        inc
+        sta CurrentTimer::ATB,Y
+Finish:	LDX TargetOffset
+        lda CharStruct::Status2,X
+        ora Param3
+        sta CharStruct::Status2,X
+        jmp StartStatus2Timer
+Miss:	INC a:AtkMissed
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply Status 3 to Target, bypasses Status Immunity
+.proc ApplyStatus3Bypass
+
+_90CD:
+        ldx TargetOffset
+        lda CharStruct::Status3,X
+        ora Param3
+        sta CharStruct::Status3,X
+        jsr StartStatus3Timer
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply Status 1 to Attacker, bypasses Status Immunity
+.proc ApplyStatus1AttackerBypass
+
+_90DB:
+        ldx AttackerOffset
+        lda CharStruct::Status1,X
+        ora Param3
+        sta CharStruct::Status1,X
+        jsr StartStatus1Timer
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Remove Magic Sword Effects
+.proc RemoveMagicSword
+
+_90E9:
+        ldx TargetOffset
+        stz CharStruct::MSwordElemental1,X
+        stz CharStruct::MSwordElemental2,X
+        stz CharStruct::MSwordElemental3,X
+        stz CharStruct::MSwordStatus1,X
+        stz CharStruct::MSwordStatus2,X
+        stz CharStruct::MSwordStatusSpecial,X
+        stz CharStruct::MSwordAnim,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+;Change Target Row
+.proc TargetChangeRow
+
+_9101:
+        ldx TargetOffset
+        lda CharStruct::CharRow,X
+        and #$80
+        eor #$80
+        sta $0E
+        lda CharStruct::CharRow,X
+        and #$7F
+        ora $0E
+        sta CharStruct::CharRow,X
+        rts
+;       
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Move Target to Front Row
+.proc TargetFrontRow
+
+_9117:
+        ldx TargetOffset
+        lda CharStruct::CharRow,X
+        and #$7F
+        sta CharStruct::CharRow,X
+        rts
+;       
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Move Attacker to Back Row
+.proc AttackerBackRow
+
+_9122:
+        ldx AttackerOffset
+        lda CharStruct::CharRow,X
+        ora #$80
+        sta CharStruct::CharRow,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Defense & Magic Defense = Half
+.proc HalveDefenses
+
+_912D:
+        ldx TargetOffset
+        lsr CharStruct::Defense,X
+        lsr CharStruct::MDefense,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Target Level = Half
+.proc HalveLevel
+
+_9136:
+        ldx TargetOffset
+        lda CharStruct::Level,X
+        lsr
+        bne :+
+        inc 			;min 1
+:	STA CharStruct::Level,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Add to Target Level
+.proc AddLevel
+
+_9143:
+        ldx TargetOffset
+        clc
+        lda CharStruct::Level,X
+        adc Param3
+        bcc :+
+        lda #$FF		;max 255
+:	STA CharStruct::Level,X
+        rts
+;
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Subtract from Target Level
+.proc SubtractLevel
+
+_9153:
+        ldx TargetOffset
+        sec
+        lda CharStruct::Level,X
+        sbc Param3
+        bcs :+
+        lda #$01		;min 1
+:	STA CharStruct::Level,X
+        rts
+;
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Double Max HP
+;**optimize: party check is unnecessary here because the only place it is called from already checks
+.proc DoubleMaxHP
+
+_9163:
+        lda wTargetIndex
+        cmp #$04		;<4 means party
+        bcc Go
+        inc AtkMissed
+        rts
+Go:	ASL
+        tay
+        longa
+        ldx TargetOffset
+        lda CharStruct::MaxHP,X
+        sta OriginalMaxHP,Y
+        asl
+        cmp #$270F 		;9999
+        bcc :+
+        lda #$270F		;cap at 9999
+:	STA CharStruct::MaxHP,X
+        lda CharStruct::CurHP,X
+        asl
+        cmp #$270F 		;9999
+        bcc :+
+        lda #$270F		;cap at 9999
+:	STA CharStruct::CurHP,X
+        shorta0
+        rts
+;
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Increase Attack 
+;**bug: Only increases Attack for monsters and Goblin Punch
+.proc AddAttack
+
+_9197:
+        ldx TargetOffset
+        clc
+        lda CharStruct::MonsterAttack,X
+        adc Param3
+        bcc :+
+        lda #$FF 		;max 255
+:	STA CharStruct::MonsterAttack,X
+        clc
+        lda CharStruct::MonsterAttackLH,X
+        adc Param3
+        bcc :+
+        lda #$FF		;max 255
+:	STA CharStruct::MonsterAttackLH,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Increase Target Defense and Magic Defense
+.proc AddDefenses
+
+_91B4:
+        ldx TargetOffset
+        clc
+        lda CharStruct::Defense,X
+        adc Param3
+        bcc :+
+        lda #$FF   		;max 255
+:	STA CharStruct::Defense,X
+        clc
+        lda CharStruct::MDefense,X
+        adc Param3
+        bcc :+
+        lda #$FF   		;max 255
+:	STA CharStruct::MDefense,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Toggle Status 4 on target
+;(only called in unused attack type 56, so effectively unused)
+.proc ToggleStatus4
+
+_91D1:
+        ldx TargetOffset
+        lda CharStruct::Status4,X
+        eor Param3
+        sta CharStruct::Status4,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;(seems to be unused)
+.proc AddSomethingUnused
+
+_91DC:
+        ldx AttackerOffset
+        lda CharStruct::Unused3,X	;unused byte
+        ora Param3
+        sta CharStruct::Unused3,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Add Creature Type
+.proc AddCreatureType
+
+_91E7:
+        ldx TargetOffset
+        lda CharStruct::CreatureType,X
+        ora Param3
+        sta CharStruct::CreatureType,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+					;
+;Add Status 1 Immunity
+.proc AddStatus1Immunity
+
+_91F2:
+        ldx TargetOffset
+        lda CharStruct::StatusImmune1,X
+        ora Param3
+        sta CharStruct::StatusImmune1,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+					;
+;Add Magic Element Up
+.proc AddElementUp
+
+_91FD:
+        ldx TargetOffset
+        lda CharStruct::ElementUp,X
+        ora Param3
+        sta CharStruct::ElementUp,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+;Steal Subroutine
+.proc StealItem
+
+_9208:
+        lda wTargetIndex
+        cmp #$04
+        bcs :+
+        jmp Miss
+:	TDC
+        tax
+        lda #$FF
+        jsr Random_X_A
+        sta $0E			;0..255
+        sec
+        lda wTargetIndex
+        sbc #$04		;now monster 0-7
+        asl
+        tax
+        longa
+        lda BattleMonsterID,X
+        jsr ShiftMultiply_4
+        tax 			;index into steal/drop table
+        shorta0
+        lda $0E
+        cmp #$0A  		;10 out of 255
+        bcc Rare
+        inx 			;next item is common steal
+Rare:	LDA ROMLoot::RareSteal,X
+        beq Miss		;nothing in this steal slot
+        sta $0E
+        ldy #$00FF		;last item slot
+SearchItemLoop:
+        lda InventoryItems,Y
+        cmp $0E
+        beq Found		;found matching item
+        dey
+        bpl SearchItemLoop
+        tdc
+        tay
+SearchEmptyLoop:
+        lda InventoryItems,Y
+        beq Found		;found empty slot
+        iny
+        cpy #$0100
+        bne SearchEmptyLoop
+        bra Miss		;no empty slots (impossible?)
+Found:	LDA $0E
+        sta InventoryItems,Y
+        lda Temp,Y	;save this to restore later
+        pha
+        phy
+        lda $0E
+        jsr SetupInventoryInfo
+        jsr GetItemUsableY
+        ply
+        sta InventoryUsable,Y
+        pla
+        sta Temp,Y	;restores value that setup overwrote
+        clc
+        lda InventoryQuantities,Y
+        inc
+        cmp #$64			;check for 100
+        bcc :+
+        lda #$63			;cap at 99
+:	STA InventoryQuantities,Y
+        ldx TargetOffset
+        lda InventoryItems,Y
+        sta CharStruct::StolenItem,X
+        phy
+        jsr SetupMsgBoxIndexes
+        tyx
+        ply
+        lda CurrentCommand::ID
+        cmp #$0B	;steal
+        beq :+
+        cmp #$33	;command $33 is White Magic L2, so ??
+        bne :++
+:	TDC
+        tax
+:	LDA InventoryItems,Y
+        sta MessageBoxData,X
+        rts
+        							;
+Miss:	INC AtkMissed
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Status 1 Effect Timer
+;Poison is the only Status 1 effect that has one
+;Starts timer if Param3 poison bit is set
+.proc StartStatus1Timer
+
+_92A5:
+        lda Param3		;Status1 here
+        and #$04		;Poison
+        beq Return
+        lda #$01
+        tax
+        lda wTargetIndex
+        jsr StartTimer
+Return:
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Stops timer if Param3 poison bit is set
+.proc StopStatus1Timer
+
+_92B4:
+        lda Param3
+        and #$04		;Poison
+        beq Ret
+        lda #$01		;Poison Timer
+        tax
+        lda wTargetIndex
+        jsr StopTimer
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc StopStatus2Timer
+
+_92C3:
+        lda Param3
+        and #$80		;Old
+        beq :+
+        lda #$06		;Old Timer
+        tax
+        lda wTargetIndex
+        jsr StopTimer
+:	LDA Param3
+        and #$20		;Paralyze
+        beq :+
+        lda #$09		;Paralyze Timer
+        tax
+        lda wTargetIndex
+        jsr StopTimer
+:	LDA Param3
+        and #$04		;Mute
+        beq Ret
+        lda #$04		;Mute Timer
+        tax
+        lda wTargetIndex
+        jsr StopTimer
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc StopStatus3Timer
+
+_92EE:
+        lda Param3
+        and #$80		;Reflect
+        beq :+
+        lda #$02		;Reflect Timer
+        tax
+        lda wTargetIndex
+        jsr StopTimer
+:	LDA Param3		;Stop
+        and #$10
+        beq :+
+        lda #$00		;Stop Timer
+        tax
+        lda wTargetIndex
+        jsr StopTimer
+:	LDA Param3
+        and #$01		;Regen
+        beq Ret
+        lda #$07		;Regen Timer
+        tax
+        lda wTargetIndex
+        jsr StopTimer
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;This routine is completely unused, as far as I can tell
+;**optimize: delete it
+.proc StopStatus4Timer
+
+_9319:
+        lda Param3
+        and #$08	;HP Leak Status
+        beq :+
+        lda #$05	;HP Leak Timer
+        tax
+        lda wTargetIndex
+        jsr StopTimer
+:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Status 2 Effect Timers (Old/Paralyze/Mute)
+;Status in Param3/$59
+.proc StartStatus2Timer
+
+_9328:
+        lda Param3
+        and #$80		;Old
+        beq :+
+        lda #$06
+        tax
+        bra Finish
+:	LDA Param3
+        and #$20		;Paralyze
+        beq :+
+        lda #$09
+        tax
+        bra Finish
+:	LDA Param3
+        and #$04		;Mute
+        beq Return
+        lda #$04
+        tax
+Finish:	LDA wTargetIndex
+        jsr StartTimer
+Return:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Status 3 Effect Timers
+;Status in $59 / Param3
+.proc StartStatus3Timer
+
+_934D:
+        lda Param3
+        and #$80		;Reflect
+        beq :+
+        lda #$02
+        tax
+        bra Finish
+:	LDA Param3
+        and #$10		;Stop
+        beq :+
+        lda #$00
+        tax
+        bra Finish
+:	LDA Param3
+        and #$01		;Regen
+        beq Return
+        lda #$07
+        tax
+Finish:	LDA $48
+        jsr StartTimer
+Return:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Status 4 Effect Timers (HP Leak and Countdown)
+.proc Status4Timer
+
+_9319:
+        lda Param3
+        and #$08		;HP Leak
+        beq :+
+        lda #$05
+        tax
+        lda wTargetIndex
+        jmp StartTimer
+:	LDA Param3
+        and #$10		;Countdown
+        beq Return
+        lda #$03
+        tax
+        lda wTargetIndex
+        jsr StartTimer
+Return:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+
+;Lose one Image
+.proc LoseOneImage
+
+_938F:
+        ldx TargetOffset
+        lda CharStruct::Status2,X
+        pha
+        and #$03   		;images
+        sec
+        sbc #$01
+        sta $0E
+        pla
+        and #$FC
+        ora $0E
+        sta CharStruct::Status2,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc CatchMonster
+
+_93A5:
+        sec
+        lda wTargetIndex
+        sbc #$04
+        tax
+        stx $0E			;monster index 0-7
+        lda EncounterInfo::MonsterID,X
+        ldx AttackerOffset
+        sta CharStruct::CaughtMonster,X
+        lda AttackerIndex
+        sta $24
+        lda #$14		;20, CharCommand structure size
+        sta $25
+        jsr Multiply_8bit	;Attacker Index * 20
+        tdc
+        tay
+        ldx $26
+:	LDA CharCommands::ID,X
+        cmp #$1D		;Catch
+        beq Found
+        inx
+        iny
+        cpy #$0004
+        bne :-
+        beq Done
+Found:	LDA #$1E		;Release
+        sta CharCommands::ID,X
+        lda #$08		;enemy by default
+        sta CharCommands::Targetting,X
+        inx
+        iny
+        bra :-
+Done:   LDX TargetOffset
+        lda CharStruct::Status1,X
+        ora #$80		;"dead"
+        sta CharStruct::Status1,X
+        ldx $0E			;monster index 0-7
+        lda InactiveMonsters
+        jsr SetBit_X
+        sta InactiveMonsters	;can't be revived
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Subtract Defense from Damage and multiply by M
+;Attack in $50
+;M in $52
+;Defense in $54
+;result returned in $7B69
+;
+;**optimize: remove extra mode change
+.proc CalcBaseDamage
+
+_93F8:
+        longa
+        sec
+        lda Attack
+        sbc Defense
+        beq :+
+        bcs ApplyM
+:
+        tdc
+        sta BaseDamage
+        shorta
+        rts
+;Multiply Net Damage by M
+ApplyM:
+        sta $2A
+        lda M
+        bne :+
+        inc
+:
+        sta $2C
+        shorta0		;unnecessary, Multiply_16bit does this
+        jsr Multiply_16bit 	;$2A*$2C into $2E
+        ldx $2E			;Attack * M
+        cpx #$270F		;9999
+        bcc :+
+        ldx #$270F
+:
+        stx BaseDamage
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
 .proc ProcessCommands
-        rts
+
+_9427:
+        ldx #$0006
+:	STZ CurrentCommand,X		;Clear 7 bytes
+        dex
+        bpl :-
+        ldx #$001F
+:	STZ BlockType,X			;Clear $20 (32) bytes
+        dex 				;..includes AegisBlockTarget
+        bpl :-
+ProcessCommand:
+        lda AttackerIndex
+        jsr CalculateCharOffset
+        lda MultiCommand
+        tax
+        lda ROMTimes12,X
+        sta AttackerOffset2
+        lda AtkType,X
+        bpl ValidAtkType
+        cmp #$FF
+        bne TypeFF
+        lda MultiCommand
+        bne Multi
+        lda AttackerIndex
+        sta ActionAnim0::OrigAttacker
+        stz ActionAnim0::Flags
+        stz ActionAnim0::OrigTargetBits
+        stz ActionAnim0::TargetBits
+        stz ActionAnim0::ReflectorBits
+        stz ActionAnim0::ReflecteeBits
+        stz ActionAnim0::CoveredBits
+Multi:	JMP Ret
+TypeFF:
+        inc MultiCommand
+        jmp GoProcessCommand
+ValidAtkType:
+        lda TargetType,X
+        and #$10		;weapon proc
+        beq NoProc
+        lda AtkMissed
+        beq NoProc
+        jsr DeleteCommand
+        jmp ProcessCommand
+NoProc:
+        lda TargetType,X
+        and #$EF		;bits other than weapon proc
+        bne TargetTypeBits
+        lda MultiCommand
+        asl
+        tax
+        lda CommandTargetBitmask,X
+        ora CommandTargetBitmask+1,X
+        bne FindTarget		;no targets means target self
+        lda AttackerIndex
+        sta wTargetIndex
+        sta AnotherTargetIndex
+        bra CollectMP
+FindTarget:	
+        jsr FindFirstTargetPlus1
+        dec
+        sta wTargetIndex
+        sta AnotherTargetIndex
+CollectMP:
+        jsr CollectMPCost
+        bra Finish
+TargetTypeBits:		;I think this is where a multi target attack is split up 
+        		;.. into individual calls on an attack type
+        		;.. but I can't understand how it works
+        lda TargetAdjust
+        bne :+
+        lda #$FF		;-1
+        sta wTargetIndex
+:	JSR FindFirstTargetPlus1
+        clc
+        adc wTargetIndex		;dunno where it's set if not -1
+        sta wTargetIndex
+        sta AnotherTargetIndex
+        jsr CollectMPCost
+Finish:
+        lda wTargetIndex
+        longa
+        jsr ShiftMultiply_128
+        sta TargetOffset
+        shorta0
+        stz Crit
+        stz FightFlag
+        stz TargetBitMaskSmall
+        stz ReflectorBitmask
+        stz ReflecteeBitmask
+        stz CoveredBitmask
+        stz Reflected
+        stz SpiritFlag
+        stz MagicNull
+        jsr CheckTargetRedirect
+        jsr GetCharStructActionData
+        jsr SetupAndLaunchAttack	;leads to attack type calcs
+        jsr SetupReactionsAnims
+GoProcessCommand:
+        jmp ProcessCommand
+Ret:	RTS
+
 .endproc
 
-.org $994C
+; ---------------------------------------------------------------------------
+
+;This awkward routine finds the first set bit in CommandTargetBitmask
+;then returns its index +1
+;or the attacker index if none are set (or only the last monster is set, which might be a **bug?)
+.proc FindFirstTargetPlus1
+
+_94FF:
+        lda MultiCommand
+        asl
+        tax
+        tdc
+        tay
+        iny 		;starts at index 1
+FindTargetLoop:
+        asl CommandTargetBitmask+1,X
+        rol CommandTargetBitmask,X
+        bcs Found
+        iny
+        cpy #$000C	;only checks 11 bits due to starting at 1
+        bne FindTargetLoop
+        lda AttackerIndex 	;defaults to attacker
+        tay
+Found:	TYA
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc GetCharStructActionData
+
+_951A:
+        ldx AttackerOffset
+        lda MultiCommand
+        beq :+
+        longa	;increment X by 5 if Multicommand non-zero
+        txa 		;this uses second set of command data
+        clc 		;in CharStruct later
+        adc #$0005
+        tax
+        shorta0
+:	LDA AttackerOffset2
+        tay
+        lda CommandOffset
+        sta CurrentCommand::ID
+        lda CharStruct::ActionFlag,X	;or .SecondActionFlag
+        and #$20
+        beq :+
+        lda CharStruct::SelectedItem,X	;or .SecondSelectedItem
+        sta CurrentCommand::Magic
+        bra :++
+:	LDA CharStruct::ActionFlag,X	;or .SecondActionFlag
+        and #$40
+        beq :+
+        lda CharStruct::SelectedItem,X	;or .SecondSelectedItem
+        sta CurrentCommand::Item
+:	LDA AttackInfo::Category,Y
+        sta CurrentCommand::Category
+        lda CharStruct::MonsterTargets,X	; or .Second...
+        ora CharStruct::PartyTargets,X
+        sta CurrentCommand::Targets
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Checks for Reflect and Cover and changes target if needed
+.proc CheckTargetRedirect
+
+_9561:
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::Category,X
+        and #$0F		;Time/Black/White/Blue Magic
+        bne Magic
+        bra Bypass
+Magic:	LDA AttackInfo::MPCost,X	;high bit is reflect
+        bpl CheckReflect
+        bra Bypass
+CheckReflect:
+        ldx TargetOffset
+        lda CharStruct::Status3,X
+        ora CharStruct::AlwaysStatus3,X
+        bmi Reflected
+Bypass:	JMP DoneReflect
+Reflected:
+        lda CharStruct::CharRow,X
+        and #$40		;not on the team?
+        bne Bypass
+        lda CharStruct::Status4,X
+        and #$C1		;Erased/False Image/Hidden
+        bne Bypass
+        lda CharStruct::CmdStatus,X
+        and #$10		;Jumping
+        bne Bypass
+        inc Reflected
+        stz $0E			;0
+        lda #$03
+        sta $0F			;3 by default reflecting to party 0-3
+        lda wTargetIndex
+        sta $10			;Target Index
+        cmp #$04		;monster check
+        bcs :+
+        lda #$04
+        sta $0E			;4
+        lda #$0B
+        sta $0F			;11	reflecting to monsters 4-11
+:	LDA $10			;Target Index
+        cmp #$04
+        bcc :+
+        sec
+        sbc #$04
+:	TAX 			;now either party or monster index
+        tdc
+        jsr SetBit_X
+        sta ReflectorBitmask
+        jsr CheckValidTargetsExist2
+        lda $11			;no valid targets if set
+        beq PickRandomTarget
+        tdc
+        sta wTargetIndex
+        tax
+        stx TargetOffset	;give up and zap the first party member
+        bra DoneReflect
+PickRandomTarget:
+        lda $0E			;min target index
+        tax
+        lda $0F			;max target index
+        jsr Random_X_A
+        sta $10			;new target index
+        tay
+        lda ActiveParticipants,Y
+        beq PickRandomTarget
+        lda $10
+        longa
+        jsr ShiftMultiply_128
+        tax
+        stx TargetOffset
+        shorta0
+        lda CharStruct::Status1,X
+        and #$C0		;Stone or Dead
+        bne PickRandomTarget
+        lda CharStruct::Status4,X
+        and #$81		;Erased or Hidden
+        bne PickRandomTarget
+        lda CharStruct::CmdStatus,X
+        and #$10		;Jumping
+        bne PickRandomTarget
+        lda $10
+        sta wTargetIndex	;new target index
+        cmp #$04		;monster check
+        bcc :+
+        sec
+        sbc #$04		;now party or monster index
+:	TAX
+        tdc
+        jsr SetBit_X
+        sta ReflecteeBitmask
+DoneReflect:
+        lda AttackerIndex
+        cmp #$04		;monster check
+        bcs MonAttacker
+        rts
+        								;
+MonAttacker:								
+        lda wTargetIndex
+        cmp #$04		;monster check
+        bcc MonVsParty
+        rts
+MonVsParty:
+        lda MultiCommand
+        tax
+        lda AtkType,X
+        cmp #$01		;Monster Fight
+        beq CheckCoverTarget
+        cmp #$02		;Monster Specialty
+        beq CheckCoverTarget
+        rts
+CheckCoverTarget:
+        ldx TargetOffset
+        lda CharStruct::CmdStatus,X
+        and #$10		;Jumping
+        bne EarlyRet		;don't cover jumpers
+        lda CharStruct::Status4,X
+        and #$02		;Critical (return if not)
+        beq EarlyRet		;only cover critical health
+        lda CharStruct::Status2,X
+        ora CharStruct::Status2,X	;**bug:should be .AlwaysStatus2
+        and #$10		;Charm
+        beq Cover		;don't cover charmed targets
+EarlyRet:
+        rts
+Cover:
+        lda EarthWallHP
+        ora EarthWallHP+1
+        bne EarlyRet		;don't cover if earth wall is doing it
+        tdc
+        tax
+        stx $0E			;index for search loop
+        stx $10			;number of found members that can cover
+FindCoverLoop:	;searches for party members that can cover, stores their indexes at $2620
+        ldy $0E
+        lda ActiveParticipants,Y
+        beq Next
+        lda CharStruct::Passives2,X
+        bpl Next  		;80h is Cover
+        lda CharStruct::Status1,X
+        ora CharStruct::AlwaysStatus1,X
+        and #$42		;Stone or Zombie
+        bne Next
+        lda CharStruct::Status2,X
+        ora CharStruct::AlwaysStatus2,X
+        and #$78   		;Sleep/Paralyze/Charm/Berserk
+        bne Next
+        lda CharStruct::Status3,X
+        and #$10   		;Stop
+        bne Next
+        lda CharStruct::Status4,X
+        and #$81   		;Erased or Hidden
+        bne Next
+        lda CharStruct::CmdStatus,X
+        and #$10   		;Jumping
+        bne Next
+        ldy $10
+        lda $0E
+        cmp wTargetIndex		;can't cover yourself
+        beq Next
+        sta Temp,Y		;temp area, store coverer's index
+        inc $10
+Next:	JSR NextCharOffset
+        inc $0E
+        lda $0E
+        cmp #$04
+        bne FindCoverLoop
+        lda $10			;number of found members that can cover
+        beq Ret
+        ldx AttackerOffset
+        phx
+        tdc
+        tax
+        stx $0E			;loop index,
+        stx $12			;offset into health storage
+CopyCoverHP:
+        ldx $0E
+        lda Temp,X		;coverer's index
+        jsr CalculateCharOffset
+        ldy $12
+        longa
+        lda CharStruct::CurHP,X
+        sta $262A,Y		;temp area, now holds current hp
+        shorta0
+        inc $12
+        inc $12
+        inc $0E
+        lda $0E
+        cmp $10			;number of members that can cover
+        bne CopyCoverHP
+        asl $10			;number of members that can cover * 2
+        tdc
+        tax
+        stx $0E			;offset into temp health storage
+        stx $12			;highest found hp
+        stx $14			;index of coverer with highest found hp
+FindHighestHP:	;finds the covering party member with the highest health, stores their index in $14
+        longa
+        ldx $0E
+        lda $262A,X		;current hp
+        cmp $12			;highest found hp
+        bcc NextHP
+        sta $12			;highest found hp
+        shorta0
+        lda $0E
+        lsr
+        tax
+        lda Temp,X		;coverer's index
+        sta $14			;index of coverer with highest found hp
+        bra NextHP8b
+NextHP:
+        shorta0
+NextHP8b:
+        inc $0E
+        inc $0E
+        lda $0E
+        cmp $10			;number of members that can cover * 2
+        bne FindHighestHP
+        lda wTargetIndex
+        tax
+        tdc
+        jsr SetBit_X
+        sta CoveredBitmask
+        lda $14			;index of coverer with highest found hp
+        sta wTargetIndex	;now the new target
+        sta AnotherTargetIndex
+        longa
+        jsr ShiftMultiply_128
+        tax
+        stx TargetOffset
+        shorta0
+        plx 			;Restore attacker offset, though
+        stx AttackerOffset	; not sure if it was ever changed?
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Makes sure there is a valid target available
+;near duplicate of $4BD7 routine, just uses different memory locations to pass info
+;**optimize: combine with the other routine, fixing up the memory stuff where it's used
+.proc CheckValidTargetsExist2
+
+_9728:
+        lda $0F			;Ending Target Index
+        tay
+        iny
+        sty $10			;Ending Target Index+1 (now 16-bit)
+        stz $11
+        lda $0E			;Starting Target Index
+        tay
+        longa
+        jsr ShiftMultiply_128
+        tax 			;Target Offset
+        shorta0
+FindValidTargetLoop:
+        lda ActiveParticipants,Y
+        beq Next
+        lda CharStruct::Status1,X
+        and #$C0		;Stone/Dead
+        bne Next
+        lda CharStruct::Status4,X
+        and #$81		;Erased/Hidden
+        bne Next
+        lda CharStruct::CmdStatus,X
+        and #$10		;Jumping
+        beq Ret
+Next:	JSR NextCharOffset	;X+128 for next character offset
+        iny
+        cpy $10
+        bne FindValidTargetLoop
+        inc $11
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;saves action data so reactions can be checked later
+;also sets up animation flags, and anim targetting changes when redirected by cover or reflect
+.proc SetupReactionsAnims
+
+_9761:
+        jsr CopyReactionInfo
+        lda MultiCommand
+        sta $24
+        lda #$07
+        sta $25
+        jsr Multiply_8bit
+        ldy $26				;MultiCommand * 7
+        lda CurrentCommand::Magic
+        cmp #$81			;Monster Specialty
+        bne :+
+        lda ActionAnim0::Flags,Y
+        ora #$01
+        sta ActionAnim0::Flags,Y
+:	LDA UnknownReaction		;set by lots of things
+        beq :+
+        lda ActionAnim0::Flags,Y
+        ora #$20
+        sta ActionAnim0::Flags,Y
+:	LDA SpiritFlag
+        beq :+
+        lda ActionAnim0::Flags,Y
+        ora #$02
+        sta ActionAnim0::Flags,Y
+:	LDA AttackerIndex
+        cmp #$04			;monster check
+        bcc :+
+        lda ActionAnim0::Flags,Y
+        ora #$80
+        sta ActionAnim0::Flags,Y
+        sec
+        lda AttackerIndex
+        sbc #$04
+:	STA ActionAnim0::OrigAttacker,Y	;party or monster index
+        lda AnotherTargetIndex
+        cmp #$04			;monster check
+        bcc :+
+        lda ActionAnim0::Flags,Y
+        ora #$40
+        sta ActionAnim0::Flags,Y
+        sec
+        lda AnotherTargetIndex
+        sbc #$04
+:	TAX
+        lda ActionAnim0::OrigTargetBits,Y
+        jsr SetBit_X
+        sta ActionAnim0::OrigTargetBits,Y
+        lda Crit
+        ora TargetDead
+        beq :+
+        lda ActionAnim0::Flags,Y
+        ora #$10
+        sta ActionAnim0::Flags,Y
+:	LDA FightFlag
+        beq :+
+        lda ActionAnim0::Flags,Y
+        ora #$08
+        sta ActionAnim0::Flags,Y
+:	LDA Reflected
+        bne Reflect
+        lda ActionAnim0::TargetBits,Y
+        ora TargetBitMaskSmall
+        sta ActionAnim0::TargetBits,Y
+        bra DoneReflect
+Reflect:
+        lda AnotherTargetIndex
+        sta wTargetIndex
+        lda ActionAnim0::ReflectorBits,Y
+        ora ReflectorBitmask
+        sta ActionAnim0::ReflectorBits,Y
+        lda TargetBitMaskSmall
+        beq DoneReflect
+        lda MultiCommand
+        jsr ShiftMultiply_8
+        sta $0F			;MultiCommand*8
+        lda wTargetIndex
+        cmp #$04		;monster check
+        bcc :+
+        sec
+        sbc #$04		;monster or party index
+:	CLC
+        adc $0F
+        tax 			;Multicommand*8 + party/monster index
+        lda ReflecteeBitmask
+        sta CounterReflecteeTable,X
+        lda ActionAnim0::ReflecteeBits,Y
+        ora ReflecteeBitmask
+        sta ActionAnim0::ReflecteeBits,Y
+DoneReflect:
+        lda CoveredBitmask
+        sta ActionAnim0::CoveredBits,Y
+        lda MultiCommand
+        tax
+        lda MultiTarget,X
+        beq SingleTarget
+        inc TargetAdjust
+        cmp TargetAdjust
+        bne Ret
+SingleTarget:
+        lda ActionAnim0::TargetBits,Y
+        bne Finish
+        ;this section is used when there's no target data
+        ;i think it hides the message box with the ability name when there is no target
+        ;but only for certain messages which are checked in a rom table
+        jsr SetupMsgBoxIndexes
+        stz $0E
+        lda MessageBoxes,X
+        lsr
+        ror $0E
+        lsr
+        ror $0E
+        lsr
+        ror $0E			;low 3 bits of message box in high 3 of this
+        tax 			;message box data/8 (selects byte in table)
+        lda ROMHideMessages,X
+        pha
+        lda $0E
+        jsr ShiftDivide_32	;5 LSRs, now bit selection for table byte
+        tax
+        pla
+        jsr SelectBit_X
+        bne Finish
+        jsr SetupMsgBoxIndexes
+        tdc
+        sta MessageBoxes,X
+Finish:	INC MultiCommand
+        inc MultiDamage
+        stz TargetAdjust
+        stz MPTaken
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Copies information about the last attack to the character structure
+;for use for reactions afterward
+;there's only space for the first 2 actions to be countered
+;**optimize: use loops, it's mostly contiguous (watch multi one tho)
+.proc CopyReactionInfo
+
+_9885:
+        ldx TargetOffset
+        lda MultiCommand
+        bne Multi
+        lda CurrentCommand::ID
+        sta CharStruct::Reaction1Command,X
+        lda CurrentCommand::Magic
+        sta CharStruct::Reaction1Magic,X
+        lda CurrentCommand::Item
+        sta CharStruct::Reaction1Item,X
+        lda CurrentCommand::Element
+        sta CharStruct::Reaction1Element,X
+        lda CurrentCommand::Category
+        sta CharStruct::Reaction1Category,X
+        lda CurrentCommand::Targets
+        sta CharStruct::Reaction1Targets,X
+        lda CurrentCommand::Damage
+        sta CharStruct::Reaction1Damage,X
+        bra Ret
+Multi:	
+        lda CurrentCommand::ID
+        sta CharStruct::Reaction2Command,X
+        lda CurrentCommand::Magic
+        sta CharStruct::Reaction2Magic,X
+        lda CurrentCommand::Item
+        sta CharStruct::Reaction2Item,X
+        lda CurrentCommand::Element
+        sta CharStruct::Reaction2Element,X
+        lda CurrentCommand::Category
+        sta CharStruct::Reaction2Category,X
+        lda CurrentCommand::Targets
+        sta CharStruct::Reaction2Targets,X
+        lda CurrentCommand::Damage
+        sta CharStruct::Reaction2Damage,X
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;creates GFX command $00,FC,06,00,00
+;(called at the end of a lot of commands)
+.proc GFXCmdDamageNumbers
+
+_98E3:
+        jsr FindOpenGFXQueueSlot
+        stz GFXQueue::Flag,X
+        lda #$FC
+        sta GFXQueue::Cmd,X
+        lda #$06
+        sta GFXQueue::Type,X
+        stz GFXQueue::Data1,X
+        stz GFXQueue::Data2,X
+        rts
+;Either uses NextGFXQueueSlot, or searches for the first $FF entry, depending on SearchGFXQueue
+;Returns slot offset in X
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc FindOpenGFXQueueSlot
+
+_98FA:
+        lda SearchGFXQueue
+        bne SearchGFXSlots
+        lda NextGFXQueueSlot
+        asl
+        tax
+        longa
+        lda ROMTimes5w,X
+        tax
+        shorta0
+        inc NextGFXQueueSlot
+        rts 			;return with X as the GFXQueue offset
+;Finds first queued command with value $FF (empty slot?)
+SearchGFXSlots:
+        tdc
+        tax
+NextCommand:	
+        lda GFXQueue::Flag,X
+        cmp #$FF
+        beq Ret
+        inx 			;GFXQueue entries are 5 bytes long
+        inx
+        inx
+        inx
+        inx
+        bra NextCommand
+Ret:	RTS			;return with X as the GFXQueue offset
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc SelectCurrentProcSequence
+
+_9923:
+        lda ProcSequence
+        tax
+        lda ROMTimes12,X
+        tay
+        sty $0C
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Displays an attack's name
+;Params: $2620: String Table
+;	 $2621: String ID
+;creates GFX command 00,FC,04,<$2620>,<$2621>
+.proc GFXCmdAttackNameFromTemp
+
+_992F:
+        jsr FindOpenGFXQueueSlot
+        stz GFXQueue::Flag,X
+        lda #$FC	;exec graphics command
+        sta GFXQueue::Cmd,X
+        lda #$04	;display attack name
+        sta GFXQueue::Type,X
+        lda Temp	;string table
+        sta GFXQueue::Data1,X
+        lda Temp+1	;string id
+        sta GFXQueue::Data2,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Displays a battle message
+;also advances message box structure to the next set of message boxes
 .proc GFXCmdMessage
-        rts
+
+_994C:
+        jsr FindOpenGFXQueueSlot
+        stz GFXQueue::Flag,X
+        lda #$FC	;exec graphics command
+        sta GFXQueue::Cmd,X
+        lda #$05	;
+        sta GFXQueue::Type,X
+        stz GFXQueue::Data1,X
+        stz GFXQueue::Data2,X
+        jmp NextMessageBoxSet
+
 .endproc
 
-.org $994C
-.proc CheckHealAttacker
+; ---------------------------------------------------------------------------
+
+;(returns Y=$7B2C*12 and X=$7B2C*24)
+;sets up the indexes into the table of messages to be displayed
+;this offsets them into the correct table for each command of x-magic type multi-commands
+.proc SetupMsgBoxIndexes
+
+_9965:
+        lda MultiCommand
+        jsr ShiftMultiply_4
+        sta $0E
+        asl
+        clc
+        adc $0E
+        tay
+        lda MultiCommand
+        jsr ShiftMultiply_8
+        sta $0E
+        asl
+        clc
+        adc $0E
+        tax
         rts
+
 .endproc
+
+; ---------------------------------------------------------------------------
+
+.proc DeleteCommand
+
+_9980:
+        lda MultiCommand
+        tax
+        lda ROMTimes12,X
+        tay
+        lda MultiCommand
+        inc
+        tax
+        lda ROMTimes12,X
+        tax
+AttackInfoCopyLoop:		;shifts all of the AttackInfo Structs down, deleting the one indexed by Multicommand 						
+        lda AttackInfo,X
+        sta AttackInfo,Y
+        inx
+        iny
+        cpx #$00C0		;192, 16 * 12 byte AttackInfo structs
+        bne AttackInfoCopyLoop
+        lda MultiCommand
+        tay
+        tyx
+        inx
+CopyTypeInfoLoop:		;shifts down, deleting the one indexed by Multicommand
+        lda AtkType,X
+        sta AtkType,Y
+        lda MultiTarget,X
+        sta MultiTarget,Y
+        lda TargetType,X
+        sta TargetType,Y
+        inx
+        iny
+        cpx #$0010
+        bne CopyTypeInfoLoop
+        lda MultiCommand
+        asl
+        tay
+        tyx
+        inx
+        inx
+CopyTargetBitmaskLoop:		;shifts down, deleting the one indexed by Multicommand
+        lda CommandTargetBitmask,X
+        sta CommandTargetBitmask,Y
+        lda CommandTargetBitmask+1,X
+        sta CommandTargetBitmask+1,Y
+        inx
+        inx
+        iny
+        iny
+        cpx #$0020
+        bne CopyTargetBitmaskLoop
+        			;wtf
+        			;shifts the entire action queue down by 10 bytes (which is 2 actions)
+        			;starting position depends on MultiCommand value but only seems valid for 1-3
+        lda MultiCommand
+        dec
+        bne :+
+        ldy #$000A		;10
+        ldx #$0014		;20
+        bra CopyActionLoop	;MultiCommand was 1
+:	DEC
+        bne :+
+        ldy #$0014		;20
+        ldx #$001E		;30
+        bra CopyActionLoop	;MultiCommand was 2
+:	LDY #$001E		;30
+        ldx #$0028		;40
+        ;multiCommand was something else, code seems to assume 3
+CopyActionLoop:
+        lda GFXQueue,X
+        sta GFXQueue,Y
+        inx
+        iny
+        cmp #$FF		;first byte of an empty command slot
+        bne CopyActionLoop
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+.proc CollectMPCost
+
+_9A08:
+        lda AttackerOffset2
+        tax
+        lda AttackInfo::Misc,X
+        and #$07		;Meteo number of hits?
+        bne Ret
+        lda AttackInfo::MPCost,X
+        and #$7F		;just MP cost
+        tax
+        stx $0E			;MP Cost
+        ldx AttackerOffset
+        lda CharStruct::ArmorProperties,X
+        and #$08   		;Half MP
+        beq :+
+        lsr $0E    		;Halved MP cost
+        bcc :+
+        inc $0E    		;Min 1
+:	LDA CharStruct::ActionFlag,X
+        and #$01		;costs mp
+        beq Ret
+        lda MPTaken
+        bne Ret
+        inc MPTaken
+        longa
+        sec
+        lda CharStruct::CurMP,X
+        sbc $0E    		;Final MP cost
+        bcc NotEnoughMP
+        sta CharStruct::CurMP,X
+        shorta0
+        rts
+NotEnoughMP:
+        shorta0
+        lda MultiCommand
+        tax
+        lda #$7E		;Attack Type Miss
+        sta AtkType,X
+        jsr SetupMsgBoxIndexes
+        lda #$1E		;Not enough MP message
+        sta MessageBoxes,X
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply Stats and Status from gear for all 4 characters
+.proc ApplyPartyGear
+
+_9A5E:
+         stZ CurrentChar
+:	 JSR ApplyGear
+         inC CurrentChar
+         ldA CurrentChar
+         cmP #$04
+         bnE :-
+         rtS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply Stats and Status from gear ($7B7B: Character index 0-3)
+.proc ApplyGear
+
+_9A6F:
+        lda CurrentChar
+        jsr CalculateCharOffset
+        longa
+        txa
+        clc
+        adc #CharStruct::Headgear
+        sta $0E			;pointer to equipment slot
+        shorta0
+        lda CurrentChar
+        tax
+        lda ROMTimes84,X	;*84,  7*12 byte equipment slots
+        tax
+        stx $10			;GearStats character offset
+        stx $0A			;GearStats character offset
+        tdc
+        tay
+        sty $14			;equipment slot index (0-6)
+CopySevenItemsData:		;copy data for all 7 item slots from ROM
+        ldy $14
+        lda ($0E),Y		;current equipment slot
+        longa
+        jsr ShiftMultiply_4
+        sta $16			;current equipment *4
+        asl 			;current equipment *8
+        clc
+        adc $16
+        tax 			;equipment *12, offset into ROMItems data
+        shorta0
+        stz $18
+        ldy $10
+CopyOneItemData:		;copy 12 bytes of data for current item							
+        lda ROMItems,X
+        sta GearStats,Y
+        inx
+        iny
+        inc $18
+        lda $18
+        cmp #$0C		;12 bytes per item
+        bne CopyOneItemData
+        longa
+        clc
+        lda $10
+        adc #$000C		;next item in GearStats
+        sta $10
+        shorta0
+        inc $14			;next equipment slot index
+        lda $14
+        cmp #$07		;7 slots
+        bne CopySevenItemsData
+        tdc
+        tax
+        stx Temp		;scratch area
+        stx TempStats
+        stx TempStats+2
+        stx TempStats+4
+        stx TempStats+6
+        stx $12
+        tay
+        ldx AttackerOffset
+Add1000ToStats:		;copies stats to a 16-bit temp area and adds 1000 
+        		;likely an attempt to handle negative numbers better, but they completely fail anyway
+        lda CharStruct::BaseStr,X
+        longa
+        clc
+        adc #$03E8		;+1000
+        sta TempStats,Y
+        shorta0
+        inx
+        iny
+        iny
+        inc $12
+        lda $12
+        cmp #$04		;4 stats, Str/Agi/Vit/Mag
+        bne Add1000ToStats
+        ldy $0A			;GearStats character offset
+ApplyStatsElementUp:		;adds stat and element up bonuses for all 7 item slots
+        lda GearStats::ElementOrStatsUp,Y
+        bmi Stats
+        ora Temp
+        sta Temp
+        longa
+        bra NextItemStats
+Stats:									
+        pha
+        and #$07		;stat bonus bits
+        asl
+        tax
+        lda ROMStatBonuses,X
+        sta $14			;stat bonus 1
+        lda ROMStatBonuses+1,X
+        sta $16			;stat bonus 2
+        pla
+        asl
+        sta $19			;stats to change
+        tdc
+        tax
+        stz $15			;high byte of stat bonus 1
+        stz $17		;**bug: these should be sign-extended if negative
+        longa	;	or otherwise handled differently later
+AddBonusStats:
+        asl $18			;shift stat bit into carry
+        bcs Bonus2
+        lda $14			;bonus 1 if bit unset
+        bra :+
+Bonus2:	LDA $16			;bonus 2 if bit set
+:	CLC
+        adc TempStats,X		;adds Bonus
+        sta TempStats,X		;will now be near 1255 if negative bonus
+        inx
+        inx
+        cpx #$0008		;4 stats
+        bne AddBonusStats
+NextItemStats:
+        tya
+        clc
+        adc #$000C		;next item slot in GearStats table
+        tay
+        shorta0
+        inc $13			;item slot index
+        lda $13
+        cmp #$07		;7 item slots
+        bne ApplyStatsElementUp
+        tdc
+        tax
+        longa
+Sub1000FromStats:															
+        sec
+        lda TempStats,X
+        sbc #$03E8	;-1000
+        bcs :+	;attempts detect and to 0 out negative numbers
+        tdc 	;but due to the earlier bug this check always passes
+:	STA TempStats,X
+        inx
+        inx
+        cpx #$0008
+        bne Sub1000FromStats
+        tdc 		;copying just low bytes
+        shorta	;this fixes negative bonuses unless they underflowed
+        ldy $0A			;GearStats character offset
+        ldx AttackerOffset
+        lda Temp	;element up
+        and #$7F	;high bit used as stats flag, can't have +water on gear
+        sta CharStruct::ElementUp,X
+        lda TempStats
+        sta CharStruct::EquippedStr,X
+        lda TempStats+2
+        sta CharStruct::EquippedAgi,X
+        lda TempStats+4
+        sta CharStruct::EquippedVit,X
+        lda TempStats+6
+        sta CharStruct::EquippedMag,X
+        stz CharStruct::MSwordElemental1,X
+        stz CharStruct::MSwordElemental2,X
+        stz CharStruct::MSwordElemental3,X
+        stz CharStruct::MSwordStatus1,X
+        stz CharStruct::MSwordStatus2,X
+        stz CharStruct::MSwordStatusSpecial,X
+        stz CharStruct::MSwordAnim,X
+        lda RHWeapon::Category,Y
+        sta CharStruct::RHCategory,X
+        lda LHWeapon::Category,Y
+        sta CharStruct::LHCategory,X
+        lda RHWeapon::AtkPower,Y
+        sta CharStruct::MonsterAttack,X
+        lda LHWeapon::AtkPower,Y
+        sta CharStruct::MonsterAttackLH,X
+        lda RHWeapon::Properties,Y
+        ora LHWeapon::Properties,Y
+        sta CharStruct::WeaponProperties,X
+        clc
+        lda RHShield::ShieldEvade,Y
+        adc LHShield::ShieldEvade,Y
+        cmp #$63
+        bcc :+
+        lda #$63	;99 cap	for Evade
+:	STA CharStruct::Evade,X
+        clc
+        lda Headgear::Defense,Y
+        adc Bodywear::Defense,Y
+        bcs :+
+        adc Accessory::Defense,Y
+        bcs :+
+        adc RHShield::Defense,Y
+        bcs :+
+        adc LHShield::Defense,Y
+        bcc :++
+:	LDA #$FF	;255 cap for Defense
+:	STA CharStruct::Defense,X
+        clc
+        lda Headgear::MEvade,Y
+        adc Bodywear::MEvade,Y
+        adc Accessory::MEvade,Y
+        adc RHShield::MEvade,Y
+        adc LHShield::MEvade,Y
+        cmp #$63
+        bcc :+
+        lda #$63	;99 cap	for MEvade
+:	STA CharStruct::MEvade,X
+        clc
+        lda Headgear::MDefense,Y
+        adc Bodywear::MDefense,Y
+        bcs :+
+        adc Accessory::MDefense,Y
+        bcs :+
+        adc RHShield::MDefense,Y
+        bcs :+
+        adc LHShield::MDefense,Y
+        bcc :++
+:	LDA #$FF        ;255 cap for MDef
+:	STA CharStruct::MDefense,X
+        lda Headgear::Properties,Y
+        ora Bodywear::Properties,Y
+        ora Accessory::Properties,Y
+        ora RHShield::Properties,Y
+        ora LHShield::Properties,Y
+        sta CharStruct::ArmorProperties,X
+        tdc
+        tax
+        stx Temp
+        stx Temp+2		;reusing memory that was TempStats
+        stx Temp+4
+        stx $0E			;armor slot index
+        ldy $0A			;GearStats character offset
+        sty $10
+CopyArmorElementDef:													
+        ldy $10			;item offset
+        lda GearStats::ElementDef,Y
+        longa
+        sta $12
+        jsr ShiftMultiply_4
+        clc
+        adc $12			;ROMElementDef offset (ElementDef*5)
+        tax
+        shorta0
+        tay
+CopyROMElementDef:													
+        lda ROMElementDef,X
+        ora Temp,Y
+        sta Temp,Y
+        inx
+        iny
+        cpy #$0005	;5 bytes absorb, evade, immunity, half, weakness
+        bne CopyROMElementDef
+        longa
+        lda $10		;item offset
+        clc
+        adc #$000C	;next item
+        sta $10
+        shorta0
+        inc $0E		;armor slot index, next slot
+        lda $0E
+        cmp #$05	;5 armor slots
+        bne CopyArmorElementDef
+        tdc
+        tay
+        ldx AttackerOffset
+ApplyElementDef:													
+        lda Temp,Y
+        sta CharStruct::EAbsorb,X
+        inx
+        iny
+        cpy #$0005	;5 bytes absorb, evade, immunity, half, weakness
+        bne ApplyElementDef
+        stz Temp
+        stz Temp+1
+        stz Temp+2
+        stz $0E
+        ldx $0A
+        stx $10		;GearStats character offset
+CopyROMStatusImmunities:												
+        ldy $10
+        lda GearStats::Status,Y
+        sta $24
+        lda #$07
+        sta $25
+        jsr Multiply_8bit
+        tdc
+        tay
+        ldx $26		;ROMArmorStatus offset (GearStats::Status*7)
+CopyROMImmunities:													
+        lda ROMArmorStatus::Immune1,X
+        ora Temp,Y
+        sta Temp,Y
+        inx
+        iny
+        cpy #$0003	;3 bytes of immunities
+        bne CopyROMImmunities
+        lda $0E		;armor slot index
+        pha
+        jsr ApplyEquipmentStatus
+        pla
+        sta $0E
+        longa
+        lda $10		;GearStats offset
+        clc
+        adc #$000C	;next item
+        sta $10
+        shorta0
+        inc $0E		;armor slot index, next slot
+        lda $0E
+        cmp #$05	;5 armor slots
+        bne CopyROMStatusImmunities
+        tdc
+        tay
+        ldx AttackerOffset
+ApplyImmunities:													
+        lda CharStruct::StatusImmune1,X
+        ora Temp,Y
+        sta CharStruct::StatusImmune1,X
+        inx
+        iny
+        cpy #$0003	;Status 1-3 immunity
+        bne ApplyImmunities
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Apply status from equipment 
+;uses $26 as offset into ROMArmorStatus table
+;due to design or possibly a **bug, only the last piece of a gear with always status will apply (for each type)
+;zombie from equipment is also bugged, but doesn't exist in vanilla ff5
+.proc ApplyEquipmentStatus
+
+_9D01:
+        stz $13		;set to 1 for always status, 0 for initial
+        ldy AttackerOffset
+        ldx $26		;ROMArmorStatus Offset
+        lda ROMArmorStatus::Status1,X
+        beq Status2
+        sta $12		;Status 1 to apply
+        bmi AlwaysS1
+        and #$04	;poison
+        beq ApplyS1	;only poison needs a timer
+        lda $12
+        and #$FB	;statuses except poison
+        sta $12
+        lda CharStruct::Status1,Y
+        ora CharStruct::AlwaysStatus1,Y
+        and #$04	;poison
+        bne ApplyS1	;already poisoned, don't need a new timer
+        lda CharStruct::Status1,Y
+        ora #$04	;set poison
+        sta CharStruct::Status1,Y
+        lda #$01	;poison timer
+        jsr StartTimerCurrentChar
+        bra ApplyS1
+AlwaysS1:		;high bit indicates always status instead of just initial
+        inc $13		;always status instead of initial (for later statuses)
+        lda $12		;Status 1 to apply
+        and #$7F	;clear always bit because it also means dead
+        sta CharStruct::AlwaysStatus1,Y
+        bra Status2
+ApplyS1:									;:
+        ldy AttackerOffset
+        lda CharStruct::Status1,Y
+        ora $12
+        sta CharStruct::Status1,Y
+Status2:									
+        ldy AttackerOffset
+        ldx $26		;ROMArmorStatus Offset
+        lda ROMArmorStatus::Status2,X
+        sta $12		;Status 2 to apply
+        lda CharStruct::Job,Y
+        cmp #$06	;Berserker
+        beq Berserker
+        lda CharStruct::Status1,Y
+        ora CharStruct::AlwaysStatus1,Y
+        and #$02	;Zombie
+        bne Zombie
+        beq CheckStatus2
+Berserker:	
+        lda EncounterInfo::IntroFX
+        bmi Zombie	;don't berserk during the credits demo battles
+        lda #$08	;Berserk
+        sta CharStruct::AlwaysStatus2,Y
+Zombie:			;zombie from equipment is bugged, but doesn't exist anyway					
+        lda CurrentChar
+        tax
+        lda #$3C
+        sta UncontrolledATB,X
+        lda CurrentChar
+        asl
+        tax
+        lda ROMTimes11w,X	;**bug: 16 bit table accessed in 8 bit mode
+        tax 			;char index*11 (wrong char due to bug)
+        tdc
+        sta EnableTimer::ATB,X	;disable normal ATB
+        inc
+        sta CurrentTimer::ATB,X	;normal ATB timer set at 1
+CheckStatus2:								
+        lda $12		;Status 2 to apply
+        bne :+
+        jmp Status3	;Nothing to apply
+:	STA $12
+        lda $13		;always status
+        bne AlwaysS2
+        lda $12		;Status 2 to apply
+        and #$A4	;old, paralyze, mute
+        beq ApplyS2	;only those need timers
+        lda $12		;Status 2 to apply
+        and #$80	;old
+        beq CheckPara
+        lda $12
+        and #$7F	;-old
+        sta $12		;Status 2 to apply, without old
+        lda CharStruct::Status2,Y
+        ora CharStruct::AlwaysStatus2,Y
+        and #$80	;old
+        bne CheckPara	;already old
+        lda CharStruct::Status2,Y
+        ora #$80	;+old
+        sta CharStruct::Status2,Y
+        lda #$06	;old timer
+        jsr StartTimerCurrentChar
+CheckPara:		;oddly inefficient compared to the other statuses
+        lda $12
+        and #$20	;paralyze
+        beq CheckMute
+        lda $12		;Status 2 to apply
+        sta $14
+        and #$DF	;without old
+        sta $12		;Status 2 to apply without old
+        ldy AttackerOffset
+        lda CharStruct::Status2,Y
+        ora CharStruct::AlwaysStatus2,Y
+        and #$20	;paralyze
+        bne CheckMute	;already paralyzed
+        lda $14		;Status 2 to apply
+        and #$20
+        sta $14		;only paralyze
+        lda CharStruct::Status2,Y
+        ora $14		;+paralyze
+        sta CharStruct::Status2,Y
+        lda #$09	;paralyze timer
+        jsr StartTimerCurrentChar
+CheckMute:
+        lda $12		;Status 2 to apply
+        and #$04	;mute
+        beq GoApplyS2
+        lda $12
+        and #$FB
+        sta $12		;Status 2 to apply without mute
+        ldy AttackerOffset
+        lda CharStruct::Status2,Y
+        ora CharStruct::AlwaysStatus2,Y
+        and #$04	;mute
+        bne GoApplyS2	;already mute
+        lda CharStruct::Status2,Y
+        ora #$04	;+mute
+        sta CharStruct::Status2,Y
+        lda #$04	;mute timer
+        jsr StartTimerCurrentChar
+GoApplyS2:								
+        bra ApplyS2
+AlwaysS2:
+        lda $12		;Status 2 to apply
+        sta CharStruct::AlwaysStatus2,Y
+        bra Status3
+ApplyS2:
+        ldy AttackerOffset
+        lda CharStruct::Status2,Y
+        ora $12		;+Status 2
+        sta CharStruct::Status2,Y
+Status3:
+        ldy AttackerOffset
+        ldx $26		;ROMArmorStatus Offset
+        lda ROMArmorStatus::Status3,X
+        bne :+
+        jmp Status4	;no status 3 to apply
+:	STA $12		;status 3 to apply
+        lda $13		;always status
+        bne AlwaysS3
+        lda $12		;status 3 to apply
+        and #$91	;reflect/stop/regen
+        beq ApplyS3	;only those need timers
+        lda $12
+        and #$80	;Reflect
+        beq CheckStop
+        lda $12
+        and #$7F	;status 3 to apply without reflect
+        sta $12
+        lda CharStruct::Status3,Y
+        ora CharStruct::AlwaysStatus3,Y
+        and #$80	;reflect
+        bne CheckStop	;already reflected
+        lda CharStruct::Status3,Y
+        ora #$80	;+reflect
+        sta CharStruct::Status3,Y
+        lda #$02	;reflect timer
+        jsr StartTimerCurrentChar
+CheckStop:					
+        lda $12		;status 3 to apply
+        and #$10	;Stop
+        beq CheckRegen
+        lda $12
+        and #$EF	;status 3 to apply without stop
+        sta $12
+        ldy AttackerOffset
+        lda CharStruct::Status3,Y	;always stop isn't a thing, apparently
+        and #$10	;stop
+        bne CheckRegen	;already stopped
+        lda CharStruct::Status3,Y
+        ora #$10	;+stop
+        sta CharStruct::Status3,Y
+        lda #$00	;timer for stop status
+        jsr StartTimerCurrentChar
+CheckRegen:								
+        lda $12		;status 3 to apply
+        and #$01	;regen
+        beq GoApplyS3
+        lda $12
+        and #$FE	;status 3 to apply without regen
+        sta $12
+        ldy AttackerOffset
+        lda CharStruct::Status3,Y
+        ora CharStruct::AlwaysStatus3,Y
+        and #$01	;regen
+        bne GoApplyS3	;already regen
+        lda CharStruct::Status3,Y
+        ora #$01	;+regen
+        sta CharStruct::Status3,Y
+        lda #$07	;regen timer
+        jsr StartTimerCurrentChar
+GoApplyS3:
+        bra ApplyS3
+AlwaysS3:
+        lda $12		;status 3 to apply
+        sta CharStruct::AlwaysStatus3,Y
+        bra Status4
+ApplyS3:
+        ldy AttackerOffset
+        lda CharStruct::Status3,Y
+        ora $12		;+status 3
+        sta CharStruct::Status3,Y
+Status4:
+        ldy AttackerOffset
+        ldx $26		;ROMArmorStatus Offse
+        lda ROMArmorStatus::Status4,X
+        beq Ret
+        sta $12		;Status 4 to apply
+        lda $13		;always status
+        bne AlwaysS4
+        lda $12
+        and #$18	;Countdown and HP Leak
+        beq ApplyS4	;only those need timers
+        lda $12
+        and #$10	;countdown
+        beq CheckLeak
+        lda $12
+        and #$EF
+        sta $12		;Status 4 to apply without countdown
+        lda CharStruct::Status4,Y
+        ora CharStruct::AlwaysStatus4,Y
+        and #$10	;countdown
+        bne CheckLeak	;already countdown
+        lda CharStruct::Status4,Y
+        ora #$10	;+countdown
+        sta CharStruct::Status4,Y
+        lda #$03	;timer for countdown status
+        jsr StartTimerCurrentChar
+CheckLeak:								
+        lda $12		;Status 4 to apply
+        and #$08	;HP Leak
+        beq GoApplyS4
+        lda $12
+        and #$F7	;Status 4 to apply without HP Leak
+        sta $12
+        ldy AttackerOffset
+        lda CharStruct::Status4,Y
+        ora CharStruct::AlwaysStatus4,Y
+        and #$08	;hp leak
+        bne CheckLeak	;**bug: wrong target here, fortunately harmless
+        lda CharStruct::Status4,Y
+        ora #$08	;+hp leak
+        sta CharStruct::Status4,Y
+        lda #$05	;hp leak timer
+        jsr StartTimerCurrentChar
+GoApplyS4:								
+        bra ApplyS4
+AlwaysS4:
+        lda $12		;Status 4 to apply
+        sta CharStruct::AlwaysStatus4,Y
+        bra Ret
+ApplyS4:
+        ldy AttackerOffset
+        lda CharStruct::Status4,Y
+        ora $12		;+Status 4
+        sta CharStruct::Status4,Y
+Ret:	RTS
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Start Timer for currently processed character (CurrentChar)
+;(A: #timer, $7B7B: character index)
+.proc StartTimerCurrentChar
+
+_9F2E:
+        tax
+        lda #$01
+        sta StatusFixedDur
+        lda CurrentChar
+        jmp StartTimer
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;Replaces the items in CharStruct hand fields with the items from HandItems
+;presumably for when they're changed in the item menu
+.proc ReplaceHands
+
+_9F3A:
+        stz $12
+        lda DisplayInfo::CurrentChar
+        jsr CalculateCharOffset
+        lda DisplayInfo::CurrentChar
+        jsr ShiftMultiply_4
+        sta $0E
+        asl
+        clc
+        adc $0E
+        tay 		;current char*12
+        lda HandItems::ID,Y
+        sta $10		;first hand item id
+        lda HandItems::ID+1,Y
+        sta $11		;second hand item id
+        cmp $10
+        bcs HandsOrdered
+        pha 		;swapping hands	so they're in order
+        lda $10
+        sta $11
+        pla
+        sta $10
+        inc $12		;flag that hands swapped, to fix at end
+HandsOrdered:
+        lda $10
+        ora $11
+        bne NotEmpty
+        tay 		;empty hands
+        sty $16
+        inc
+        sta $14
+        sta $15
+        bra Finish
+NotEmpty:
+        lda $10
+        bne FirstOccupied
+        lda $11		;other hand is empty
+        cmp #$80	;armor
+        bcs OnlyShield
+        stz $14		;only weapon
+        lda $11
+        sta $15
+        stz $16
+        stz $17
+        bra Finish
+OnlyShield:		;only shield
+        tdc
+        inc
+        sta $14
+        stz $15
+        stz $16
+        lda $11
+        sta $17
+        bra Finish
+FirstOccupied:
+        lda $10
+        cmp #$80	;armor
+        bcc Weapon
+        stz $14		;two shields
+        stz $15
+        lda $10
+        sta $16
+        lda $11
+        sta $17
+        bra Finish
+Weapon:			;weapon and something
+        lda $11
+        cmp #$80	;armor
+        bcc TwoWeapons
+        lda $10		;weapon and shield
+        sta $14
+        stz $15
+        stz $16
+        lda $11
+        sta $17
+        bra Finish
+TwoWeapons:		;two weapons
+        lda $10
+        sta $14
+        lda $11
+        sta $15
+        stz $16
+        stz $17
+Finish:
+        jsr SwapHands
+        lda $14
+        sta CharStruct::RHWeapon,X
+        lda $15
+        sta CharStruct::LHWeapon,X
+        lda $16
+        sta CharStruct::RHShield,X
+        lda $17
+        sta CharStruct::LHShield,X
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+;swaps some temp variables if $12 is Set
+;utility code for ReplaceHands routine
+;$14 <-> $15
+;$16 <-> $17
+.proc SwapHands
+
+_9FE7:
+        lda $12		;flag that hands were swapped
+        beq Ret	;if not, don't do anything
+        lda $14
+        pha
+        lda $15
+        sta $14
+        pla
+        sta $15
+        lda $16
+        pha
+        lda $17
+        sta $16
+        pla
+        sta $17
+Ret:	RTS
+;if !_CombatTweaks 
+;        incsrc "damagetweaks.asm"
+;endif
+;if !_CombatTweaks
+;        incsrc "attacktweaks.asm"
+;endif
+;print "C2 bank combat code ended one byte before ",pc
+;print "Free space before start of menu code: ",$C2A000-pc," bytes"	;doesnt work, can't do math with pc here
+;warnpc $C2A000	;make sure code hasn't grown beyond available space
+;pad $C2A000	;$C2A000 is the start of the menu code
+        	;fortunately it is programmed as if it is in its own bank, so does not call any code from the battle portion of C2
+
+.endproc
+; ---------------------------------------------------------------------------
+
+;============================ Stud Definitions for compilation purposes =====
