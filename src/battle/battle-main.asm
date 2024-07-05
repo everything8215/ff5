@@ -6794,7 +6794,7 @@ _2B6F:
 Reaction2:		;**bug: didn't load X for this path, but fortunately it's always? correct already
         lda CharStruct::Reaction2Damage,X
         beq Fail
-Met:       inc AIConditionMet
+Met:    inc AIConditionMet
 Fail:	rts
 
 .endproc
@@ -10969,7 +10969,7 @@ LeftHand:	;very similar to RH code, but does a bunch of stuff in a different ord
         cmp LHWeapon::Param2,X			;proc chance
         bcs NormalAttackLH
         lda LHWeapon::Param3,X			;proc command
-        jmp DispatchCommand	;dispatch the new command
+        jmp DispatchCommand_CommandReady	;dispatch the new command
 NormalAttackLH:
         jsr SelectCurrentProcSequence	;Y and $0C = AttackInfo offsets
         sty $12				;AttackInfo offset
@@ -15448,7 +15448,7 @@ _685C:
 
 _686C:
         INC UnknownReaction
-        RTS
+        rts
 
 .endproc
 
@@ -15513,7 +15513,7 @@ _6898:
 :	JMP ApplySpecialtyEffects
 Miss:	LDA #$80
         sta AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -15604,7 +15604,7 @@ _6921:
 Miss:	LDA MagicNull
         beq Return
         stz AtkMissed
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -15636,7 +15636,7 @@ Status:
         rts
         							;
 Miss:	INC AtkMissed
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -15663,7 +15663,7 @@ _6971:
 :	LDA MagicNull
         beq Return
         stz AtkMissed
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -15688,7 +15688,7 @@ _6993:
 :	LDA MagicNull
         beq Return
         stz AtkMissed
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -15716,7 +15716,7 @@ _69B5:
 Miss:	LDA MagicNull
         beq Return
         stz AtkMissed
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -15746,7 +15746,7 @@ _69DB:
 Miss:	LDA MagicNull
         beq Ret
         stz AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -15780,7 +15780,7 @@ _6A07:
 Miss:	LDA MagicNull
         beq Ret
         stz AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -15810,7 +15810,7 @@ Miss:	;we failed hit check, but some commands need to report miss differently
         bpl Ret
         lda #$80
         sta AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -15828,7 +15828,7 @@ _6A65:
         jsr FlareMagicDamage
         jsr TargetStatusModMag
         jsr PsycheDamage
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -15844,7 +15844,7 @@ _6A76:
         lda AtkMissed
         bne :+
         jsr SetHPCritical
-:	RTS
+:	rts
 
 .endproc
 
@@ -15910,7 +15910,7 @@ _6AC4:
         lda AtkMissed
         bne :+
         jsr ApplyStatus1
-:	RTS
+:	rts
 
 .endproc
 
@@ -15928,7 +15928,7 @@ _6ACF:
         bne :+
         jsr CalcStatusDuration
         jsr ApplyStatus2
-:	RTS
+:	rts
 
 .endproc
 
@@ -15946,7 +15946,7 @@ _6ADD:
         bne :+
         jsr CalcStatusDuration
         jsr ApplyStatus3
-:	RTS
+:	rts
 
 .endproc
 
@@ -15963,7 +15963,7 @@ _6AEB:
         lda AtkMissed
         bne :+
         jsr ToggleStatus1
-:	RTS
+:	rts
 
 .endproc
 
@@ -15980,7 +15980,7 @@ _6AF6:
         lda AtkMissed
         bne :+
         jsr ApplyStatus3Exclusive
-:	RTS
+:	rts
 
 .endproc
 
@@ -16016,7 +16016,7 @@ NotUndead:							;
         beq Miss
         jmp ApplyStatus1
 Miss:	INC AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16088,7 +16088,7 @@ Revive:
         lda Param2
         bpl Ret
         jsr FullMPHeal
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16219,7 +16219,7 @@ _6C17:
         sta MessageBoxData+2,Y
 :	LDA Param1
         and #$20
-        beq :+
+        beq :++
         ldx $0E
         lda #$12		;message to display
         sta MessageBoxes,X
@@ -16231,21 +16231,21 @@ _6C17:
         sta MessageBoxData1+0,Y
         sta MessageBoxData1+1,Y
         sta MessageBoxData1+2,Y
-        sta MessageBoxData1+0,Y
-        sta MessageBoxData1+1,Y
-        sta MessageBoxData1+2,Y
+        sta MessageBoxData2+0,Y
+        sta MessageBoxData2+1,Y
+        sta MessageBoxData2+2,Y
         bra :++
 :	LDA CharStruct::CurHP,X
         sta MessageBoxData1+0,Y
         lda CharStruct::CurHP+1,X
         sta MessageBoxData1+1,Y
         lda CharStruct::MaxHP,X
-        sta MessageBoxData1+0,Y
+        sta MessageBoxData2+0,Y
         lda CharStruct::MaxHP+1,X
-        sta MessageBoxData1+1,Y
+        sta MessageBoxData2+1,Y
         tdc
         sta MessageBoxData1+2,Y
-        sta MessageBoxData1+2,Y
+        sta MessageBoxData2+2,Y
 :	LDA Param1
         and #$08
         beq :++
@@ -16289,7 +16289,7 @@ StatusLoop:			;loop through status effects (1 and 2)
 :	INY
         cpy #$0010
         bne StatusLoop
-Ret:	RTS
+Ret:	rts
         								;
 Miss:	INC AtkMissed
         rts
@@ -16497,7 +16497,7 @@ _6DBD:
         and #$20
         beq Ret
         jsr RestoreHalfMax	;restores hp and mp
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16548,7 +16548,7 @@ _6DED:
         lda #$270F
 :	STA DamageToTarget
         shorta0
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16572,7 +16572,7 @@ _6E12:
         sta StatusDuration
         jmp ApplyStatus4
 Miss:	INC AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16600,7 +16600,7 @@ _6E2D:
         lda #$08		;HP Leak
         sta Param3
         jsr ApplyStatus4
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16620,7 +16620,7 @@ _6E4C:
         bne Ret
         jsr CalcDamageAttackerCurHP
         jsr ApplyStatus1AttackerBypass
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16668,7 +16668,7 @@ _6E72:
 Miss:	LDA MagicNull
         beq Ret
         stz AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16689,7 +16689,7 @@ _6E9B:
         jsr CalcFinalDamage
         jsr ApplyStatus1
         stz AtkMissed
-Ret:	RTS
+Ret:	rts
 ;
 
 .endproc
@@ -16706,7 +16706,7 @@ _6EB1:
         lda AtkMissed
         bne Ret
         jsr ApplyStatus1
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16769,7 +16769,7 @@ Finish:	LDA TargetDead
         jmp ApplyMSwordStatus
 Miss:	LDA #$80
         sta AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16804,7 +16804,7 @@ _6F1E:
         jmp ApplyMSwordStatus
 Miss:	LDA #$80
         sta AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16834,7 +16834,7 @@ _6F58:
         jmp CalcFinalDamage
 Miss:	LDA #$80
         sta AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16860,7 +16860,7 @@ _6F84:
         jmp CalcFinalDamage
 Miss:	LDA #$80
         sta AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16886,7 +16886,7 @@ _6FA8:
         jmp ApplyConditionalStatus
 Miss:	LDA #$80
         sta AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -16918,7 +16918,7 @@ _6FC9:
         jmp CalcFinalDamage
 Miss:	LDA #$80
         sta AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17089,7 +17089,7 @@ _70C4:
         jsr CalcStatusDuration
         jsr ApplyStatus2
         stz AtkMissed
-Miss:	RTS
+Miss:	rts
 
 .endproc
 
@@ -17138,7 +17138,7 @@ _70EC:
         lda #$02		;zombie
         sta Param3
         jsr ApplyStatus1
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17164,7 +17164,7 @@ _7119:
         beq :+
         jmp TargetFrontRow		;40h set
 :	JMP AttackerBackRow		;anything else
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17279,7 +17279,7 @@ _71B9:
         ldx AttackerOffset
         lda #$80			;dead status
         sta CharStruct::Status1,X	;escape is death
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17302,7 +17302,7 @@ _71D7:
         jsr TargetStatusModPhys
         jsr AttackerStatusModPhys
         jsr CalcFinalDamage
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17377,7 +17377,7 @@ Miss:	LDX $14			;message box index
         bra Ret
 Success:
         jsr CatchMonster
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17394,7 +17394,7 @@ _7255:
         lda AtkMissed
         bne Ret
         jsr ApplyFlirt
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17425,7 +17425,7 @@ Undead:	REP #$20
         rts
         								;
 Die:	JSR ApplyStatus1Bypass
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17443,7 +17443,7 @@ _728D:
         bne Ret
         jsr CalcStatusDuration
         jsr ApplyStatus2Bypass
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17465,7 +17465,7 @@ _729B:
         jsr CalcStatusDuration
         jsr ApplyStatus2Bypass
         stz AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17493,7 +17493,7 @@ _72B2:
 Miss:	LDA MagicNull
         beq Ret
         stz AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17521,7 +17521,7 @@ Zombie:	LDA #$02		;zombie
         sta Param3
         jmp ApplyStatus1
 Miss:	INC AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17542,7 +17542,7 @@ _7300:
         jsr CalcFinalDamage
         jsr ApplyStatus1
         stz AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17592,7 +17592,7 @@ _7319:
         and #$02
         beq Ret
         jsr AddDefenses
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17616,7 +17616,7 @@ _735E:
         lda #$08		;HP Leak
         sta Param3
         jsr ApplyStatus4
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17632,7 +17632,7 @@ _7379:
         lda AtkMissed
         bne Ret
         jsr CalcDamageTargetCurMP
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17647,7 +17647,7 @@ _7384:
         lda AtkMissed
         bne Ret
         jsr CalcDamageAttackerDiffHP
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17676,7 +17676,7 @@ _7398:
         lda AtkMissed
         bne Ret
         jsr ToggleStatus4
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17732,7 +17732,7 @@ _73C0:
         lda #$08		;HP Leak
         sta Param3
         jsr ApplyStatus4
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17779,7 +17779,7 @@ _740E:
         lda AtkMissed
         bne Ret
         jsr AddSomethingUnused
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17796,7 +17796,7 @@ _7419:
         bne Ret
         jsr FullCureTarget
         jsr ApplyStatus1
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17817,7 +17817,7 @@ _7427:
         lda #$02		;Zombie
         sta Param3
         jsr ApplyStatus1
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17841,7 +17841,7 @@ _743D:
         tax
         lda wTargetIndex
         jsr StartTimer
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17864,7 +17864,7 @@ _745C:
         lda #$08		;HP Leak
         sta Param3
         jsr ApplyStatus4
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -17878,7 +17878,7 @@ _7476:
         tdc
         tax
 FindCommand:			;look for first $F2 flagged entry in table of queued commands
-        lda GFXQueue::Flag,X
+        lda GFXQueue::Cmd,X
         cmp #$F2
         beq Found
         inx 			;command structure is 5 bytes long
@@ -17888,9 +17888,9 @@ FindCommand:			;look for first $F2 flagged entry in table of queued commands
         inx
         bra FindCommand
 Found:	
-        lda GFXQueue::Cmd,X
-        sta $11			;80h: copy attacker's hp to target
         lda GFXQueue::Type,X
+        sta $11			;80h: copy attacker's hp to target
+        lda GFXQueue::Data1,X
         sta $10			;bitmask of monsters to show or hide
         tdc
         tax
@@ -17999,7 +17999,7 @@ Next:
 
 _7562:
         lda SandwormBattle
-        bne SandwormBattle
+        bne _SandwormBattle
         tdc
         tay
         ldx #$0200		;hardcoded CharStruct offset, first monster
@@ -18059,7 +18059,7 @@ SetHP:				;sets monster 0-3 HP to the highest found
         bne SetHP
         shorta0
         rts
-SandwormBattle:									;
+_SandwormBattle:									;
         tdc
         tax
 FindCommand:
@@ -18333,7 +18333,7 @@ _7774:
 Miss:	LDA #$80
         sta AtkMissed
         rts
-Ret:	RTS 			;**optimize, get rid of this
+Ret:	rts 			;**optimize, get rid of this
 
 .endproc
 
@@ -18603,7 +18603,7 @@ _78FA:
         sta M
         shorta
         jsr DrainDamage
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -18632,7 +18632,7 @@ _791B:
         jmp ApplyMSwordStatus
 Miss:	LDA #$80
         sta AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -18911,23 +18911,26 @@ Attack75:
 
 ; ---------------------------------------------------------------------------
 
+.org $C27B21
 .proc AtkTypeJumpTable
 
 _7B21:
-.word  $6C68, $7068, $9868, $E268, $F768, $0C69, $2169, $4A69, $7169, $9369, $B569, $DB69, $076A, $3C6A, $656A
-.word $766A, $816A, $8E6A, $C46A, $CF6A, $DD6A, $EB6A, $F66A, $016B, $326B, $356B, $526B, $7D6B, $FC6B, $176C
-.word $E46C, $EF6C, $2E6D, $4B6D, $5B6D, $836D, $AB6D, $B46D, $BD6D, $D76D, $ED6D, $126E, $2D6E, $4C6E, $5E6E
-.word $726E, $9B6E, $B16E, $BC6E, $E16E, $1E6F, $586F, $846F, $A86F, $C96F, $F96F, $2070, $3E70, $5370, $7470
-.word $9D70, $C470, $DB70, $EC70, $1971, $3471, $4071, $5071, $B971, $D771, $F571, $FB71, $0D72, $5572, $6672
-.word $6672, $8D72, $9B72, $B272, $DB72, $0073, $1973, $5E73, $7973, $8473, $8F73, $9873, $A373, $C073, $F073
-.word $0774, $0E74, $1974, $2774, $3D74, $5C74, $7674, $6275, $6276, $CE76, $7477, $A477, $B677, $E577, $E077
-.word $E977, $BC78, $DD78, $EE78, $FA78, $1B79, $4D79, $5679, $6479, $D97A, $FA7A, $1E7B
+.word $686C, $6870, $6898, $68E2, $68F7, $690C, $6921, $694A, $6971, $6993, $69B5, $69DB, $6A07, $6A3C, $6A65
+.word $6A76, $6A81, $6A8E, $6AC4, $6ACF, $6ADD, $6AEB, $6AF6, $6B01, $6B32, $6B35, $6B52, $6B7D, $6BFC, $6C17
+.word $6CE4, $6CEF, $6D2E, $6D4B, $6D5B, $6D83, $6DAB, $6DB4, $6DBD, $6DD7, $6DED, $6E12, $6E2D, $6E4C, $6E5E
+.word $6E72, $6E9B, $6EB1, $6EBC, $6EE1, $6F1E, $6F58, $6F84, $6FA8, $6FC9, $6FF9, $7020, $703E, $7053, $7074
+.word $709D, $70C4, $70DB, $70EC, $7119, $7134, $7140, $7150, $71B9, $71D7, $71F5, $71FB, $720D, $7255, $7266
+.word $7266, $728D, $729B, $72B2, $72DB, $7300, $7319, $735E, $7379, $7384, $738F, $7398, $73A3, $73C0, $73F0
+.word $7407, $740E, $7419, $7427, $743D, $745C, $7476, $7562, $7662, $76CE, $7774, $77A4, $77B6, $77E5, $77E0
+.word $77E9, $78BC, $78DD, $78EE, $78FA, $791B, $794D, $7956, $7964, $7AD9, $7AFA, $7B1E, $7B20
 
 .endproc
+.reloc
 
 ; ---------------------------------------------------------------------------
 
 ;(Hit = Attacker Level + Hit - Target Level, Evade = Magic Evade)
+.org $7C0D
 .proc HitCalcLevelMEvade
 
 _7C0D:
@@ -18975,6 +18978,7 @@ _7C3B:
 ; ---------------------------------------------------------------------------
 
 ;(Hit = 100, Evade = Evade%)
+.org $7C47
 .proc SetHit100andTargetEvade
 
 _7C47:
@@ -19067,7 +19071,7 @@ _7C85:
         and #$10   		;improved steal
         beq :+
         asl HitPercent
-:	RTS
+:	rts
 
 .endproc
 
@@ -19097,7 +19101,7 @@ _7C97:
         lda #$07
         sta ShieldBlock
         inc AtkMissed
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -19135,7 +19139,7 @@ _7CC3:
         lda HitPercent
         bne Return
         inc HitPercent
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -19225,7 +19229,7 @@ _7D7F:
         and #$04   		;dance up
         beq Ret
         asl HitPercent
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -19249,7 +19253,7 @@ _7D8B:
         and #$20    			;toad
         beq Return
         stz EvadePercent
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -19330,7 +19334,7 @@ _7DF1:
         jsr SetupMsgBoxIndexes
         lda #$1F		;message to display
         sta MessageBoxes,X
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -19346,7 +19350,7 @@ _7E03:
         and #$08   	;Float
         beq Ret
         inc AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -19364,7 +19368,7 @@ _7E12:
         cmp EvadePercent
         bcs Return
 :	INC AtkMissed
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -19416,7 +19420,7 @@ _7E5B:
         and Param1
         bne Ret
         inc AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -19437,7 +19441,7 @@ _7E67:
         ldx Remainder
         beq Ret
         inc AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -19479,7 +19483,7 @@ _7E81:
         jsr MultiTargetHitPercent
         jsr TargetMHitMod
         jsr CheckForHit
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -19539,7 +19543,7 @@ _7EF6:
         jsr MultiTargetHitPercent
         jsr TargetMHitMod
         jsr CheckForHit
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -19558,7 +19562,7 @@ _7F1B:
         bne Return
         jsr TargetPHitMod
         jsr CheckPHit
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -20315,7 +20319,7 @@ _8366:
         beq Return
         lsr Attack+1
         ror Attack
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -20441,7 +20445,7 @@ EmptyHand:
         longa
         asl M
         shorta
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -20551,7 +20555,7 @@ _84CF:
         beq Ret
         asl M
         rol M+1
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -20570,7 +20574,7 @@ _84DD:
         jsr ShiftMultiply_8
         sta Attack
         shorta0
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -20593,7 +20597,7 @@ _84F3:
         beq Return
         stz Defense
         stz Defense+1
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -20673,7 +20677,7 @@ _855D:
         tdc
         sta Defense
         shorta
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -20859,7 +20863,7 @@ _866D:
         adc Attack
         sta Attack
         shorta0
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -21006,7 +21010,7 @@ CheckWeak:								;
         rol Attack+1
         stz Defense
         stz Defense+1
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -21060,7 +21064,7 @@ _876E:
         rol Attack+1
         stz Defense
         stz Defense+1
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -21101,7 +21105,7 @@ _87B5:
         beq Ret
         asl Param2    	;*doubles param2 instead of Attack
         		;*also doesn't 0 def
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -21126,7 +21130,7 @@ _87DF:
         tdc
         tax
         stx Defense
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -21148,7 +21152,7 @@ _87F9:
         tdc
         tax
         stx Defense
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -21976,7 +21980,7 @@ _8CAC:
         stz CharStruct::CurHP+1,X
         plx 				;Attacker Offset
         stx AttackerOffset		;Restore original Attacker
-        bra :++
+        bra :+
 NotZombie:	
         lda wTargetIndex
         cmp #$04			;Slots 4 and up are monsters
@@ -22249,7 +22253,7 @@ HasteTimerLoop:
         inx
         cpx #$000B		;10 timers, 11 is too far
         bne HasteTimerLoop
-Ret:	RTS
+Ret:	rts
 Miss:									;
         inc AtkMissed
         rts
@@ -22271,7 +22275,7 @@ _8EB6:
         lda CharStruct::Status1,X
         and #$02
         beq TestStone		;Was Zombie set?
-ResetATB:			;need to update ATB if Zombie/Stone was set then cleared
+_ResetATB:			;need to update ATB if Zombie/Stone was set then cleared
         ldx AttackerOffset
         phx
         lda wTargetIndex
@@ -22287,7 +22291,7 @@ TestStone:
         ldx TargetOffset
         lda CharStruct::Status1,X
         and #$40
-        bne ResetATB		;need ATB updated if clearing Stone
+        bne _ResetATB		;need ATB updated if clearing Stone
 RemoveStatus:
         ldx TargetOffset
         lda CharStruct::Status1,X
@@ -22309,7 +22313,7 @@ RemoveStatus:
         lda wTargetIndex
         tax
         inc ActiveParticipants,X	;target is now active
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -22327,21 +22331,21 @@ _8F11:
         beq :+
         lda CharStruct::Status2,X
         and #$10
-        bne ResetATB
+        bne _ResetATB
 :	LDA Param3
         eor #$FF		;Invert, set bits are status to clear
         and #$08		;Berserk
         beq :+
         lda CharStruct::Status2,X
         and #$18		;Charm or Berserk
-        bne ResetATB
+        bne _ResetATB
 :	LDA Param3
         eor #$FF		;Invert, set bits are status to clear
         and #$20		;Paralyze
         beq :+
         lda CharStruct::Status2,X
         and #$20
-        bne ResetATB
+        bne _ResetATB
 :	LDA Param3
         eor #$FF		;Invert, set bits are status to clear
         and #$40		;Sleep
@@ -22349,7 +22353,7 @@ _8F11:
         lda CharStruct::Status2,X
         and #$40
         beq RemoveStatus
-ResetATB:	;if we're clearing Charm/Berserk/Poison/Sleep we need to update ATB
+_ResetATB:	;if we're clearing Charm/Berserk/Poison/Sleep we need to update ATB
         ldx AttackerOffset
         phx
         lda wTargetIndex
@@ -22414,7 +22418,7 @@ NotHeavy:								;
         rts
         								;
 Miss:	INC AtkMissed
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -23026,7 +23030,7 @@ _92B4:
         tax
         lda wTargetIndex
         jsr StopTimer
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -23056,7 +23060,7 @@ _92C3:
         tax
         lda wTargetIndex
         jsr StopTimer
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -23086,7 +23090,7 @@ _92EE:
         tax
         lda wTargetIndex
         jsr StopTimer
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -23104,7 +23108,7 @@ _9319:
         tax
         lda wTargetIndex
         jsr StopTimer
-:	RTS
+:	rts
 
 .endproc
 
@@ -23134,7 +23138,7 @@ _9328:
         tax
 Finish:	LDA wTargetIndex
         jsr StartTimer
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -23164,7 +23168,7 @@ _934D:
         tax
 Finish:	LDA $48
         jsr StartTimer
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -23188,7 +23192,7 @@ _9319:
         tax
         lda wTargetIndex
         jsr StartTimer
-Return:	RTS
+Return:	rts
 
 .endproc
 
@@ -23407,7 +23411,7 @@ Finish:
         jsr SetupReactionsAnims
 GoProcessCommand:
         jmp ProcessCommand
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -23496,9 +23500,9 @@ CheckReflect:
         ldx TargetOffset
         lda CharStruct::Status3,X
         ora CharStruct::AlwaysStatus3,X
-        bmi Reflected
+        bmi _Reflected
 Bypass:	JMP DoneReflect
-Reflected:
+_Reflected:
         lda CharStruct::CharRow,X
         and #$40		;not on the team?
         bne Bypass
@@ -23713,7 +23717,7 @@ NextHP8b:
         shorta0
         plx 			;Restore attacker offset, though
         stx AttackerOffset	; not sure if it was ever changed?
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -23753,7 +23757,7 @@ Next:	JSR NextCharOffset	;X+128 for next character offset
         cpy $10
         bne FindValidTargetLoop
         inc $11
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -23892,7 +23896,7 @@ Finish:	INC MultiCommand
         inc MultiDamage
         stz TargetAdjust
         stz MPTaken
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -23938,7 +23942,7 @@ Multi:
         sta CharStruct::Reaction2Targets,X
         lda CurrentCommand::Damage
         sta CharStruct::Reaction2Damage,X
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -23993,7 +23997,7 @@ NextCommand:
         inx
         inx
         bra NextCommand
-Ret:	RTS			;return with X as the GFXQueue offset
+Ret:	rts			;return with X as the GFXQueue offset
 
 .endproc
 
@@ -24204,7 +24208,7 @@ NotEnoughMP:
         jsr SetupMsgBoxIndexes
         lda #$1E		;Not enough MP message
         sta MessageBoxes,X
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -24312,7 +24316,8 @@ ApplyStatsElementUp:		;adds stat and element up bonuses for all 7 item slots
         sta Temp
         longa
         bra NextItemStats
-Stats:									
+Stats:		
+        .a8
         pha
         and #$07		;stat bonus bits
         asl
@@ -24820,7 +24825,7 @@ ApplyS4:
         lda CharStruct::Status4,Y
         ora $12		;+Status 4
         sta CharStruct::Status4,Y
-Ret:	RTS
+Ret:	rts
 
 .endproc
 
@@ -24843,6 +24848,7 @@ _9F2E:
 
 ;Replaces the items in CharStruct hand fields with the items from HandItems
 ;presumably for when they're changed in the item menu
+.org $9F3A
 .proc ReplaceHands
 
 _9F3A:
@@ -24965,7 +24971,7 @@ _9FE7:
         sta $16
         pla
         sta $17
-Ret:	RTS
+Ret:	rts
 ;if !_CombatTweaks 
 ;        incsrc "damagetweaks.asm"
 ;endif

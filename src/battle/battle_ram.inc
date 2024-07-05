@@ -1542,7 +1542,7 @@ CreateAttackInfoStruct Headgear, $4049	;broken out into types for better labelin
 CreateAttackInfoStruct Bodywear, $4055
 CreateAttackInfoStruct Accessory, $4061
 CreateAttackInfoStruct RHShield, $406D
-CreateAttackInfoStruct LHShield, $4049
+CreateAttackInfoStruct LHShield, $4079
 CreateAttackInfoStruct RHWeapon, $4085
 CreateAttackInfoStruct LHWeapon, $4091
 CreateAttackInfoStruct AttackInfo, $79FC	;16 of these, 12*16 = 192 bytes
@@ -1931,6 +1931,7 @@ ROMToadOK = $D0EF58		;1 bit per spell, determines whether magic can be used as a
 ;$D0EF78 is code 	CleanupFieldItems_D0	;set quantities to 0 for id 0 items, set ids to 0 for qty 0 items
 
 .struct ROMMonsterFormData	;16 bytes * 4 entries
+.org $D0FFA0
 					;there's only one actual entry in the vanilla rom, the rest are blank
 					;even the one with data there is likely usused
 	Encounter		.res 2
@@ -1986,7 +1987,7 @@ CreateEquippableStruct ROMItemEquippable, $D12480	;4 bytes * 64 entries
 ROMElementDef = ROMElementDef::Absorb
 
 .struct ROMArmorStatus
-.org $9D07
+.org $D126C0
 	Status1	.res 1		;high bit here indicates always status, for all other status below as well
 	Status2       	.res 1		;only the last item per type with an always status will apply
 	Status3       	.res 1		
