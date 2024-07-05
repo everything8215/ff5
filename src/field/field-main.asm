@@ -16,7 +16,10 @@
 .include "hardware.inc"
 .include "const.inc"
 
-.import ExecSound_ext, ExecBattle_ext, ShowCutscene_ext, ExecMenu_ext
+.import ExecBattle_ext
+.import ExecMenu_ext
+.import ShowCutscene_ext, Decomp_ext
+.import InitSound_ext, ExecSound_ext
 
 ; ===========================================================================
 
@@ -50,7 +53,7 @@ _0000:  sei
         pld
         ldx     #0
         stx     $00
-        jsl     $c40000
+        jsl     InitSound_ext
         lda     #$f1                    ; cutscene $f1 (title/credits)
         jsr     ShowCutscene
         jsr     InitHardware
@@ -282,8 +285,8 @@ _0246:  jsr     $0f8c
         jsr     $4c95                   ; clear sprite data
         jsr     $2137
         jsr     $612b
-        jsr     $1ec5
-        jsr     $1e64
+        jsr     _c01ec5
+        jsr     _c01e64
         jsr     $420a
         jmp     _00ad
         rts                 ; unused rts
@@ -398,7 +401,7 @@ _0348:  lda     $a1
 _0354:  lda     $a2
         beq     _035d
         stz     $a2
-        jsr     $1e14
+        jsr     _c01e14
 _035d:  jmp     _0408
 _0360:  lda     $a0
         beq     _036c
@@ -466,7 +469,7 @@ _03ed:  lda     $a1
 _03f9:  lda     $a2
         beq     _0405
         stz     $a2
-        jsr     $1e14
+        jsr     _c01e14
         jmp     _0408
 _0405:  jsr     $996d       ; copy map animation graphics to vram
 _0408:  jsr     $5e8a
@@ -903,16 +906,16 @@ _07a4:  sty     $169c
         and     #$1c
         lsr2
         tax
-        lda     $c008b3,x
+        lda     f:_c008b3,x
         sta     $c0
         lda     #$03
         sta     $0adb
         txa
         asl
         tax
-        lda     $c00897,x
+        lda     f:_c00897,x
         sta     $26
-        lda     $c00898,x
+        lda     f:_c00897+1,x
         sta     $27
         jsr     $4583
         lda     #$01
@@ -934,7 +937,7 @@ _07ee:  dec
         lsr2
         tax
         lda     $10fb                   ; world tile properties byte 2
-        and     $c00890,x
+        and     f:_c00890,x
         bne     _07ed                   ; branch if vehicle can't land
         tyx
         lda     $02
@@ -964,9 +967,9 @@ _0832:  iny4
         lsr
         inc2
         tax
-        lda     $c008a5,x
+        lda     f:_c008a5,x
         sta     $26
-        lda     $c008a6,x
+        lda     f:_c008a5+1,x
         sta     $27
         lda     #$01
         sta     $58
@@ -1008,9 +1011,16 @@ _c0088f := _c00853::_088f
 
 ; ---------------------------------------------------------------------------
 
+_c00890:
 _0890:  .byte $00,$10,$20,$40,$00,$00,$80
+
+_c00897:
 _0897:  .addr $0000,$08ba,$08c1,$08ef,$098d,$0a4d,$0a57
+
+_c008a5:
 _08a5:  .addr $0000,$08bb,$091d,$0955,$098e,$0a54,$0aa3
+
+_c008b3:
 _08b3:  .byte $02,$04,$04,$04,$04,$04,$10
 
 ; ---------------------------------------------------------------------------
@@ -1045,8 +1055,8 @@ _08c5:  jsr     $4e41       ; wait for vblank
         sta     $0ade,y     ; vehicle height
         jsr     $2137
         jsr     $612b
-        jsr     $1ec5
-        jsr     $1e64
+        jsr     _c01ec5
+        jsr     _c01e64
         inc     $3d
         lda     $3d
         cmp     #$40
@@ -1070,8 +1080,8 @@ _08f3:  jsr     $4e41       ; wait for vblank
         sta     $0ade,y
         jsr     $2137
         jsr     $612b
-        jsr     $1ec5
-        jsr     $1e64
+        jsr     _c01ec5
+        jsr     _c01e64
         inc     $3d
         lda     $3d
         cmp     #$40
@@ -1097,8 +1107,8 @@ _0926:  jsr     $4e41       ; wait for vblank
         sta     $0ade,y
         jsr     $2137
         jsr     $612b
-        jsr     $1ec5
-        jsr     $1e64
+        jsr     _c01ec5
+        jsr     _c01e64
         dec     $3d
         lda     $3d
         cmp     #$ff
@@ -1125,8 +1135,8 @@ _095e:  jsr     $4e41       ; wait for vblank
         sta     $0ade,y
         jsr     $2137
         jsr     $612b
-        jsr     $1ec5
-        jsr     $1e64
+        jsr     _c01ec5
+        jsr     _c01e64
         dec     $3d
         lda     $3d
         cmp     #$ff
@@ -1296,7 +1306,7 @@ _0a5e:  jsr     $4e41       ; wait for vblank
         jsr     $4741
 _0a8e:  jsr     $2137
         jsr     $612b
-        jsr     $1e64
+        jsr     _c01e64
         jsr     $47f7
         inc     $3d
         lda     $3d
@@ -1397,14 +1407,14 @@ _0b60:  jsr     $4e41       ; wait for vblank
         ldy     $169c
         lda     $3d
         tax
-        lda     $c00c5f,x
+        lda     f:_c00c4f+16,x
         sta     $6f
         asl
         ora     #$80
         sta     $0ade,y
         jsr     $2137
         jsr     $612b
-        jsr     $1e64
+        jsr     _c01e64
         jsr     $5bf8
         dec     $3d
         lda     $3d
@@ -1509,7 +1519,7 @@ _0ca2:  jsr     $4e41
         jsr     $4c95       ; clear sprite data
         jsr     $2137
         jsr     $612b
-        jsr     $1e64
+        jsr     _c01e64
         lda     $03
         and     #$80
         beq     _0cbd
@@ -1630,12 +1640,12 @@ _0d72:  longa
         tax
         lda     $0ad8
         clc
-        adc     $c00f84,x
+        adc     f:_c00f84,x
         and     #$3f
         sta     $75
         lda     $0ad9
         clc
-        adc     $c00f88,x
+        adc     f:_c00f88,x
         and     #$3f
         sta     $76
 _0db0:  ldx     $23
@@ -1838,14 +1848,14 @@ _0f3d:  stz     $39
         tax
         lda     $12
         sta     $4202
-        lda     f:_0f78,x
+        lda     f:_c00f78,x
         sta     $4203
         nop4
         ldy     $4216
         sty     $37
         lda     $12
         sta     $4202
-        lda     f:_0f78+1,x
+        lda     f:_c00f78+1,x
         sta     $4203
         nop3
         longa
@@ -1859,9 +1869,14 @@ _0f3d:  stz     $39
 
 .endproc
 
-_0f78:  .addr   1,10,100,1000,10000,100000
+_c00f78:
+@0f78:  .addr   1,10,100,1000,10000,100000
 
-        .word   $0100, $ff00, $00ff, $0001
+_c00f84:
+@0f84:  .word   $0100, $ff00
+
+_c00f88:
+@0f88:  .word   $00ff, $0001
 
 ; ---------------------------------------------------------------------------
 
@@ -2211,7 +2226,7 @@ _11df:  jsr     $151d       ; update party sprite priority (current tile)
         lda     $10fb       ; map tile properties byte 2
         and     #$0f
         tax
-        lda     $c0172a,x   ; forced facing direction
+        lda     f:_c0172a,x   ; forced facing direction
         dec
         bra     _11f9
 _11f6:  lda     $bf
@@ -2246,7 +2261,7 @@ _122c:  sta     $c9
         and     #$30
         lsr4
         tax
-        lda     $c0171c,x   ; tile movement speed
+        lda     f:_c0171c,x   ; tile movement speed
         sta     $c0
         lda     $0afa       ; walking speed
         beq     _124f
@@ -2297,7 +2312,7 @@ _127a:  lda     $1120
         bpl     _12c5       ; branch if not an auto-move tile
         and     #$0f
         tax
-        lda     $c0172a,x
+        lda     f:_c0172a,x
         jmp     _1336
 _12c5:  lda     $57
         bne     _12d8       ; branch if an event is running
@@ -2386,7 +2401,7 @@ _1371:  rts
 
 _1372:  lda     $ba         ; movement direction
         tax
-        lda     $c01720,x   ; pointer to tile properties
+        lda     f:_c01720,x   ; pointer to tile properties
         tax
         lda     $ca
         bne     _1385
@@ -2484,7 +2499,7 @@ _141d:  lda     $c9
         lda     $0506,y
         beq     _143c
         sec
-        sbc     $c0147d,x   ; subtract hp
+        sbc     f:_c0147d,x   ; subtract hp
         beq     _1439
         bcs     _143c
 _1439:  lda     #$0001
@@ -2502,7 +2517,7 @@ _144e:  lda     $c9
         and     #$07
         beq     _1463
         tax
-        lda     $c01474,x
+        lda     f:_c01475-1,x
         jsr     $463c       ; play sound effect
 _1463:  longa
         tya
@@ -2518,10 +2533,12 @@ _1474:  rts
 ; ---------------------------------------------------------------------------
 
 ; tile damage sound effect
-_1475:  .byte   $94, $94, $94, $94, $94, $94, $94, $94
+_c01475:
+@1475:  .byte   $94, $94, $94, $94, $94, $94, $94, $94
 
 ; tile damage values (0, 50, 50, 100, 300, 400, 500, 1000)
-_147d:  .word   $0000, $0032, $0032, $0064, $012c, $0190, $01f4, $03e8
+_c0147d:
+@147d:  .word   $0000, $0032, $0032, $0064, $012c, $0190, $01f4, $03e8
 
 ; ---------------------------------------------------------------------------
 
@@ -2621,7 +2638,7 @@ _1537:  rts
 
 _1538:  lda     $ba         ; party moving direction
         tax
-        lda     $c01720,x   ; pointer to tile properties
+        lda     f:_c01720,x   ; pointer to tile properties
         tax
         lda     $10f2,x     ; map tile properties byte 1
         and     #$40
@@ -2701,18 +2718,18 @@ _15bc:  longa
         bra     _1612
 _15cf:  lda     $0adb
         tax
-        lda     $c0161b,x
+        lda     f:_c0161b,x
         tay
         lda     $10be,y
         cmp     #$05
         bne     _1612
         lda     $0ad8
         clc
-        adc     $c01617,x
+        adc     f:_c01617,x
         sta     $75
         lda     $0ad9
         clc
-        adc     $c01613,x
+        adc     f:_c01613,x
         sta     $76
         ldx     $06
         stx     $73
@@ -2731,9 +2748,15 @@ _1612:  rts
 
 ; ---------------------------------------------------------------------------
 
-_1613:  .byte   $ff,$00,$01,$00
-_1617:  .byte   $00,$01,$00,$ff
-_161b:  .byte   $02,$0a,$0e,$06
+_c01613:
+@1613:  .byte   $ff,$00,$01,$00
+
+_c01617:
+@1617:  .byte   $00,$01,$00,$ff
+
+_c0161b:
+@161b:  .byte   $02,$0a,$0e,$06
+
 
 ; ---------------------------------------------------------------------------
 
@@ -2783,11 +2806,11 @@ _164e:  lda     $c4         ; moving direction
         and     #$40
         bne     _1661       ; branch if forced facing direction
         lda     $10fb
-        and     $c01725,x   ; facing direction mask
+        and     f:_c01725,x   ; facing direction mask
         beq     _16a9
 _1661:  lda     $c4
         tax
-        lda     $c01720,x   ; pointer to tile properties
+        lda     f:_c01720,x   ; pointer to tile properties
         tax
         lda     $10d8,x     ; object at destination tile
         beq     _1692       ; branch if no object at destination
@@ -2853,7 +2876,7 @@ _16d9:  rts
 
 _16da:  lda     $ba
         tax
-        lda     $c01720,x   ; pointer to tile properties
+        lda     f:_c01720,x   ; pointer to tile properties
         tax
         lda     $10f2,x     ; map tile properties byte 1
         and     #$04
@@ -2865,11 +2888,11 @@ _16ef:  lda     $ba
         tax
         lda     $0ad8
         clc
-        adc     $c01712,x
+        adc     f:_c01712,x
         sta     $75
         lda     $0ad9
         clc
-        adc     $c01717,x
+        adc     f:_c01717,x
         sta     $76
         phx
         jsr     $3cbb       ; get pointer to object layout
@@ -2881,12 +2904,24 @@ _1711:  rts
 ; ---------------------------------------------------------------------------
 
 ; none, up, right, down, left
-_1712:  .byte $00,$00,$01,$00,$ff ; delta x
-_1717:  .byte $00,$ff,$00,$01,$00 ; delta y
-_171c:  .byte $02,$01,$04,$08; tile movement speeds
-_1720:  .byte $08,$02,$0a,$0e,$06 ; pointer to tile properties
-_1725:  .byte $00,$08,$01,$04,$02
-_172a:  .byte $00,$02,$04,$00,$03,$00,$00,$00,$01
+_c01712:
+@1712:  .byte $00,$00,$01,$00,$ff ; delta x
+
+_c01717:
+@1717:  .byte $00,$ff,$00,$01,$00 ; delta y
+
+_c0171c:
+@171c:  .byte $02,$01,$04,$08; tile movement speeds
+
+_c01720:
+@1720:  .byte $08,$02,$0a,$0e,$06 ; pointer to tile properties
+
+_c01725:
+@1725:  .byte $00,$08,$01,$04,$02
+
+_c0172a:
+@172a:  .byte $00,$02,$04,$00,$03,$00,$00,$00,$01
+
 
 ; ---------------------------------------------------------------------------
 
@@ -3690,10 +3725,10 @@ _1d7c:  lda     $0ada
 _1d7f:  asl
         tax
         longa
-        lda     $c01e02,x
+        lda     f:_c01e02,x
         sta     $4302
         lda     #$6000
-        sta     $2116
+        sta     hVMADDL
         lda     $53
         bne     _1d99
         lda     #$0200
@@ -3734,7 +3769,7 @@ _1dda:  pla
         asl
         tax
         longa
-        lda     $c01dfa,x
+        lda     f:_c01dfa,x
         sta     $30
         lda     #$6000
         sta     $33
@@ -3748,22 +3783,25 @@ _1dda:  pla
 ; ---------------------------------------------------------------------------
 
 ; pointers to vehicle graphics (+$db0000)
-_1dfa:  .word   $3b80,$4240,$3a00,$3a60
+_c01dfa:
+@1dfa:  .word   $3b80,$4240,$3a00,$3a60
 
 ; pointers to party sprite graphics (+$da0000)
-_1e02:  .word   $c800,$d000,$d800,$e000,$e800,$f000,$f800,$6c00,$8400
+_c01e02:
+@1e02:  .word   $c800,$d000,$d800,$e000,$e800,$f000,$f800,$6c00,$8400
 
 ; ---------------------------------------------------------------------------
 
 ; [ copy alt. sprite graphics to vram ]
 
+_c01e14:
 _1e14:  lda     $a4
         beq     _1e59
         dec
         asl
         tax
         longa
-        lda     $c01e5a,x   ; pointer to graphics
+        lda     f:_c01e5a,x   ; pointer to graphics
         sta     $4302
         lda     $06
         shorta
@@ -3772,7 +3810,7 @@ _1e14:  lda     $a4
         ldx     #$7300      ; vram address = $7300 (normal map)
         bra     _1e34
 _1e31:  ldx     #$6100      ; vram address = $6100 (world map)
-_1e34:  stx     $2116
+_1e34:  stx     hVMADDL
         lda     #$80
         sta     $2115
         stz     $420b
@@ -3789,11 +3827,13 @@ _1e34:  stx     $2116
 _1e59:  rts
 
 ; pointer to alt. party sprite graphics (+db0000)
-_1e5a:  .word   $4d80,$5d80,$6580,$6180,$6180
+_c01e5a:
+@1e5a:  .word   $4d80,$5d80,$6580,$6180,$6180
 
 ; ---------------------------------------------------------------------------
 
-        lda     $bd
+_c01e64:
+@1e64:  lda     $bd
         beq     _1eb4
         lda     $0adc
         beq     _1eb4
@@ -3818,7 +3858,7 @@ _1e88:  lda     $0ade,y
         lsr
         tax
         longa
-        lda     $c01eb5,x
+        lda     f:_c01eb5,x
         sta     $11
         lda     #$7570
         sta     $02f8
@@ -3833,12 +3873,14 @@ _1e88:  lda     $0ade,y
         shorta
 _1eb4:  rts
 
-_1eb5:  .word   $3044,$3044,$3045,$3045,$3045,$3046,$3046,$3046
+_c01eb5:
+@1eb5:  .word   $3044,$3044,$3045,$3045,$3045,$3046,$3046,$3046
 
 ; ---------------------------------------------------------------------------
 
 ; [  ]
 
+_c01ec5:
 _1ec5:  ldy     $00
         sty     $23
 _1ec9:  ldy     $23
@@ -3855,10 +3897,10 @@ _1eda:  lda     $0add,y
         jmp     _1f48
 _1eea:  lda     $0adf,y
         clc
-        adc     $c0205f
+        adc     f:_c0205f
         sec
         sbc     $0ad8
-        cmp     $c02060
+        cmp     f:_c0205f+1
         bcs     _1f48
         jsr     $201f
         lda     $14
@@ -3866,12 +3908,12 @@ _1eea:  lda     $0adf,y
         bcs     _1f48
         lda     $0ae0,y
         clc
-        adc     $c02061
+        adc     f:_c0205f+2
         sec
         sbc     $0ad9
-        cmp     $c02062
+        cmp     f:_c0205f+3
         bcs     _1f48
-        jsr     $203f
+        jsr     _c0203f
         ldy     $23
         lda     $0add,y
         and     #$03
@@ -3882,7 +3924,7 @@ _1eea:  lda     $0adf,y
         asl
         tax
         longa
-        lda     $c02063,x
+        lda     f:_c02063,x
         sta     $11
         lda     $06
         shorta
@@ -3915,18 +3957,18 @@ _1f57:  lda     $23
         sta     $09
 _1f60:  lda     $13
         clc
-        adc     $c020b7,x
+        adc     f:_c020b7,x
         sec
         sbc     $10a0
         sta     $0298,y
         lda     $15
         clc
-        adc     $c020b8,x
+        adc     f:_c020b7+1,x
         sec
         sbc     $10a2
         sta     $0299,y
         longa
-        lda     $c020b9,x
+        lda     f:_c020b7+2,x
         clc
         adc     $11
         sta     $029a,y
@@ -3960,7 +4002,7 @@ _1fb4:  lda     $23
         sta     $09
 _1fbd:  lda     $13
         clc
-        adc     $c02a95,x
+        adc     f:_c02a95,x
         sec
         sbc     #$08
         sec
@@ -3968,14 +4010,14 @@ _1fbd:  lda     $13
         sta     $0298,y
         lda     $15
         clc
-        adc     $c02a96,x
+        adc     f:_c02a95+1,x
         sec
         sbc     #$07
         sec
         sbc     $10a2
         sta     $0299,y
         longa
-        lda     $c02a97,x
+        lda     f:_c02a95+2,x
         clc
         adc     $11
         ora     #$3000
@@ -4032,6 +4074,7 @@ _201f:  longa
 
 ; [  ]
 
+_c0203f:
 _203f:  longa
         asl4
         clc
@@ -4051,17 +4094,30 @@ _203f:  longa
 
 ; ---------------------------------------------------------------------------
 
-_205f:  .byte   $07,$11,$07,$0f
+_c0205f:
+@205f:  .byte   $07,$11,$07,$0f
 
-_2063:  .word   $0000,$0000,$0000,$0000,$0010,$0000,$0000,$0000
-_2073:  .word   $0020,$0000,$0000,$0000,$046c,$0000,$0000,$0000
-_2083:  .word   $06cc,$06b4,$06cc,$06b4,$0654,$0684,$0000,$0000
-_2093:  .word   $069c,$0654,$06cc,$06b4,$0000,$0000,$0000,$0000
-_20a3:  .word   $0008,$0000,$0008,$0000,$0020,$0000,$1020,$0000
-_20b3:  .word   $2002,$0000
+_c02063:
+@2063:  .word   $0000,$0000,$0000,$0000
+        .word   $0010,$0000,$0000,$0000
+        .word   $0020,$0000,$0000,$0000
+        .word   $046c,$0000,$0000,$0000
+        .word   $06cc,$06b4,$06cc,$06b4
+        .word   $0654,$0684,$0000,$0000
+        .word   $069c,$0654,$06cc,$06b4
+
+_c0209b:
+@209b:  .byte   $00,$00,$00,$00
+        .byte   $00,$00,$00,$00
+        .byte   $08,$00,$00,$00
+        .byte   $08,$00,$00,$00
+        .byte   $20,$00,$00,$00
+        .byte   $20,$10,$00,$00
+        .byte   $02,$20,$00,$00
 
 ; ---------------------------------------------------------------------------
 
+_c020b7:
 _20b7:  .byte   $f8,$f5,$08,$30
         .byte   $00,$f5,$09,$30
         .byte   $f8,$fd,$0a,$30
@@ -4107,7 +4163,7 @@ _213c:  lda     $be
         and     #$7f
         lsr
 _2143:  tax
-        lda     $c022db,x
+        lda     f:_c022db,x
         sta     $0d
         lda     $0adc
         dec
@@ -4196,13 +4252,13 @@ _21e1:  ldy     #$0088
         phy
         lda     #$04
         sta     $0a
-_21ea:  lda     $c02a95,x
+_21ea:  lda     f:_c02a95,x
         clc
         adc     #$70
         sec
         sbc     $10a0
         sta     $0200,y
-        lda     $c02a96,x
+        lda     f:_c02a95+1,x
         clc
         adc     $15
         sec
@@ -4210,7 +4266,7 @@ _21ea:  lda     $c02a95,x
         sec
         sbc     $0d
         sta     $0201,y
-        lda     $c02a97,x
+        lda     f:_c02a95+2,x
         clc
         adc     $11
         sta     $0202,y
@@ -4220,16 +4276,16 @@ _21ea:  lda     $c02a95,x
         bne     _21ea
         ply
         plx
-        lda     $c02a98,x
+        lda     f:_c02a95+3,x
         ora     $08
         sta     $0203,y
-        lda     $c02a9c,x
+        lda     f:_c02a95+7,x
         ora     $08
         sta     $0207,y
-        lda     $c02aa0,x
+        lda     f:_c02a95+11,x
         ora     $09
         sta     $020b,y
-        lda     $c02aa4,x
+        lda     f:_c02a95+15,x
         ora     $09
         sta     $020f,y
         rts
@@ -4250,19 +4306,19 @@ _2246:  lda     $0ade,y
         asl
         tax
         longa
-        lda     $c02063,x
+        lda     f:_c02063,x
         sta     $11
         lda     $06
         shorta
-        lda     $0adc
+        lda     $0adc                   ; vehicle
         asl2
         sta     $09
-        lda     $0add,y
+        lda     $0add,y                 ; vehicle graphic
         and     #$03
         ora     $09
         tax
         lda     $3e
-        and     $c0209b,x
+        and     f:_c0209b,x
         beq     _228a
         lda     #$10
 _228a:  sta     $08
@@ -4274,13 +4330,13 @@ _228a:  sta     $08
         ldy     #$0088
         lda     #$04
         sta     $0a
-_229f:  lda     $c020b7,x
+_229f:  lda     f:_c020b7,x
         clc
         adc     #$78
         sec
         sbc     $10a0
         sta     $0200,y
-        lda     $c020b8,x
+        lda     f:_c020b7+1,x
         clc
         adc     $15
         sec
@@ -4289,7 +4345,7 @@ _229f:  lda     $c020b7,x
         sbc     $0d
         sta     $0201,y
         longa
-        lda     $c020b9,x
+        lda     f:_c020b7+2,x
         clc
         adc     $11
         sta     $0202,y
@@ -4303,8 +4359,9 @@ _229f:  lda     $c020b7,x
 
 ; ---------------------------------------------------------------------------
 
-_22db:  .byte   $00,$01,$03,$04,$05,$06,$07,$08,$09,$0a,$0a,$0b,$0b,$0c,$0c,$0c
-_22eb:  .byte   $0c,$0c,$0c,$0b,$0b,$0a,$0a,$09,$08,$07,$06,$05,$04,$03,$01,$00
+_c022db:
+@22db:  .byte   $00,$01,$03,$04,$05,$06,$07,$08,$09,$0a,$0a,$0b,$0b,$0c,$0c,$0c
+        .byte   $0c,$0c,$0c,$0b,$0b,$0a,$0a,$09,$08,$07,$06,$05,$04,$03,$01,$00
 
 ; ---------------------------------------------------------------------------
 
@@ -4328,7 +4385,7 @@ _22fd:  jsr     $4e41
         sta     $0290
         lda     #$7578
         sta     $0294
-        lda     $c0234c,x
+        lda     f:_c0234c,x
         sta     $028a
         inc
         sta     $028e
@@ -4338,7 +4395,7 @@ _22fd:  jsr     $4e41
         sta     $0296
         lda     $06
         shorta
-        jsr     $1ec5
+        jsr     _c01ec5
         lda     $3e
         cmp     #$1f
         bne     _22fd
@@ -4346,6 +4403,7 @@ _22fd:  jsr     $4e41
 
 ; ---------------------------------------------------------------------------
 
+_c0234c:
 _234c:  .word   $36e4,$36e8,$36ec,$36f0,$36f0,$36ec,$36e8,$36e4
 _235c:  .word   $36f4,$36f8,$36fc,$3700,$3700,$36fc,$36f8,$36f4
 _236c:  .word   $3704,$3708,$370c,$3710,$3710,$370c,$3708,$3704
@@ -4366,7 +4424,7 @@ _2386:  lda     $be                     ; jump counter
         and     #$7f
         lsr
 _238d:  tax
-        lda     $c022db,x
+        lda     f:_c022db,x
         sta     $0d
         lda     $10fb                   ; map tile properties byte 2
         bpl     _23a3                   ; branch if not auto-move tile
@@ -4516,23 +4574,23 @@ _2494:  phx
         lda     $0ada
         tax
         lda     $08
-        ora     $c0256c,x
+        ora     f:_c0256c,x
         sta     $08
         lda     $09
-        ora     $c0256c,x
+        ora     f:_c0256c,x
         sta     $09
         plx
 
 ; pointer to sprite data for upper half
 ; ($0110 for normal priority, $01e8 for low priority)
         ldy     $c7
-        lda     $c02a95,x
+        lda     f:_c02a95,x
         clc
         adc     $c5
         sec
         sbc     $10a0
         sta     $0200,y                 ; x position
-        lda     $c02a96,x
+        lda     f:_c02a95+1,x
         clc
         adc     $15
         sec
@@ -4540,18 +4598,18 @@ _2494:  phx
         sec
         sbc     $0d
         sta     $0201,y                 ; y position
-        lda     $c02a97,x
+        lda     f:_c02a95+2,x
         sta     $0202,y                 ; tile index
-        lda     $c02a98,x
+        lda     f:_c02a95+3,x
         ora     $08
         sta     $0203,y                 ; vhoopppm
-        lda     $c02a99,x
+        lda     f:_c02a95+4,x
         clc
         adc     $c5
         sec
         sbc     $10a0
         sta     $0204,y
-        lda     $c02a9a,x
+        lda     f:_c02a95+5,x
         clc
         adc     $15
         sec
@@ -4559,19 +4617,19 @@ _2494:  phx
         sec
         sbc     $0d
         sta     $0205,y
-        lda     $c02a9b,x
+        lda     f:_c02a95+6,x
         sta     $0206,y
-        lda     $c02a9c,x
+        lda     f:_c02a95+7,x
         ora     $08
         sta     $0207,y
         ldy     #$01e8                  ; pointer to sprite data for lower half
-        lda     $c02a9d,x
+        lda     f:_c02a95+8,x
         clc
         adc     $c5
         sec
         sbc     $10a0
         sta     $0208,y
-        lda     $c02a9e,x
+        lda     f:_c02a95+9,x
         clc
         adc     $15
         sec
@@ -4579,18 +4637,18 @@ _2494:  phx
         sec
         sbc     $0d
         sta     $0209,y
-        lda     $c02a9f,x
+        lda     f:_c02a95+10,x
         sta     $020a,y
-        lda     $c02aa0,x
+        lda     f:_c02a95+11,x
         ora     $09
         sta     $020b,y
-        lda     $c02aa1,x
+        lda     f:_c02a95+12,x
         clc
         adc     $c5
         sec
         sbc     $10a0
         sta     $020c,y
-        lda     $c02aa2,x
+        lda     f:_c02a95+13,x
         clc
         adc     $15
         sec
@@ -4598,21 +4656,23 @@ _2494:  phx
         sec
         sbc     $0d
         sta     $020d,y
-        lda     $c02aa3,x
+        lda     f:_c02a95+14,x
         sta     $020e,y
-        lda     $c02aa4,x
+        lda     f:_c02a95+15,x
         ora     $09
         sta     $020f,y
         rts
 
 ; ---------------------------------------------------------------------------
 
-_256c:  .res    16, 0
+_c0256c:
+@256c:  .res    16, 0
 
 ; ---------------------------------------------------------------------------
 
 ; [  ]
 
+_c0257c:
 _257c:  lda     #$80
         sta     $2115
         lda     $1114
@@ -4635,7 +4695,7 @@ _25a7:  lda     $11
         asl5
         clc
         adc     $2e
-        sta     $2116
+        sta     hVMADDL
         clc
         adc     #$0100
         sta     $2e
@@ -4650,40 +4710,40 @@ _25a7:  lda     $11
         shorta
         phx
         ldy     #$0008
-_25d2:  lda     $c0df00,x
-        stz     $2118
-        sta     $2119
+_25d2:  lda     f:$c0df00,x
+        stz     hVMDATAL
+        sta     hVMDATAH
         inx
         dey
         bne     _25d2
-        jsr     $2636
+        jsr     _c02636
         ldy     #$0008
-_25e6:  lda     $c0df00,x
-        stz     $2118
-        sta     $2119
+_25e6:  lda     f:$c0df00,x
+        stz     hVMDATAL
+        sta     hVMDATAH
         inx
         dey
         bne     _25e6
-        jsr     $2636
+        jsr     _c02636
         ldy     $2e
-        sty     $2116
+        sty     hVMADDL
         plx
         ldy     #$0008
-_2600:  lda     $c0df80,x
-        stz     $2118
-        sta     $2119
+_2600:  lda     f:$c0df80,x
+        stz     hVMDATAL
+        sta     hVMDATAH
         inx
         dey
         bne     _2600
-        jsr     $2636
+        jsr     _c02636
         ldy     #$0008
-_2614:  lda     $c0df80,x
-        stz     $2118
-        sta     $2119
+_2614:  lda     f:$c0df80,x
+        stz     hVMDATAL
+        sta     hVMDATAH
         inx
         dey
         bne     _2614
-        jsr     $2636
+        jsr     _c02636
         ldx     $23
         inx
         stx     $23
@@ -4738,9 +4798,350 @@ _c02667:
 
 ; ---------------------------------------------------------------------------
 
+; [  ]
+
+_c02817:
+_2817:  lda     $1114       ; tileset
+        asl
+        tax
+        longa
+        lda     f:$c0d980,x   ;
+        clc
+        adc     #$d980
+        sta     $04f0
+        lda     $06
+        shorta
+        lda     #$c0
+        sta     $04f2
+        ldx     #$1873
+        stx     $04f3
+        lda     #$00
+        sta     $04f5
+        jsl     Decomp_ext
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [  ]
+
+@2842:  lda     $bd
+        bne     @2847
+        rts
+@2847:  ldy     #$0100
+        lda     $c0
+        dec
+        asl2
+        sta     $0d
+        lda     $ba
+        beq     @2877
+        dec
+        clc
+        adc     $0d
+        asl
+        tax
+        longa
+        lda     $108c
+        clc
+        adc     f:_c028f3,x
+        sta     $108c
+        lda     $108e
+        clc
+        adc     f:_c02933,x
+        sta     $108e
+        lda     $06
+        shorta
+@2877:  ldx     $06
+@2879:  lda     $13c9,x
+        and     #$80
+        bne     @28ac
+        lda     $13c6,x
+        sec
+        sbc     $108d
+        sec
+        sbc     $10a0
+        sta     $0200,y
+        lda     $13c7,x
+        sec
+        sbc     $108f
+        sec
+        sbc     $10a2
+        sta     $0201,y
+        lda     $13c8,x
+        sta     $0202,y
+        lda     $13c9,x
+        and     #$7f
+        sta     $0203,y
+        bra     @28d6
+@28ac:  lda     $13c6,x
+        sec
+        sbc     $108d
+        sec
+        sbc     $10a0
+        sta     $02d8,y
+        lda     $13c7,x
+        sec
+        sbc     $108f
+        sec
+        sbc     $10a2
+        sta     $02d9,y
+        lda     $13c8,x
+        sta     $02da,y
+        lda     $13c9,x
+        and     #$7f
+        sta     $02db,y
+@28d6:  iny4
+        inx4
+        cpx     #$0010
+        bne     @2879
+        lda     #$aa
+        sta     $0410
+        lda     #$a0
+        sta     $041d
+        lda     #$0a
+        sta     $041e
+        rts
+
+; ---------------------------------------------------------------------------
+
+_c028f3:
+@28f3:  .word   $0000,$0080,$0000,$ff80
+        .word   $0000,$0100,$0000,$ff00
+        .word   $0000,$0180,$0000,$fe80
+        .word   $0000,$0200,$0000,$fe00
+        .word   $0000,$0080,$0000,$ff80
+        .word   $0000,$0100,$0000,$ff00
+        .word   $0000,$0180,$0000,$fe80
+        .word   $0000,$0400,$0000,$fc00
+
+_c02933:
+@2933:  .word   $ff80,$0000,$0080,$0000
+        .word   $ff00,$0000,$0100,$0000
+        .word   $fe80,$0000,$0180,$0000
+        .word   $fe00,$0000,$0200,$0000
+        .word   $ff80,$0000,$0080,$0000
+        .word   $ff00,$0000,$0100,$0000
+        .word   $fe80,$0000,$0180,$0000
+        .word   $fc00,$0000,$0400,$0000
+
+; ---------------------------------------------------------------------------
+
+; [  ]
+
+@2973:  stz     $108c
+        stz     $108d
+        stz     $108e
+        stz     $108f
+        lda     $ba
+        beq     @2987
+        dec
+        asl3
+@2987:  tax
+        ldy     $06
+@298a:  phy
+        stz     $0f
+        stz     $10
+        lda     f:_c02a75,x
+        sta     $13c6,y
+        lda     f:_c02a75+1,x
+        sta     $13c7,y
+        lda     f:_c02a55,x
+        tay
+        cmp     #$12
+        bne     @29be
+        lda     $10fa       ; map tile properties byte 1
+        and     #$04
+        beq     @29e1
+        lda     $c3
+        cmp     #$02
+        bne     @29e1
+        lda     $1104
+        and     #$03
+        cmp     #$01
+        bne     @2a0c
+        bra     @29d8
+@29be:  cmp     #$06
+        bcs     @29e1
+        lda     $10f8,y
+        and     #$04
+        beq     @29e1
+        lda     $c3
+        cmp     #$02
+        bne     @2a0c
+        lda     $10f2,y     ; map tile properties byte 1
+        and     #$03
+        cmp     #$01
+        bne     @2a11
+@29d8:  lda     #$80
+        sta     $10
+        lda     #$02
+        jmp     $2a1c
+@29e1:  lda     $10fa       ; map tile properties byte 1
+        and     #$07
+        cmp     #$05
+        beq     @29f0
+        cmp     #$01
+        bne     @29ff
+        bra     @29f6
+@29f0:  lda     $c3
+        cmp     #$02
+        beq     @29ff
+@29f6:  lda     $10f2,y     ; map tile properties byte 1
+        and     #$03
+        cmp     #$02
+        beq     @2a0c
+@29ff:  lda     $10f2,y     ; map tile properties byte 1
+        and     #$04
+        beq     @2a15
+        lda     $c3
+        cmp     #$01
+        bne     @2a11
+@2a0c:  lda     #$00
+        jmp     $2a1c
+@2a11:  lda     #$80
+        sta     $10
+@2a15:  lda     $10be,y
+        tay
+        lda     $1873,y
+@2a1c:  ply
+        longa
+        clc
+        adc     #$01c0
+        ora     #$0400
+        ora     $0f
+        sta     $13c8,y
+        and     #$0010
+        beq     @2a39
+        lda     $13c8,y
+        ora     #$4000
+        sta     $13c8,y
+@2a39:  lda     $13c8,y
+        and     #$ffef
+        sta     $13c8,y
+        lda     $06
+        shorta
+        inx2
+        iny4
+        cpy     #$0010
+        beq     @2a54
+        jmp     $298a
+@2a54:  rts
+
+; ---------------------------------------------------------------------------
+
+_c02a55:
+@2a55:  .byte   $12,$00,$02,$00
+        .byte   $08,$00,$08,$00
+        .byte   $02,$00,$04,$00
+        .byte   $08,$00,$0a,$00
+        .byte   $02,$00,$08,$00
+        .byte   $0e,$00,$0e,$00
+        .byte   $00,$00,$02,$00
+        .byte   $06,$00,$08,$00
+
+_c02a75:
+@2a75:  .byte   $70,$4f,$70,$5f
+        .byte   $70,$6f,$70,$6f
+        .byte   $70,$5f,$80,$5f
+        .byte   $70,$6f,$80,$6f
+        .byte   $70,$5f,$70,$6f
+        .byte   $70,$7f,$70,$7f
+        .byte   $60,$5f,$70,$5f
+        .byte   $60,$6f,$70,$6f
+
+; ---------------------------------------------------------------------------
+
+; sprite frames (80 items, 16 bytes per frame)
+_c02a95:
+@2a95:  .byte   $00,$fc,$04,$00,$08,$fc,$05,$00,$00,$04,$06,$00,$08,$04,$07,$00
+        .byte   $00,$fc,$04,$00,$08,$fc,$05,$00,$00,$04,$07,$40,$08,$04,$06,$40
+        .byte   $00,$fc,$09,$40,$08,$fc,$08,$40,$00,$04,$0b,$40,$08,$04,$0a,$40
+        .byte   $00,$fc,$0d,$40,$08,$fc,$0c,$40,$00,$04,$0f,$40,$08,$04,$0e,$40
+        .byte   $00,$fc,$00,$00,$08,$fc,$01,$00,$00,$04,$02,$00,$08,$04,$03,$00
+        .byte   $00,$fc,$00,$00,$08,$fc,$01,$00,$00,$04,$03,$40,$08,$04,$02,$40
+        .byte   $00,$fc,$08,$00,$08,$fc,$09,$00,$00,$04,$0a,$00,$08,$04,$0b,$00
+        .byte   $00,$fc,$0c,$00,$08,$fc,$0d,$00,$00,$04,$0e,$00,$08,$04,$0f,$00
+        .byte   $00,$fc,$00,$00,$08,$fc,$01,$00,$00,$04,$02,$00,$08,$04,$03,$00
+        .byte   $00,$fc,$04,$00,$08,$fc,$05,$00,$00,$04,$06,$00,$08,$04,$07,$00
+        .byte   $00,$fc,$08,$00,$08,$fc,$09,$00,$00,$04,$0a,$00,$08,$04,$0b,$00
+        .byte   $00,$fc,$0c,$00,$08,$fc,$0d,$00,$00,$04,$0e,$00,$08,$04,$0f,$00
+        .byte   $00,$fc,$01,$40,$08,$fc,$00,$40,$00,$04,$03,$40,$08,$04,$02,$40
+        .byte   $00,$fc,$05,$40,$08,$fc,$04,$40,$00,$04,$07,$40,$08,$04,$06,$40
+        .byte   $00,$fc,$09,$40,$08,$fc,$08,$40,$00,$04,$0b,$40,$08,$04,$0a,$40
+        .byte   $00,$fc,$0d,$40,$08,$fc,$0c,$40,$00,$04,$0f,$40,$08,$04,$0e,$40
+
+@2b95:  .byte   $00,$fc,$19,$00,$08,$fc,$01,$00,$00,$04,$1a,$00,$08,$04,$03,$00
+        .byte   $00,$fc,$18,$00,$08,$fc,$01,$00,$00,$04,$1a,$00,$08,$04,$03,$00
+        .byte   $00,$fc,$1b,$00,$08,$fc,$01,$00,$00,$04,$1a,$00,$08,$04,$03,$00
+        .byte   $00,$fc,$01,$40,$08,$fc,$19,$40,$00,$04,$03,$40,$08,$04,$1a,$40
+        .byte   $00,$fc,$01,$40,$08,$fc,$18,$40,$00,$04,$03,$40,$08,$04,$1a,$40
+        .byte   $00,$fc,$01,$40,$08,$fc,$1b,$40,$00,$04,$03,$40,$08,$04,$1a,$40
+        .byte   $00,$fc,$04,$00,$08,$fc,$31,$00,$00,$04,$3e,$00,$08,$04,$28,$00
+        .byte   $00,$fc,$04,$00,$08,$fc,$30,$00,$00,$04,$3e,$00,$08,$04,$28,$00
+        .byte   $00,$fc,$31,$40,$08,$fc,$04,$40,$00,$04,$28,$40,$08,$04,$3e,$40
+        .byte   $00,$fc,$30,$40,$08,$fc,$04,$40,$00,$04,$28,$40,$08,$04,$3e,$40
+        .byte   $00,$fc,$08,$00,$08,$fc,$37,$00,$00,$04,$0a,$00,$08,$04,$38,$00
+        .byte   $00,$fc,$08,$00,$08,$fc,$09,$00,$00,$04,$3c,$00,$08,$04,$3d,$00
+        .byte   $00,$fc,$37,$40,$08,$fc,$08,$40,$00,$04,$38,$40,$08,$04,$0a,$40
+        .byte   $00,$fc,$09,$40,$08,$fc,$08,$40,$00,$04,$3d,$40,$08,$04,$3c,$40
+        .byte   $00,$fc,$10,$00,$08,$fc,$11,$00,$00,$04,$12,$00,$08,$04,$13,$00
+        .byte   $00,$fc,$25,$00,$08,$fc,$26,$00,$00,$04,$06,$00,$08,$04,$07,$00
+
+@2c95:  .byte   $00,$fc,$39,$00,$08,$fc,$3a,$00,$00,$04,$3b,$00,$08,$04,$0b,$00
+        .byte   $00,$fc,$3a,$40,$08,$fc,$39,$40,$00,$04,$0b,$40,$08,$04,$3b,$40
+        .byte   $00,$fc,$1c,$00,$08,$fc,$1d,$00,$00,$04,$1e,$00,$08,$04,$1f,$00
+        .byte   $00,$fc,$1d,$40,$08,$fc,$1c,$40,$00,$04,$1f,$40,$08,$04,$1e,$40
+        .byte   $00,$fc,$20,$00,$08,$fc,$21,$00,$00,$04,$22,$00,$08,$04,$2f,$00
+        .byte   $00,$fc,$21,$40,$08,$fc,$20,$40,$00,$04,$2f,$40,$08,$04,$22,$40
+        .byte   $00,$fc,$34,$00,$08,$fc,$35,$00,$00,$04,$36,$00,$08,$04,$36,$40
+        .byte   $00,$fc,$32,$00,$08,$fc,$33,$00,$00,$04,$36,$00,$08,$04,$36,$40
+        .byte   $00,$fc,$2d,$00,$08,$fc,$2e,$00,$00,$04,$2a,$00,$08,$04,$2a,$40
+        .byte   $00,$fc,$2b,$00,$08,$fc,$2c,$00,$00,$04,$29,$00,$08,$04,$29,$40
+        .byte   $00,$fc,$23,$00,$08,$fc,$24,$00,$00,$04,$27,$00,$08,$04,$27,$40
+        .byte   $00,$fc,$04,$00,$08,$fc,$05,$00,$00,$04,$06,$00,$08,$04,$07,$00
+        .byte   $00,$fc,$00,$00,$08,$fc,$01,$00,$00,$04,$36,$00,$08,$04,$36,$40
+        .byte   $00,$fc,$31,$40,$08,$fc,$31,$00,$00,$04,$28,$40,$08,$04,$28,$00
+        .byte   $00,$fc,$30,$40,$08,$fc,$30,$00,$00,$04,$28,$40,$08,$04,$28,$00
+        .byte   $00,$fc,$14,$00,$08,$fc,$15,$00,$00,$04,$16,$00,$08,$04,$17,$00
+
+@2d95:  .byte   $00,$fc,$15,$40,$08,$fc,$14,$40,$00,$04,$17,$40,$08,$04,$16,$40
+        .byte   $00,$fc,$04,$00,$08,$fc,$04,$40,$00,$04,$3e,$00,$08,$04,$3e,$40
+        .byte   $00,$fc,$12,$00,$08,$fc,$13,$00,$00,$04,$06,$00,$08,$04,$07,$00
+        .byte   $00,$fc,$15,$40,$08,$fc,$14,$40,$00,$04,$0b,$40,$08,$04,$16,$40
+        .byte   $00,$fc,$10,$00,$08,$fc,$11,$00,$00,$04,$02,$00,$08,$04,$03,$00
+        .byte   $00,$fc,$14,$00,$08,$fc,$15,$00,$00,$04,$16,$00,$08,$04,$0b,$00
+        .byte   $00,$fc,$01,$40,$08,$fc,$17,$40,$00,$04,$03,$40,$08,$04,$1a,$40
+        .byte   $00,$fc,$01,$40,$08,$fc,$18,$40,$00,$04,$03,$40,$08,$04,$1a,$40
+        .byte   $00,$fc,$17,$00,$08,$fc,$01,$00,$00,$04,$1a,$00,$08,$04,$03,$00
+        .byte   $00,$fc,$18,$00,$08,$fc,$01,$00,$00,$04,$1a,$00,$08,$04,$03,$00
+        .byte   $00,$fc,$17,$00,$08,$fc,$19,$00,$00,$04,$1a,$00,$08,$04,$1b,$00
+        .byte   $00,$fc,$1c,$00,$08,$fc,$1d,$00,$00,$04,$1e,$00,$08,$04,$1f,$00
+        .byte   $00,$fc,$00,$00,$08,$fc,$00,$00,$00,$04,$00,$00,$08,$04,$00,$00
+        .byte   $00,$fc,$00,$00,$08,$fc,$00,$00,$00,$04,$00,$00,$08,$04,$00,$00
+        .byte   $00,$fc,$00,$00,$08,$fc,$00,$00,$00,$04,$00,$00,$08,$04,$00,$00
+        .byte   $00,$fc,$00,$00,$08,$fc,$00,$00,$00,$04,$00,$00,$08,$04,$00,$00
+
+@2e95:  .byte   $00,$fc,$04,$00,$08,$fc,$05,$00,$00,$04,$06,$00,$08,$04,$07,$00
+        .byte   $00,$fc,$05,$40,$08,$fc,$04,$40,$00,$04,$07,$40,$08,$04,$06,$40
+        .byte   $00,$fc,$09,$40,$08,$fc,$08,$40,$00,$04,$0b,$40,$08,$04,$0a,$40
+        .byte   $00,$fc,$0d,$40,$08,$fc,$0c,$40,$00,$04,$0f,$40,$08,$04,$0e,$40
+        .byte   $00,$fc,$00,$00,$08,$fc,$01,$00,$00,$04,$02,$00,$08,$04,$03,$00
+        .byte   $00,$fc,$01,$40,$08,$fc,$00,$40,$00,$04,$03,$40,$08,$04,$02,$40
+        .byte   $00,$fc,$08,$00,$08,$fc,$09,$00,$00,$04,$0a,$00,$08,$04,$0b,$00
+        .byte   $00,$fc,$0c,$00,$08,$fc,$0d,$00,$00,$04,$0e,$00,$08,$04,$0f,$00
+        .byte   $00,$fc,$08,$00,$08,$fc,$09,$00,$00,$04,$0a,$00,$08,$04,$0b,$00
+        .byte   $00,$fc,$0c,$00,$08,$fc,$0d,$00,$00,$04,$0e,$00,$08,$04,$0f,$00
+        .byte   $00,$fc,$11,$40,$08,$fc,$10,$40,$00,$04,$13,$40,$08,$04,$12,$40
+        .byte   $00,$fc,$15,$40,$08,$fc,$14,$40,$00,$04,$17,$40,$08,$04,$16,$40
+        .byte   $00,$fc,$00,$00,$08,$fc,$01,$00,$00,$04,$02,$00,$08,$04,$03,$00
+        .byte   $00,$fc,$04,$00,$08,$fc,$05,$00,$00,$04,$06,$00,$08,$04,$07,$00
+        .byte   $00,$fc,$10,$00,$08,$fc,$11,$00,$00,$04,$12,$00,$08,$04,$13,$00
+        .byte   $00,$fc,$14,$00,$08,$fc,$15,$00,$00,$04,$16,$00,$08,$04,$17,$00
+
+; ---------------------------------------------------------------------------
+
 ; [ show cutscene ]
 
-; a: cutscene id
+; A: cutscene id
 
 .proc ShowCutscene
 
@@ -4840,7 +5241,439 @@ _4e69:  .a8
 
 ; ---------------------------------------------------------------------------
 
-.proc random_battle
+_world_mod_id .set 0
+
+.mac make_world_mod_header i
+        .byte .ident(.sprintf("WORLD_MOD_Y_%04x", i))
+        .byte .ident(.sprintf("WORLD_MOD_X_%04x", i))
+        .byte .ident(.sprintf("WORLD_MOD_SIZE_%04x", i))
+        .byte .ident(.sprintf("WORLD_MOD_SWITCH_%04x", i))
+        .addr .ident(.sprintf("WorldModTiles_%04x", i))
+.endmac
+
+.mac make_world_mod_xy xx, yy
+        .ident(.sprintf("WORLD_MOD_X_%04x", _world_mod_id)) = xx
+        .ident(.sprintf("WORLD_MOD_Y_%04x", _world_mod_id)) = yy
+.endmac
+
+.mac make_world_mod xy_pos, switch_id, tiles
+        make_world_mod_xy xy_pos
+        .ident(.sprintf("WORLD_MOD_SIZE_%04x", _world_mod_id)) = (.tcount(tiles) + 1) / 2
+        .ident(.sprintf("WORLD_MOD_SWITCH_%04x", _world_mod_id)) = switch_id - $01d0
+        .ident(.sprintf("WorldModTiles_%04x", _world_mod_id)) := *
+        .byte tiles
+        _world_mod_id .set _world_mod_id + 1
+.endmac
+
+WorldMod1:
+.repeat $3c, i
+        make_world_mod_header i
+.endrep
+
+WorldMod2:
+.repeat $2e, i
+        make_world_mod_header i + $3c
+.endrep
+
+; world 0 tiles
+        make_world_mod {175, 142}, $01e0, {$9d}
+        make_world_mod {175, 143}, $01e0, {$ad}
+        make_world_mod {175, 144}, $01e0, {$bd}
+
+        make_world_mod {164, 115}, $01e1,     {$27,$9f}
+        make_world_mod {163, 116}, $01e1, {$18,$05,$05,$16}
+        make_world_mod {163, 117}, $01e1, {$28,$05,$06}
+        make_world_mod {163, 118}, $01e1, {$05,$05,$16}
+        make_world_mod {163, 119}, $01e1, {$07,$07}
+
+        make_world_mod {204,  84}, $01e2, {$9d}
+        make_world_mod {204,  85}, $01e2, {$ad}
+        make_world_mod {204,  86}, $01e2, {$ad}
+        make_world_mod {204,  87}, $01e2, {$bd}
+
+        make_world_mod {189,  81}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87}
+        make_world_mod {189,  82}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$50,$33,$54,$50,$33}
+        make_world_mod {189,  83}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$50,$51,$05,$53,$51,$05}
+        make_world_mod {189,  84}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$50,$51,$06,$07,$07,$08}
+        make_world_mod {189,  85}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$50,$51,$06,$17,$17,$17,$18}
+        make_world_mod {189,  86}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$70,$71,$26,$27,$27,$27,$28}
+        make_world_mod {189,  87}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$70,$43,$43,$71,$05,$05}
+        make_world_mod {189,  88}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$70,$43,$43,$71}
+        make_world_mod {189,  89}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$60}
+        make_world_mod {189,  90}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$70}
+        make_world_mod {189,  91}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87}
+        make_world_mod {189,  92}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87}
+        make_world_mod {189,  93}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87}
+        make_world_mod {189,  94}, $01e3, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87,$87}
+
+        make_world_mod { 82,  76}, $01e4, {$05,$a1,$a0}
+        make_world_mod { 82,  77}, $01e4, {$05,$a2,$05}
+
+        make_world_mod {205, 202}, $01e5, {$81}
+
+        make_world_mod { 63, 156}, $01e6,                         {$26}
+        make_world_mod { 60, 157}, $01e6,             {$28,$05,$05,$05,$26,$27,$27,$27,$17,$17,$17}
+        make_world_mod { 59, 158}, $01e6,         {$28,$05,$05,$a0,$79,$7d,$05,$a2,$05,$26,$17,$17}
+        make_world_mod { 58, 159}, $01e6,     {$18,$05,$05,$79,$7b,$7a,$9c,$a1,$79,$7d,$05,$16,$17}
+        make_world_mod { 57, 160}, $01e6, {$17,$18,$05,$a2,$89,$8a,$95,$7c,$7b,$7a,$9c,$05,$16}
+        make_world_mod { 57, 161}, $01e6, {$17,$28,$05,$79,$7b,$7a,$95,$95,$95,$95,$7c,$7d,$26}
+        make_world_mod { 57, 162}, $01e6, {$18,$05,$05,$89,$8a,$95,$95,$95,$95,$95,$8c,$8d,$05,$16}
+        make_world_mod { 57, 163}, $01e6, {$18,$05,$05,$a0,$9b,$95,$95,$95,$95,$95,$7c,$7d,$05,$16,$17,$17}
+        make_world_mod { 57, 164}, $01e6, {$17,$08,$05,$79,$7a,$95,$95,$95,$95,$8c,$8b,$8d,$05,$16,$17,$17}
+        make_world_mod { 57, 165}, $01e6, {$17,$18,$05,$89,$8b,$8a,$8c,$8b,$8a,$9c,$a2,$05,$06,$17,$17,$17}
+        make_world_mod { 57, 166}, $01e6, {$17,$17,$08,$05,$a1,$89,$8d,$a0,$89,$8d,$05,$05,$16}
+        make_world_mod { 58, 167}, $01e6,     {$17,$17,$07,$07,$08,$05,$05,$05,$06,$07,$07,$17}
+        make_world_mod { 58, 168}, $01e6,     {$17,$17,$17,$17,$17,$07,$07,$07,$17,$17,$17,$17,$17}
+        make_world_mod { 58, 169}, $01e6,     {$17,$17,$17,$17,$17,$17,$17,$17,$17,$17,$17,$17,$17}
+        make_world_mod { 62, 170}, $01e6,                     {$17,$17,$17,$17,$17,$17,$17,$17,$17}
+
+        make_world_mod { 60, 158}, $01e7, {$79,$7b,$7b,$7b}
+        make_world_mod { 60, 159}, $01e7, {$9b,$8c,$8b,$8a}
+        make_world_mod { 60, 160}, $01e7, {$9b,$9c,$9d,$9b}
+        make_world_mod { 60, 161}, $01e7, {$9b,$7c,$7b,$7a}
+
+        make_world_mod {146, 115}, $01ef, {$97}
+
+        make_world_mod {147,  78}, $01db,     {$11}
+        make_world_mod {146,  79}, $01db, {$11,$11,$11}
+        make_world_mod {147,  80}, $01db,     {$11}
+
+        make_world_mod {151,  78}, $01dc,     {$11}
+        make_world_mod {150,  79}, $01dc, {$11,$11,$11}
+        make_world_mod {151,  80}, $01dc,     {$11}
+
+        make_world_mod {151,  82}, $01dd,     {$11}
+        make_world_mod {150,  83}, $01dd, {$11,$11,$11}
+        make_world_mod {151,  84}, $01dd,     {$11}
+
+        make_world_mod {147,  82}, $01de,     {$11}
+        make_world_mod {146,  83}, $01de, {$11,$11,$11}
+        make_world_mod {147,  84}, $01de,     {$11}
+
+; world 1 tiles
+        make_world_mod {112,  95}, $01e8,                     {$87,$87}
+        make_world_mod {110,  96}, $01e8,             {$87,$87,$87,$87,$87}
+        make_world_mod {107,  97}, $01e8, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87}
+        make_world_mod {107,  98}, $01e8, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87}
+        make_world_mod {107,  99}, $01e8, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87}
+        make_world_mod {107, 100}, $01e8, {$87,$87,$87,$87,$87,$87,$87,$87,$87,$87}
+        make_world_mod {107, 101}, $01e8, {$87,$87,$87,$87,$87,$87,$87,$87,$87}
+        make_world_mod {107, 102}, $01e8, {$87,$87,$87,$87,$87,$87,$87,$87,$87}
+        make_world_mod {107, 103}, $01e8, {$87,$87,$87,$87,$87,$87,$87,$87,$87}
+        make_world_mod {108, 104}, $01e8,     {$87,$87,$87,$87,$87,$87,$87,$87}
+        make_world_mod {109, 105}, $01e8,         {$87,$87,$87,$87,$87,$87}
+        make_world_mod {110, 106}, $01e8,             {$87,$87,$87}
+        make_world_mod {111, 107}, $01e8,                 {$87,$87}
+
+        make_world_mod {178, 160}, $01e9,         {$84}
+        make_world_mod {176, 161}, $01e9, {$84,$87,$87,$87,$84}
+        make_world_mod {177, 162}, $01e9,     {$84,$84,$87,$84}
+        make_world_mod {177, 163}, $01e9,     {$85,$86,$84,$87,$84}
+        make_world_mod {176, 164}, $01e9, {$84,$87,$84,$87,$84,$84}
+        make_world_mod {177, 165}, $01e9,     {$84,$87,$84}
+
+        make_world_mod {167, 160}, $01ea, {$05}
+        make_world_mod {167, 161}, $01ea, {$05}
+
+        make_world_mod {178, 160}, $01eb,         {$87}
+        make_world_mod {176, 161}, $01eb, {$87,$87,$87,$87,$87}
+        make_world_mod {177, 162}, $01eb,     {$87,$87,$87,$87}
+        make_world_mod {177, 163}, $01eb,     {$87,$87,$87,$87,$87}
+        make_world_mod {176, 164}, $01eb, {$87,$87,$87,$87,$87,$87}
+        make_world_mod {177, 165}, $01eb,     {$87,$87,$87}
+
+        make_world_mod { 47, 119}, $01ec,                                                 {$21,$21,$21,$21,$21,$21,$21,$21}
+        make_world_mod { 45, 120}, $01ec,                                             {$21,$22,$79,$7b,$7b,$7b,$7b,$7b,$7b,$7d}
+        make_world_mod { 41, 121}, $01ec,                             {$21,$21,$21,$22,$79,$7b,$a5,$a5,$a5,$6e,$a5,$a5,$a5,$9c}
+        make_world_mod { 40, 122}, $01ec,                         {$12,$79,$7b,$7b,$7b,$7a,$a5,$a5,$8c,$8b,$8b,$8b,$8b,$8b,$8d}
+        make_world_mod { 40, 123}, $01ec,                         {$12,$9b,$a5,$a5,$6e,$a5,$a5,$a5,$8d,$00,$01,$01,$01,$01,$01}
+        make_world_mod { 40, 124}, $01ec,                         {$12,$9b,$6e,$a5,$8c,$8b,$8b,$8d,$00}
+        make_world_mod { 40, 125}, $01ec,                         {$22,$9b,$a5,$8c,$8d,$00,$01,$01}
+        make_world_mod { 34, 126}, $01ec, {$20,$21,$21,$21,$21,$22,$79,$7a,$a5,$7c,$7d,$20,$21,$21,$21,$21,$21}
+        make_world_mod { 34, 127}, $01ec, {$79,$7b,$7b,$7b,$7b,$7b,$7a,$a5,$a5,$a5,$7c,$7b,$7b,$7b,$7b,$7b,$7d,$20}
+        make_world_mod { 34, 128}, $01ec, {$89,$8a,$a5,$a5,$6e,$a5,$a5,$a5,$a5,$6e,$a5,$a5,$a5,$a5,$a5,$6e,$7c,$7d}
+        make_world_mod { 35, 129}, $01ec,     {$89,$8b,$8b,$8a,$a5,$a5,$6e,$a5,$a5,$a5,$6e,$a5,$6e,$a5,$a5,$8c,$8d}
+        make_world_mod { 38, 130}, $01ec,                 {$89,$8b,$8a,$a5,$a5,$a5,$6e,$a5,$a5,$a5,$a5,$8c,$8d}
+        make_world_mod { 40, 131}, $01ec,                         {$9b,$a5,$6e,$a5,$a5,$a5,$8c,$8b,$8b,$8d}
+        make_world_mod { 40, 132}, $01ec,                         {$89,$8a,$a5,$a5,$8c,$8b,$8d}
+        make_world_mod { 41, 133}, $01ec,                             {$89,$8b,$8b,$8d}
+        make_world_mod { 46, 134}, $01ec,                                                 {$05,$09}
+        make_world_mod { 45, 135}, $01ec,                                             {$0b,$05,$19}
+        make_world_mod { 45, 136}, $01ec,                                             {$1b,$05,$29}
+
+; Group 018 - Event Flag $1ED (493)
+;                                                           x=213
+; 106 $C074E8:  x=213  y= 36    9 at $C07CF7 to $C07D00 -> ($) 11 05 05 11 11 11 05 05 11
+; 107 $C074EE:  x=213  y= 37    9 at $C07D00 to $C07D09 -> ($) 05 11 11 05 05 05 11 11 05
+; 108 $C074F4:  x=213  y= 38    9 at $C07D09 to $C07D12 -> ($) 05 11 05 11 11 11 05 11 05
+; 109 $C074FA:  x=213  y= 39    9 at $C07D12 to $C07D1B -> ($) 05 11 11 11 11 11 11 11 05
+; 110 $C07500:  x=213  y= 40    9 at $C07D1B to $C07D24 -> ($) 05 11 11 05 11 05 11 11 05
+; 111 $C07506:  x=213  y= 41    9 at $C07D24 to $C07D2D -> ($) 05 11 11 05 11 05 11 11 05
+; 112 $C0750C:  x=213  y= 42    9 at $C07D2D to $C07D36 -> ($) 05 11 11 11 05 11 11 11 05
+; 113 $C07512:  x=213  y= 43    9 at $C07D36 to $C07D3F -> ($) 11 05 11 11 11 11 11 05 11
+
+
+; Map 2 replacements - from $C07518 to $C07794 (106.0 entries)
+
+; Group 019 - Event Flag $1F0 (496)
+; 114 $C07518:  x=161  y=150    1 at $C07D3F to $C07D40 -> ($) 2A
+
+; Group 020 - Event Flag $1F2 (498)
+;                                                           x=205
+; 115 $C0751E:  x=205  y=198    3 at $C07D40 to $C07D43 -> ($) 05 05 05
+; 116 $C07524:  x=205  y=199    3 at $C07D44 to $C07D47 -> ($) 73 43 71
+; 117 $C0752A:  x=205  y=200    3 at $C07D47 to $C07D4A -> ($) 64 81 60
+; 118 $C07530:  x=205  y=201    3 at $C07D4A to $C07D4D -> ($) 53 33 51
+
+; Group 021 - Event Flag $1F3 (499)
+;                                                           x=138
+; 119 $C07536:  x=145  y=112    9 at $C07D57 to $C07D60 -> ($)                      73 74 87 87 87 87 87 87 87
+; 120 $C0753C:  x=138  y=113   16 at $C07D60 to $C07D70 -> ($) 87 87 87 87 87 87 70 74 87 87 87 87 87 87 87 87
+; 121 $C07542:  x=138  y=114   16 at $C07D70 to $C07D80 -> ($) 87 87 87 87 87 87 87 87 87 87 87 87 87 87 87 87
+; 122 $C07548:  x=138  y=115   16 at $C07D70 to $C07D80 -> ($) 87 87 87 87 87 87 87 87 87 87 87 87 87 87 87 87
+; 123 $C0754E:  x=138  y=116   16 at $C07D70 to $C07D80 -> ($) 87 87 87 87 87 87 87 87 87 87 87 87 87 87 87 87
+; 124 $C07554:  x=138  y=117   16 at $C07D70 to $C07D80 -> ($) 87 87 87 87 87 87 87 87 87 87 87 87 87 87 87 87
+; 125 $C0755A:  x=138  y=118   16 at $C07D70 to $C07D80 -> ($) 87 87 87 87 87 87 87 87 87 87 87 87 87 87 87 87
+; 126 $C07560:  x=138  y=119   16 at $C07D70 to $C07D80 -> ($) 87 87 87 87 87 87 87 87 87 87 87 87 87 87 87 87
+; 127 $C07566:  x=146  y=120    3 at $C07D80 to $C07D83 -> ($)                         87 87 87
+;                                                           x=130
+; 128 $C0756C:  x=132  y= 83    3 at $C07DBA to $C07DBD -> ($)       18 05 06
+; 129 $C07572:  x=132  y= 84    3 at $C07DBD to $C07DC0 -> ($)       18 05 16
+; 130 $C07578:  x=132  y= 85    3 at $C07DBD to $C07DC0 -> ($)       18 05 16
+; 131 $C0757E:  x=131  y= 86    4 at $C07DC0 to $C07DC4 -> ($)    27 28 05 16
+; 132 $C07584:  x=130  y= 87    3 at $C07DC4 to $C07DC7 -> ($) 28 05 05
+
+; Group 023 - Event Flag $1F7 (503)
+;                                                           x=101
+; 133 $C0758A:  x=101  y= 97    2 at $C07DC7 to $C07DC9 -> ($) 26 27
+; 134 $C07590:  x=101  y= 98    3 at $C07DC9 to $C07DCC -> ($) 05 05 26
+; 135 $C07596:  x=103  y= 99    2 at $C07DCC to $C07DCE -> ($)       05 16
+
+; Group 024 - Event Flag $1F5 (501)
+;                                                           x=178
+; 136 $C0759C:  x=182  y=130    7 at $C07DCE to $C07DD5 -> ($)             21 21 21 22 05 05 05
+; 137 $C075A2:  x=180  y=131    9 at $C07DD5 to $C07DDE -> ($)       20 22 73 43 43 71 00 01 01
+; 138 $C075A8:  x=180  y=132    7 at $C07DDE to $C07DE5 -> ($)       05 73 74 87 87 60 20
+; 139 $C075AE:  x=178  y=133   11 at $C07DE5 to $C07DF0 -> ($) 05 05 73 74 87 87 87 70 71 20 21
+; 140 $C075B4:  x=178  y=134   11 at $C07DF0 to $C07DFB -> ($) 05 05 64 87 82 83 83 84 70 71 05
+; 141 $C075BA:  x=178  y=135   12 at $C07DFB to $C07E07 -> ($) 05 73 74 82 AE 88 88 AF 84 60 05 16
+; 142 $C075C0:  x=178  y=136   12 at $C07E07 to $C07E13 -> ($) 05 64 87 85 88 88 88 88 86 70 71 16
+; 143 $C075C6:  x=178  y=137   12 at $C07E13 to $C07E1F -> ($) 05 64 87 85 88 88 88 88 86 87 60 26
+; 144 $C075CC:  x=178  y=138   13 at $C07E1F to $C07E2C -> ($) 05 53 54 90 BE 88 88 BF 92 87 70 71 26
+; 145 $C075D2:  x=180  y=139   10 at $C07E2C to $C07E36 -> ($)       53 54 90 91 91 92 87 87 87 70
+; 146 $C075D8:  x=180  y=140   11 at $C07E36 to $C07E41 -> ($)       05 53 54 50 33 33 54 87 87 87 87
+; 147 $C075DE:  x=180  y=141    9 at $C07E41 to $C07E4A -> ($)       05 05 53 51 05 05 53 54 87
+; 148 $C075E4:  x=183  y=142    3 at $C07E4A to $C07E4D -> ($)                05 05 05
+; 149 $C075EA:  x=183  y=143    3 at $C07E4D to $C07E50 -> ($)                08 05 05
+; 150 $C075F0:  x=183  y=144    2 at $C07E50 to $C07E52 -> ($)                18 05
+; 151 $C075F6:  x=183  y=145    2 at $C07E50 to $C07E52 -> ($)                18 05
+; 152 $C075FC:  x=183  y=146    2 at $C07E50 to $C07E52 -> ($)                18 05
+; 153 $C07602:  x=183  y=147    2 at $C07E50 to $C07E52 -> ($)                18 05
+
+; Group 025 - Event Flag $1F6 (502)
+;                                                           x=73
+; 154 $C07608:  x= 76  y=114    5 at $C07EDB to $C07EE0 -> ($)          05 05 05 05 05
+; 155 $C0760E:  x= 73  y=115   15 at $C07EE0 to $C07EEF -> ($) 05 05 05 05 05 73 71 05 73 43 71 69 6B 6D 69
+; 156 $C07614:  x= 73  y=116   12 at $C07EEF to $C07EFB -> ($) 05 05 05 73 43 74 70 43 74 87 70 71
+; 157 $C0761A:  x= 73  y=117   12 at $C07EFB to $C07F07 -> ($) 05 05 73 74 87 82 83 83 84 87 87 60
+; 158 $C07620:  x= 73  y=118   14 at $C07F07 to $C07F15 -> ($) 05 05 64 87 82 AE 88 88 AF 84 87 60 05 69
+; 159 $C07626:  x= 74  y=119   13 at $C07F15 to $C07F22 -> ($)    05 53 54 85 88 88 88 88 86 87 70 71 05
+; 160 $C0762C:  x= 74  y=120   13 at $C07F22 to $C07F2F -> ($)    05 05 64 85 88 88 88 88 86 87 50 51 05
+; 161 $C07632:  x= 74  y=121   11 at $C07F2F to $C07F3A -> ($)    08 05 64 90 BE 88 88 BF 92 50 51
+; 162 $C07638:  x= 74  y=122   11 at $C07F3A to $C07F45 -> ($)    18 05 53 54 90 91 91 92 50 51 06
+; 163 $C0763E:  x= 75  y=123    9 at $C07F45 to $C07F4E -> ($)       08 05 53 54 50 33 33 51 06
+; 164 $C07644:  x= 76  y=124    7 at $C07F4E to $C07F55 -> ($)          07 08 53 51 05 06 07
+; 165 $C0764A:  x= 78  y=125    4 at $C07F55 to $C07F59 -> ($)                08 05 05 26
+
+; Group 026 - Event Flag $1F7 (503)
+;                                                           x=213
+; 166 $C07650:  x=218  y= 42    4 at $C07FD7 to $C07FDB -> ($)                27 27 27 27
+; 167 $C07656:  x=215  y= 43    8 at $C07FDB to $C07FE3 -> ($)       27 27 28 73 43 43 71 26
+; 168 $C0765C:  x=214  y= 44   10 at $C07FE3 to $C07FED -> ($)    28 05 73 43 74 87 87 60 05 16
+; 169 $C07662:  x=213  y= 45   11 at $C07FED to $C07FF8 -> ($) 18 73 43 74 82 83 83 84 70 71 26
+; 170 $C07668:  x=213  y= 46   12 at $C07FF8 to $C08004 -> ($) 18 53 54 82 AE 88 88 AF 84 70 71 16
+; 171 $C0766E:  x=214  y= 47   11 at $C08004 to $C0800F -> ($)    08 64 85 88 88 88 88 86 87 60 16
+; 172 $C07674:  x=214  y= 48   11 at $C0800F to $C0801A -> ($)    18 64 85 88 88 88 88 86 50 51 16
+; 173 $C0767A:  x=214  y= 49   10 at $C0801A to $C08024 -> ($)    18 64 90 BE 88 88 BF 92 60 06
+; 174 $C07680:  x=214  y= 50   10 at $C08024 to $C0802E -> ($)    18 53 54 90 91 91 92 50 51 16
+; 175 $C07686:  x=215  y= 51    8 at $C0802E to $C08036 -> ($)       08 53 33 54 50 33 51 06
+; 176 $C0768C:  x=216  y= 52    6 at $C08036 to $C0803C -> ($)          07 08 53 51 06 07
+; 177 $C07692:  x=218  y= 53    2 at $C0803C to $C0803E -> ($)                07 07
+;                                                           x=167
+; 178 $C07698:  x=171  y= 40    8 at $C080B7 to $C080BF -> ($)             54 87 87 87 87 87 87 87
+; 179 $C0769E:  x=171  y= 41    8 at $C080BF to $C080C7 -> ($)             53 54 87 87 87 87 50 33
+; 180 $C076A4:  x=170  y= 42    9 at $C080C7 to $C080D0 -> ($)          05 05 64 87 87 87 87 60 06
+; 181 $C076AA:  x=169  y= 43   10 at $C080D0 to $C080DA -> ($)       05 05 73 74 87 87 87 50 51 16
+; 182 $C076B0:  x=169  y= 44   10 at $C080DA to $C080E4 -> ($)       05 73 74 82 83 83 84 70 71 26
+; 183 $C076B6:  x=168  y= 45   11 at $C080E4 to $C080EF -> ($)    05 05 64 82 AE 88 88 AF 84 60 05
+; 184 $C076BC:  x=168  y= 46   11 at $C080EF to $C080FA -> ($)    05 73 74 85 88 88 88 88 86 70 71
+; 185 $C076C2:  x=168  y= 47   12 at $C080FA to $C08106 -> ($)    05 64 87 85 88 88 88 88 86 87 60 26
+; 186 $C076C8:  x=167  y= 48   13 at $C08106 to $C08113 -> ($) 02 05 53 54 90 BE 88 88 BF 92 87 60 06
+; 187 $C076CE:  x=168  y= 49   12 at $C08113 to $C0811F -> ($)    02 05 53 54 90 91 91 92 87 50 51 16
+; 188 $C076D4:  x=169  y= 50   11 at $C0811F to $C0812A -> ($)       02 05 64 87 87 87 50 33 51 05 26
+; 189 $C076DA:  x=170  y= 51    9 at $C0812A to $C08133 -> ($)          02 53 33 54 50 51 05 05 05
+; 190 $C076E0:  x=172  y= 52    6 at $C08133 to $C08139 -> ($)                05 53 51 05 05 05
+; 191 $C076E6:  x=174  y= 53    4 at $C08139 to $C0813D -> ($)                      05 05 05 05
+; 192 $C076EC:  x=176  y= 54    2 at $C0813D to $C0813F -> ($)                            05 05
+;                                                           x=29
+; 193 $C076F2:  x= 37  y= 35    2 at $C081B9 to $C081BB -> ($)                         05 05
+; 194 $C076F8:  x= 33  y= 36    6 at $C081BB to $C081C1 -> ($)             05 05 05 05 05 05
+; 195 $C076FE:  x= 31  y= 37   11 at $C081C1 to $C081CC -> ($)       05 05 05 73 43 71 05 73 75 71 05
+; 196 $C07704:  x= 31  y= 38   11 at $C081CC to $C081D7 -> ($)       05 73 43 74 87 70 43 74 87 60 05
+; 197 $C0770A:  x= 29  y= 39   13 at $C081D7 to $C081E4 -> ($) 05 05 05 64 87 82 83 83 84 87 87 60 00
+; 198 $C07710:  x= 29  y= 40   13 at $C081E4 to $C081F1 -> ($) 05 05 73 74 82 AE 88 88 AF 84 87 60 10
+; 199 $C07716:  x= 30  y= 41   12 at $C081F1 to $C081FD -> ($)    05 53 54 85 88 88 88 88 86 50 51 10
+; 200 $C0771C:  x= 30  y= 42   11 at $C081FD to $C08208 -> ($)    05 05 64 85 88 88 88 88 86 60 00
+; 201 $C07722:  x= 31  y= 43    9 at $C08208 to $C08211 -> ($)       05 64 90 BE 88 88 BF 92 60
+; 202 $C07728:  x= 31  y= 44    9 at $C08211 to $C0821A -> ($)       05 53 54 90 91 91 92 87 70
+; 203 $C0772E:  x= 32  y= 45    8 at $C0821A to $C08222 -> ($)          05 53 54 87 87 87 87 87
+; 204 $C07734:  x= 32  y= 46    4 at $C08222 to $C08226 -> ($)          05 05 53 54
+;                                                           x=206
+; 205 $C0773A:  x=208  y=111    5 at $C082BD to $C082C2 -> ($)       87 87 87 70 71
+; 206 $C07740:  x=206  y=112   10 at $C082C2 to $C082CC -> ($) 87 87 87 87 87 87 70 43 43 71
+; 207 $C07746:  x=206  y=113   11 at $C082CC to $C082D7 -> ($) 33 54 87 87 87 82 83 83 84 70 71
+; 208 $C0774C:  x=206  y=114   11 at $C082D7 to $C082E2 -> ($) 05 53 54 87 82 AE 88 88 AF 84 60
+; 209 $C07752:  x=206  y=115   13 at $C082E2 to $C082EF -> ($) 5B 5D 64 87 85 88 88 88 88 86 70 71 69
+; 210 $C07758:  x=207  y=116   12 at $C082EF to $C082FB -> ($)    9A 64 87 85 88 88 88 88 86 87 60 05
+; 211 $C0775E:  x=207  y=117   13 at $C082FB to $C08308 -> ($)    6D 53 54 90 BE 88 88 BF 92 87 60 59 5D
+; 212 $C07764:  x=209  y=118    9 at $C08308 to $C08311 -> ($)          64 87 90 91 91 92 50 33 51
+; 213 $C0776A:  x=208  y=119    8 at $C08311 to $C08319 -> ($)       08 53 54 50 33 33 33 51
+; 214 $C07770:  x=209  y=120    7 at $C08319 to $C08320 -> ($)          08 53 51 06 07 07 07
+; 215 $C07776:  x=209  y=121    3 at $C08320 to $C08323 -> ($)          28 05 06
+; 216 $C0777C:  x=210  y=122    2 at $C08323 to $C08325 -> ($)             05 16
+;                                                           x=76
+; 217 $C07782:  x= 76  y=124    2 at $C083A8 to $C083AA -> ($) 08 05
+; 218 $C07788:  x= 77  y=125    2 at $C083AA to $C083AC -> ($)    08 05
+; 219 $C0778E:  x= 77  y=126    2 at $C083AC to $C083AE -> ($)    28 05
+
+
+; Map 3 replacements - from $C07794 to $C0779A (1.0 entries)
+
+; Group 031 - Event Flag $1EA (490)
+; 220 $C07794:  x=169  y=164    1 at $C07C1F to $C07C20 -> ($) 42
+
+
+; Map 4 replacements - from $C0779A to $C079E6 (98.0 entries)
+
+; Group 032 - Event Flag $1F2 (498)
+;                                                           x=205
+; 221 $C0779A:  x=206  y=199    1 at $C07D4D to $C07D4E -> ($)    04
+; 222 $C077A0:  x=205  y=200    3 at $C07D4E to $C07D51 -> ($) 04 19 04
+; 223 $C077A6:  x=206  y=201    1 at $C07D51 to $C07D52 -> ($)    04
+
+; Group 033 - Event Flag $1F3 (499)
+;                                                           x=139
+; 224 $C077AC:  x=145  y=113    8 at $C07D83 to $C07D8B -> ($)                   04 04 04 04 04 04 04 04
+; 225 $C077B2:  x=139  y=114   14 at $C07D8B to $C07D99 -> ($) 04 04 04 04 04 04 04 04 04 04 04 04 04 04
+; 226 $C077B8:  x=139  y=115   13 at $C07D99 to $C07DA6 -> ($) 04 04 04 04 04 04 04 04 04 04 04 04 04
+; 227 $C077BE:  x=140  y=116   10 at $C07DA6 to $C07DB0 -> ($)    04 04 04 04 04 04 04 04 04 04
+; 228 $C077C4:  x=140  y=117    7 at $C07DB0 to $C07DB7 -> ($)    04 04 04 04 04 04 04
+; 229 $C077CA:  x=141  y=118    7 at $C07DB0 to $C07DB7 -> ($)       04 04 04 04 04 04 04
+; 230 $C077D0:  x=146  y=119    3 at $C07DB7 to $C07DBA -> ($)                      04 04 04
+
+; Group 034 - Event Flag $1F5 (501)
+;                                                           x=178
+; 231 $C077D6:  x=182  y=128    4 at $C07E52 to $C07E56 -> ($)             33 42 42 31
+; 232 $C077DC:  x=181  y=129    6 at $C07E56 to $C07E5C -> ($)          33 43 52 52 41 21
+; 233 $C077E2:  x=180  y=130    7 at $C07E5C to $C07E63 -> ($)       33 43 53 62 62 51 31
+; 234 $C077E8:  x=179  y=131    9 at $C07E63 to $C07E6C -> ($)    23 43 53 63 04 04 61 41 31
+; 235 $C077EE:  x=179  y=132   10 at $C07E6C to $C07E76 -> ($)    33 53 63 04 04 04 04 51 41 21
+; 236 $C077F4:  x=178  y=133   11 at $C07E76 to $C07E81 -> ($) 23 43 63 04 04 04 04 04 61 51 31
+; 237 $C077FA:  x=178  y=134   12 at $C07E81 to $C07E8D -> ($) 23 53 04 04 22 22 22 22 04 61 41 21
+; 238 $C07800:  x=178  y=135   12 at $C07E8D to $C07E99 -> ($) 23 63 04 22 22 22 22 22 22 04 51 31
+; 239 $C07806:  x=178  y=136   12 at $C07E99 to $C07EA5 -> ($) 23 04 04 22 22 22 22 22 22 04 61 41
+; 240 $C0780C:  x=178  y=137   12 at $C07EA5 to $C07EB1 -> ($) 23 04 04 22 22 22 22 22 22 04 04 51
+; 241 $C07812:  x=178  y=138   12 at $C07EB1 to $C07EBD -> ($) 14 13 04 22 22 22 22 22 22 04 04 61
+; 242 $C07818:  x=179  y=139   11 at $C07EBD to $C07EC8 -> ($)    14 13 04 22 22 22 22 04 04 04 04
+; 243 $C0781E:  x=180  y=140    8 at $C07EC8 to $C07ED0 -> ($)       14 13 04 04 04 04 04 04
+; 244 $C07824:  x=181  y=141    6 at $C07ED0 to $C07ED6 -> ($)          14 12 12 13 19 19
+; 245 $C0782A:  x=184  y=142    3 at $C07ED6 to $C07ED9 -> ($)                   23 19 19
+; 246 $C07830:  x=184  y=143    2 at $C07ED9 to $C07EDB -> ($)                   23 19
+; 247 $C07836:  x=184  y=144    2 at $C07ED9 to $C07EDB -> ($)                   23 19
+
+; Group 035 - Event Flag $1F6 (502)
+;                                                           x=74
+; 248 $C0783C:  x= 81  y=112    3 at $C07F59 to $C07F5C -> ($)                      33 42 31
+; 249 $C07842:  x= 76  y=113    9 at $C07F5C to $C07F65 -> ($)       33 42 42 42 42 43 52 41 31
+; 250 $C07848:  x= 75  y=114   11 at $C07F65 to $C07F70 -> ($)    33 43 52 52 52 52 53 62 51 41 21
+; 251 $C0784E:  x= 74  y=115   12 at $C07F70 to $C07F7C -> ($) 23 43 53 62 62 62 62 63 04 61 51 21
+; 252 $C07854:  x= 74  y=116   12 at $C07F7C to $C07F88 -> ($) 23 53 63 04 04 04 04 04 04 04 61 21
+; 253 $C0785A:  x= 74  y=117   12 at $C07F88 to $C07F94 -> ($) 23 63 04 04 22 22 22 22 04 04 04 21
+; 254 $C07860:  x= 74  y=118   12 at $C07F94 to $C07FA0 -> ($) 23 04 04 22 22 22 22 22 22 04 04 21
+; 255 $C07866:  x= 74  y=119   12 at $C07FA0 to $C07FAC -> ($) 14 13 04 22 22 22 22 22 22 04 04 21
+; 256 $C0786C:  x= 75  y=120   11 at $C07FAC to $C07FB7 -> ($)    23 04 22 22 22 22 22 22 04 04 21
+; 257 $C07872:  x= 75  y=121   11 at $C07FB7 to $C07FC2 -> ($)    23 04 22 22 22 22 22 22 04 11 10
+; 258 $C07878:  x= 75  y=122    9 at $C07FC2 to $C07FCB -> ($)    14 13 04 22 22 22 22 04 11
+; 259 $C0787E:  x= 77  y=123    6 at $C07FCB to $C07FD1 -> ($)          13 04 04 04 04 11
+; 260 $C07884:  x= 77  y=124    6 at $C07FD1 to $C07FD7 -> ($)          14 12 12 12 12 10
+
+; Group 036 - Event Flag $1F7 (503)
+;                                                           x=207
+; 261 $C0788A:  x=212  y=108    1 at $C08325 to $C08326 -> ($)                31
+; 262 $C07890:  x=212  y=109    4 at $C08326 to $C0832A -> ($)                41 42 42 31
+; 263 $C07896:  x=212  y=110    5 at $C0832A to $C0832F -> ($)                51 52 52 41 31
+; 264 $C0789C:  x=211  y=111    7 at $C0832F to $C08336 -> ($)             19 61 62 62 51 41 21
+; 265 $C078A2:  x=208  y=112   10 at $C08336 to $C08340 -> ($)    04 04 04 04 04 04 04 61 51 31
+; 266 $C078A8:  x=207  y=113   12 at $C08340 to $C0834C -> ($) 13 04 04 04 22 22 22 22 04 61 41 21
+; 267 $C078AE:  x=207  y=114   12 at $C0834C to $C08358 -> ($) 23 04 04 22 22 22 22 22 22 04 51 21
+; 268 $C078B4:  x=207  y=115   12 at $C08358 to $C08364 -> ($) 23 04 04 22 22 22 22 22 22 04 61 21
+; 269 $C078BA:  x=207  y=116   12 at $C08364 to $C08370 -> ($) 23 04 04 22 22 22 22 22 22 04 04 21
+; 270 $C078C0:  x=207  y=117   12 at $C08370 to $C0837C -> ($) 14 13 04 22 22 22 22 22 22 04 04 21
+; 271 $C078C6:  x=208  y=118   11 at $C0837C to $C08387 -> ($)    33 04 04 22 22 22 22 04 04 11 10
+; 272 $C078CC:  x=208  y=119   10 at $C08387 to $C08391 -> ($)    43 19 04 04 04 04 04 11 12 10
+; 273 $C078D2:  x=208  y=120    8 at $C08391 to $C08399 -> ($)    53 19 11 12 13 11 12 10
+; 274 $C078D8:  x=208  y=121    6 at $C08399 to $C0839F -> ($)    63 19 31 03 33 31
+; 275 $C078DE:  x=209  y=122    5 at $C0839F to $C083A4 -> ($)       19 41 42 43 41
+; 276 $C078E4:  x=212  y=123    2 at $C083A4 to $C083A6 -> ($)                53 51
+; 277 $C078EA:  x=212  y=124    2 at $C083A6 to $C083A8 -> ($)                63 61
+;                                                           x=31
+; 278 $C078F0:  x= 34  y= 34    7 at $C08226 to $C0822D -> ($)          33 42 31 03 33 42 31
+; 279 $C078F6:  x= 32  y= 35   10 at $C0822D to $C08237 -> ($)    33 42 43 52 41 42 43 52 41 21
+; 280 $C078FC:  x= 31  y= 36   11 at $C08237 to $C08242 -> ($) 23 43 52 53 62 51 52 53 62 51 21
+; 281 $C07902:  x= 31  y= 37   11 at $C08242 to $C0824D -> ($) 23 53 62 63 04 61 62 63 04 61 21
+; 282 $C07908:  x= 31  y= 38   11 at $C0824D to $C08258 -> ($) 23 63 04 04 04 04 04 04 04 04 21
+; 283 $C0790E:  x= 31  y= 39   11 at $C08258 to $C08263 -> ($) 23 04 04 22 22 22 22 04 04 04 21
+; 284 $C07914:  x= 31  y= 40   11 at $C08263 to $C0826E -> ($) 23 04 22 22 22 22 22 22 04 04 21
+; 285 $C0791A:  x= 31  y= 41   11 at $C0826E to $C08279 -> ($) 33 04 22 22 22 22 22 22 04 04 31
+; 286 $C07920:  x= 31  y= 42   12 at $C08279 to $C08285 -> ($) 43 04 22 22 22 22 22 22 04 04 41 21
+; 287 $C07926:  x= 31  y= 43   12 at $C08285 to $C08291 -> ($) 53 04 22 22 22 22 22 22 04 04 51 21
+; 288 $C0792C:  x= 31  y= 44   12 at $C08291 to $C0829D -> ($) 63 19 04 22 22 22 22 04 04 04 61 21
+; 289 $C07932:  x= 31  y= 45   12 at $C0829D to $C082A9 -> ($) 19 11 13 04 04 04 04 04 04 04 04 21
+; 290 $C07938:  x= 31  y= 46   11 at $C082A9 to $C082B4 -> ($) 19 21 23 19 04 04 04 04 04 19 19
+; 291 $C0793E:  x= 34  y= 47    8 at $C082B4 to $C082BC -> ($)          19 04 04 18 04 04 19 19
+; 292 $C07944:  x= 41  y= 48    1 at $C082BC to $C082BD -> ($)                               19
+;                                                           x=168
+; 293 $C0794A:  x=170  y= 41    9 at $C0813F to $C08148 -> ($)       19 19 04 04 04 04 04 04 19
+; 294 $C07950:  x=169  y= 42   10 at $C08148 to $C08152 -> ($)    19 19 19 04 04 04 04 04 04 11
+; 295 $C07956:  x=169  y= 43   10 at $C08152 to $C0815C -> ($)    19 19 19 04 04 04 04 04 19 31
+; 296 $C0795C:  x=168  y= 44   12 at $C0815C to $C08168 -> ($) 19 19 19 04 22 22 22 22 04 19 41 21
+; 297 $C07962:  x=168  y= 45   12 at $C08168 to $C08174 -> ($) 13 19 04 22 22 22 22 22 22 04 51 21
+; 298 $C07968:  x=168  y= 46   12 at $C08174 to $C08180 -> ($) 23 19 04 22 22 22 22 22 22 04 61 21
+; 299 $C0796E:  x=168  y= 47   12 at $C08180 to $C0818C -> ($) 23 04 04 22 22 22 22 22 22 04 04 21
+; 300 $C07974:  x=168  y= 48   12 at $C0818C to $C08198 -> ($) 14 13 04 22 22 22 22 22 22 04 04 21
+; 301 $C0797A:  x=169  y= 49   11 at $C08198 to $C081A3 -> ($)    14 13 04 22 22 22 22 04 04 11 10
+; 302 $C07980:  x=170  y= 50    9 at $C081A3 to $C081AC -> ($)       23 04 04 04 04 04 04 11 10
+; 303 $C07986:  x=170  y= 51    8 at $C081AC to $C081B4 -> ($)       14 13 04 04 04 11 12 10
+; 304 $C0798C:  x=171  y= 52    5 at $C081B4 to $C081B9 -> ($)          14 12 12 12 10
+;                                                           x=214
+; 305 $C07992:  x=218  y= 40    4 at $C0803E to $C08042 -> ($)             33 42 42 31
+; 306 $C07998:  x=216  y= 41    7 at $C08042 to $C08049 -> ($)       33 42 43 52 52 41 21
+; 307 $C0799E:  x=214  y= 42    9 at $C08049 to $C08052 -> ($) 23 42 43 52 53 62 62 51 31
+; 308 $C079A4:  x=214  y= 43   10 at $C08052 to $C0805C -> ($) 23 52 53 62 63 04 04 61 41 31
+; 309 $C079AA:  x=214  y= 44   11 at $C0805C to $C08067 -> ($) 23 62 63 04 04 04 04 04 51 41 21
+; 310 $C079B0:  x=214  y= 45   11 at $C08067 to $C08072 -> ($) 23 04 04 22 22 22 22 04 61 51 21
+; 311 $C079B6:  x=214  y= 46   11 at $C08072 to $C0807D -> ($) 23 04 22 22 22 22 22 22 04 61 21
+; 312 $C079BC:  x=214  y= 47   11 at $C0807D to $C08088 -> ($) 23 04 22 22 22 22 22 22 04 04 21
+; 313 $C079C2:  x=214  y= 48   11 at $C08088 to $C08093 -> ($) 23 04 22 22 22 22 22 22 04 11 10
+; 314 $C079C8:  x=214  y= 49   10 at $C08093 to $C0809D -> ($) 23 04 22 22 22 22 22 22 04 21
+; 315 $C079CE:  x=214  y= 50   10 at $C0809D to $C080A7 -> ($) 14 13 04 22 22 22 22 04 11 10
+; 316 $C079D4:  x=215  y= 51    8 at $C080A7 to $C080AF -> ($)    14 13 04 04 04 04 11 10
+; 317 $C079DA:  x=216  y= 52    6 at $C080AF to $C080B5 -> ($)       14 12 13 11 12 10
+; 318 $C079E0:  x=218  y= 53    2 at $C080B5 to $C080B7 -> ($)             14 10
+
+; ---------------------------------------------------------------------------
+
+.proc RandomBattle
 
 _ccf0:  .a8
         .i16
