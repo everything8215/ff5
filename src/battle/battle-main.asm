@@ -25,10 +25,38 @@
 ; ==============================[ battle main ]==============================
 
 .proc ExecBattle_ext
-
-_0000:  jmp     ExecBattle
-
+_0000:
+        jmp     ExecBattle
 .endproc
+
+.proc BackgroundEnablingRoutine_ext
+_0003:
+        jmp $F75F ; bg enabling routine
+.endproc
+
+
+.proc UnknownRoutine1_ext
+_0006
+        jmp $E999 ; unknown routine
+.endproc
+
+.proc DAphx_ext
+_0009
+        jmp $003F
+.endproc
+
+
+.proc JumpTable_ext
+_000C:
+        asl A
+        tax 
+        lda $C10021,X ; jump table
+        sta $7A
+        lda $C10022,X
+        sta $7B
+        jsr $001E
+        rtl
+ .endproc
 
 ; ---------------------------------------------------------------------------
 
