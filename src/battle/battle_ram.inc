@@ -258,9 +258,11 @@ AttackerDamaged = $63	;makes attacker take damage from attack instead of target
 			;no target healing though so isn't undead reversing drain
 			;not sure where this is used?  
 
-MonsterTargets = $65	;1 bit per monster
+MonsterTargets = $65
+wMonsterTargets = $65	;1 bit per monster
 
-PartyTargets = $66	;1 bit per party member then 0000
+wPartyTargets = $66	;1 bit per party member then 0000
+PartyTargets = $66
 
 ;$70 seems to be a temp var, used for passing data to/from C1 bank
 MonsterDead = $70	
@@ -275,8 +277,9 @@ EncounterIndex = $04F0	;16 bit, index into $D03000 ROM combat tables
 
 TerrainType = $04F2
 
-.macro CreateFieldCharStruct name
+.macro CreateFieldCharStruct name, addr
 .struct name				;see battle version at CharStruct for details
+.org addr
 	CharRow 	 	.res 1     	;00
 	Job 			.res 1		;01
 	Level	 		.res 1		;02
@@ -348,8 +351,7 @@ TerrainType = $04F2
 name := name::CharRow
 .endmacro
 
-.org $7E0500
-CreateFieldCharStruct FieldChar
+CreateFieldCharStruct FieldChar, $0500
 ;FieldCharStats = $0500
 
 FieldItems = $0640	;256 item ids
@@ -376,8 +378,9 @@ Config1 = $0970		;80h: 		command style
 			;08h: 		battle mode
 			;01h-04h: 	battle speed
 
-.macro CreateBattleDataStruct name
+.macro CreateBattleDataStruct name, addr
 .struct name
+.org addr
 	MagicLamp 	.res 1		;09B4		;7C74
 	Escapes	.res 1		;09B5		;7C75
 	WonderRod	.res 1		;09B6		;7C76
@@ -391,10 +394,8 @@ Config1 = $0970		;80h: 		command style
 name := name::MagicLamp
 .endmacro
 
-.org $7E09B4
-CreateBattleDataStruct FieldData
-.org $7E7C74
-CreateBattleDataStruct BattleData
+CreateBattleDataStruct FieldData, $09B4
+CreateBattleDataStruct BattleData, $7C74
 
 RNGSeed = $0AF9
 
@@ -404,7 +405,9 @@ FieldTimerEnd = $0AFE		;16 bit
 
 MusicData = $1D00
 
-.struct CharStruct
+.macro CreateCharStruct name, addr
+.struct name
+.org addr
 	CharRow 	 	.res 1     	;$2000
 						;For Characters: first 3 bits indicate who it is(Butz, etc.) as a list
 						;then, 	08h	Gender (Male=0 / Female=1)
@@ -669,11 +672,14 @@ MusicData = $1D00
 	Reaction2Damage	.res 1		;207E
 	SpecialtyName		.res 1		;207F
 .endstruct
-;CharStruct = CharStruct.CharRow
-
+name = name::CharRow
+.endmacro
+CreateCharStruct CharStruct, $2000
+CreateCharStruct CharStruct4, $2200
 
 
 .struct SavedCharStats	;saved before releasing a monster (which overwrites stats), then later restored
+.org $2600
 	Level			.res 1	;2600
 	MonsterAttack		.res 1	;2601
 	MonsterM		.res 1	;2602
@@ -722,8 +728,9 @@ AIBuffer = $2640		;AI buffer for monsters, max 64 bytes, ends with $FF
 TempTargetting = $26A0		;sometimes is number of targets minus 1
 				;sometimes is ability targetting information (a bitfield)
 
-.macro CreateMonsterStatsStruct name
+.macro CreateMonsterStatsStruct name, addr
 .struct name
+.org addr
 	Speed		.res 1		;26F0	;3EFF	;D00000	;D02000
 	AttackPower		.res 1          ;26F1	;3F00	;D00001
 	AttackMult		.res 1          ;26F2	;3F01	;D00002
@@ -756,8 +763,7 @@ TempTargetting = $26A0		;sometimes is number of targets minus 1
 name := name::Speed
 .endmacro
 
-.org $7E26F0
-CreateMonsterStatsStruct TempMStats
+CreateMonsterStatsStruct TempMStats, $26F0
 
 ;$2720 region is still temp area, reused for various things
 
@@ -815,7 +821,26 @@ InventoryUsable = $2C34	;2 bits per character (256 items)
 				;$AA means not usable for anyone
 				;unsure what the 2nd bit is for (nothing maybe)
 
+;Macros to replicate asar behaviour of indexing sequential structs in memory with Struct[i]
+.macro InstructionOffset instr, struct, field, index
+	instr struct::field + (.sizeof(struct)*index)
+.endmacro
+
+.macro InstructionOffsetX instr, struct, field, index
+	instr struct::field + (.sizeof(struct)*index), X
+.endmacro
+
+; Very commonly used lda and sta,X functions
+.macro LoadOffset struct, field, index
+	InstructionOffset lda, struct, field, index
+.endmacro
+
+.macro StoreOffsetX struct, field, index
+	InstructionOffsetX sta, struct, field, index
+.endmacro
+
 .struct CharSpells	;650 bytes * 4 characters
+.org $2D34
 	ID		.res 130	;2D34
 	Level		.res 130	;2DB6		;init to $81
 	MP		.res 130	;2E38
@@ -826,6 +851,7 @@ InventoryUsable = $2C34	;2 bits per character (256 items)
 .endstruct
 
 .struct CharCommands		;20 bytes * 4 characters
+.org $375C
 	ID 		.res 4		;375C 		;command ids (such as Fight, Mug, Item, etc)
 	Level		.res 4		;3760		;probably unused
 	MP		.res 4		;3764		;probably unused
@@ -834,7 +860,8 @@ InventoryUsable = $2C34	;2 bits per character (256 items)
 .endstruct
 
 .struct HandItems		;12 bytes * 4 characters	;similar but doesn't match the others!
-	ID		.res 2		;37AC
+.org $37AC
+	ID		.res 2		;
 	Level		.res 2		;37AE	;probably unused?, init to 1 when there's something in your hand tho
 	MP		.res 2		;37B0	;probably unused
 	Targetting	.res 2		;37B2
@@ -844,6 +871,7 @@ InventoryUsable = $2C34	;2 bits per character (256 items)
 
 .struct CharControl	;command info when controlling monsters, 20 bytes
 				;one structure for each character
+.org $37DC
 	Actions	.res 4		;$37DC	 monster commands
 	Level		.res 4		;$37E0	;probably unused
 	MP		.res 4		;$37E4	;probably unused
@@ -854,6 +882,7 @@ InventoryUsable = $2C34	;2 bits per character (256 items)
 .endstruct
 
 .struct CharVitals	;8 bytes * 4 characters
+.org $382C
 	CurHP		.res 2
 	MaxHP		.res 2
 	CurMP		.res 2
@@ -861,9 +890,9 @@ InventoryUsable = $2C34	;2 bits per character (256 items)
 .endstruct
 
 
-.macro CreateGFXAIQueue name
+.macro CreateGFXAIQueue name, addr
 .struct name   	;5 byte structure for queued animations, 102 entries (512/5)
-				;fairly sure that putting $FF in any byte but the first one will break things
+.org addr		;fairly sure that putting $FF in any byte but the first one will break things
 
 				;structure also used for monster ai?
 				;Flag can be FE for end of a block or FD for monster commands
@@ -878,8 +907,7 @@ InventoryUsable = $2C34	;2 bits per character (256 items)
 name = name::Flag
 .endmacro
 
-.org $7E384C
-CreateGFXAIQueue GFXQueue
+CreateGFXAIQueue GFXQueue, $384C
 
 ;gonna dump some command stuff here to try to figure out what's going on with GFXQueue commands
 ;Character Command 01 Other and 24 Dummy01
@@ -958,7 +986,9 @@ DisplayDamage = $3A4C		;a displayed damage number (16 bit)
 
 ;7 byte structure here (indexed by multicommand*7)
 ;saves data after an action to allow it to be animated by C1 bank code
-.struct ActionAnim
+.macro CreateActionAnim name, addr
+.struct name
+.org addr
 	Flags		.res 1	;$3BCC	;3BD3	;3BDA	;3BE1
 							;80h Attacker was a monster
 							;40h Target was a monster
@@ -976,6 +1006,14 @@ DisplayDamage = $3A4C		;a displayed damage number (16 bit)
 	ReflecteeBits		.res 1	;$3BD1	;3BD8
 	CoveredBits 		.res 1	;$3BD2	;3BD9
 .endstruct
+.endmacro
+
+;.org $7E3BCC
+CreateActionAnim ActionAnim0, $3BCC
+CreateActionAnim ActionAnim1, $3BD3
+CreateActionAnim ActionAnim2, $3BDA
+CreateActionAnim ActionAnim3, $3BE1
+
 
 BlockType = $3C3C		;type of block
 					;Set to 1 for Hardened/Defender
@@ -997,22 +1035,29 @@ MessageBoxes = $3C5F	;24 bytes of messages to display, uses single byte constant
 			;actually there's two 24 byte arrays here, one for each command of x-magic
 			;might be four?
 
-MessageBoxData = $3CBF		;12 bytes of numbers to use in message boxes, 4x 3 byte numbers
+;MessageBoxData = $3CBF		;12 bytes of numbers to use in message boxes, 4x 3 byte numbers
 				;use varies by which message is set in MessageBoxes
 
-.struct MessageBoxData	;basic 3-byte struct to make things look a bit nicer
- .res 1
- .res 1
- .res 1
+.macro CreateMessageBoxData name, addr
+.struct name	;basic 3-byte struct to make things look a bit nicer
+.org addr
+_0 .res 1
+_1 .res 1
+_2 .res 1
 .endstruct
+name = name::_0
+.endmacro
 
+CreateMessageBoxData MessageBoxData, $3CBF
+CreateMessageBoxData MessageBoxData1, $3CC2
+CreateMessageBoxData MessageBoxData2, $3CC5
 
 MessageBoxOffset = $3CEF
 MessageBoxDataOffset = $3CF0
 
-.macro CreateTimerStruct name
+.macro CreateTimerStruct name, addr
 .struct name		;11 bytes, 10 for status timers (1 = enabled) and one for ATB (which may not be used in all of them)
-				;there's an array of 12 of these structs each time it's used, one for each combatant
+.org addr			;there's an array of 12 of these structs each time it's used, one for each combatant
 					;Enable		;Current	;Initial	EndedChar	;Global		;Process
 	Stop	.res 1		;$3CF1		;$3D75		;$3DF9 		;3EB7		;$3ED9 		;$3EE4
 	Poison	.res 1		;$3CF2  	;$3D76  	;$3DFA		;3EB8
@@ -1031,24 +1076,19 @@ name = name::Stop	;makes a label so we don't have to keep specifying a property 
 .endmacro
 
 
-.org $7E3CF1
-CreateTimerStruct EnableTimer		;usually 1 here means enabled, but has bitflags
+CreateTimerStruct EnableTimer, $3CF1		;usually 1 here means enabled, but has bitflags
 						;for any:	80h bit set when timer ends to flag it to be processesd later
 						;for ATB: 	0 takes no action when timer expires (opens command menu if party and not disabled)
 						;		1 when waiting for turn
 						;		41h waiting for delayed action (such as spell cast or queued berserker attack)
 
-.org $7E3D75
-CreateTimerStruct CurrentTimer
+CreateTimerStruct CurrentTimer, $3D75
 
-.org $7E3DF9
-CreateTimerStruct InitialTimer	;ATB is not used here
+CreateTimerStruct InitialTimer, $3DF9	;ATB is not used here
 
-.org $7E3E7D
-CreateTimerStruct RandomOrderIndex	;holds current index in RandomOrder for each timer
+CreateTimerStruct RandomOrderIndex, $3E7D	;holds current index in RandomOrder for each timer
 
-.org $7E3E88
-CreateTimerStruct TimerEnded		;1 when a timer ends and needs its effect applied
+CreateTimerStruct TimerEnded, $3E88		;1 when a timer ends and needs its effect applied
 
 RandomOrder	= $3E93		;12 bytes, randomized list of unique numbers 0-11
 				;(combatant processing order for timers)
@@ -1058,8 +1098,7 @@ PauseTimerChecks = $3E9F 	;12 bytes, cancels timer checking for char when set
 QuickTimeFrozen = $3EAB		;12 bytes, one for each participant
 					;>0 means time frozen (so someone else can be Quick)
 
-.org $7E3EB7
-CreateTimerStruct TimerReadyChar	;char index of char that just had a timer end
+CreateTimerStruct TimerReadyChar, $3EB7	;char index of char that just had a timer end
 
 ActiveParticipants = $3EC2
 			;12 byte table for battle participants
@@ -1082,14 +1121,13 @@ StatusFixedDur = $3ED7	;When set, status effects with durations use an alternate
 
 StatusDuration = $3ED8
 
-.org $7E3ED9
-CreateTimerStruct GlobalTimer		;init from rom $D12976
-.org $7E3EE4
-CreateTimerStruct ProcessTimer	;set to 1 when GlobalTimer runs out
+CreateTimerStruct GlobalTimer, $3ED9		;init from rom $D12976
+CreateTimerStruct ProcessTimer, $3EE4	;set to 1 when GlobalTimer runs out
 
 
-.macro CreateEncounterInfoStruct name
+.macro CreateEncounterInfoStruct name, addr
 .struct name 	;EncounterInfo from rom encounter info table at, 16 bytes
+.org addr
 	IntroFX		.res 1		;$3EEF		;3 Low bits are monster intro animation (0-7)
 									;0	Normal
 									;1	Drop
@@ -1123,11 +1161,9 @@ CreateTimerStruct ProcessTimer	;set to 1 when GlobalTimer runs out
 name = name::IntroFX
 .endmacro
 
-.org $7E3EEF
-CreateEncounterInfoStruct EncounterInfo
+CreateEncounterInfoStruct EncounterInfo, $3EEF
 
-.org $7E3EFF
-CreateMonsterStatsStruct MonsterStats	;32 bytes * 8 monsters
+CreateMonsterStatsStruct MonsterStats, $3EFF	;32 bytes * 8 monsters
 
 MonstersVisibleUnused = $3FFF		;1 bit per monster, copied from EncounterInfo.Visible and doesn't seem to ever get used
 
@@ -1142,6 +1178,7 @@ BattleMonsterID = $4020		;2 bytes per monster, >255 indicates boss
 MonsterReactions = $4030		;1 byte per monster, number of scripted AI reactions
 
 .struct MonsterSlots		;4 bytes * 4 posible monster types
+.org $4038
 	ID		.res 2
 	Count		.res 2		;max 8, despite the 2 bytes
 .endstruct
@@ -1158,8 +1195,9 @@ MonstersVisible = $4048		;1 bit per monster, copied from EncounterInfo.Visible
 ;%CreateAttackInfoStruct(RHWeapon,$7E4085)
 ;%CreateAttackInfoStruct(LHWeapon,$7E4091)
 
-.macro CreateEquippableStruct name
+.macro CreateEquippableStruct name, addr
 .struct name				;CharEquippable, ROMItemEquippable, TempEquippable
+.org addr
 	Weapons 	.res 2	;4199		from CharStruct.EquipWeapons
 	Armor		.res 2	;419B		from CharStruct.EquipArmor
 
@@ -1167,11 +1205,9 @@ MonstersVisible = $4048		;1 bit per monster, copied from EncounterInfo.Visible
 name := name::Weapons
 .endmacro
 
-.org $7E2720
-CreateEquippableStruct TempEquippable		;4 bytes
+CreateEquippableStruct TempEquippable, $2720		;4 bytes
 
-.org $7E4199
-CreateEquippableStruct CharEquippable				;4 bytes * 4 characters
+CreateEquippableStruct CharEquippable, $4199				;4 bytes * 4 characters
 
 ATBReadyQueue = $41A9		;seems to be a queue of character indexes that have their atb ready
 				;5 bytes
@@ -1180,8 +1216,9 @@ ATBReadyQueue = $41A9		;seems to be a queue of character indexes that have their
 ATBReadyCount = $41AE		;count of above queue
 
 
-.macro CreateMenuDataStruct name
+.macro CreateMenuDataStruct name, addr
 .struct name			;MenuData and Copy
+.org addr
 	MenuOpen			.res 1	;41B0	41BE
 	ActionFlag		.res 1	;41B1	41BF
 	Command			.res 1	;41B2	41C0
@@ -1200,12 +1237,11 @@ ATBReadyCount = $41AE		;count of above queue
 name := name::MenuOpen
 .endmacro
 
-.org $7E41B0
-CreateMenuDataStruct MenuDataC1
-.org $7E41BE
-CreateMenuDataStruct MenuData
+CreateMenuDataStruct MenuDataC1, $41B0
+CreateMenuDataStruct MenuData, $41BE
 
 .struct DisplayInfo		;used for routines which handle C1 bank graphics calls to display menus in battle
+.org $41CC
 	CurrentChar	.res 1		;41CC	init to FF, but holds index of character that currently has a menu open
 	CD		.res 1		;41CD	likely unused
 	Status1	.res 1		;41CE	;these status are processed 2 at a time using 16 bits
@@ -1215,9 +1251,9 @@ CreateMenuDataStruct MenuData
 	CurMP		.res 2		;41D2
 .endStruct
 
-.macro CreateSavedActionStruct name
+.macro CreateSavedActionStruct name, addr
 .struct name		;chunk of CharStruct relating to actions is copied here when a command is issued
-					;used for mimic (and nothing else?)
+.org addr			;used for mimic (and nothing else?)
 	ActionFlag		.res 1		;41D4		;20h magic, 40h item
 	Command		.res 1		;41D5
 	MonsterTargets	.res 1		;41D6		Monster Target
@@ -1232,19 +1268,18 @@ CreateMenuDataStruct MenuData
 name := name::ActionFlag
 .endmacro
 
-.org $7E41D4
-CreateSavedActionStruct SavedAction	;used for mimic
-.org $7E473A
-CreateSavedActionStruct SavedAction2	;used for reactions
+CreateSavedActionStruct SavedAction, $41D4	;used for mimic
+CreateSavedActionStruct SavedAction2, $473A	;used for reactions
 
-MonsterMagic = $7E41DE		;spells available to monsters
+MonsterMagic = $41DE		;spells available to monsters
 				;1 byte * 16 slots (per monster)
 
 .struct MMTargets	;targets of MonsterMagic above, 16 slots per monster
+.org $425E
 	Party		.res 1	;425E
 	Monster	.res 1	;425F
 .endstruct
-;MMTargets = MMTargets.Party
+MMTargets = MMTargets::Party
 
 MonsterOffset16 = $435E		;monster index *16, used in monster atb/ai
 MonsterOffset32 = $4360		;monster index *32, used in monster atb/ai
@@ -1252,8 +1287,7 @@ MonsterOffset32 = $4360		;monster index *32, used in monster atb/ai
 AIVars = $4363			;variables used by AI condition checks
 				;unsure how many, possibly 4 (0-3)
 
-.org $7E4367
-CreateGFXAIQueue MonsterAIScript
+CreateGFXAIQueue MonsterAIScript, $4367
 				;100 bytes per monster, init to $FF
 				;copied to GFXQueue and has the same structure
 				;up to 5 blocks of 4 commands
@@ -1295,6 +1329,7 @@ SavedCurrentATB = $4745
 
 
 .struct CurrentCommand
+.org $4746
 	ID       		.res 1	;4746	;index into command jump table (Steal, Jump, etc), post remap
 	Magic        	  	.res 1	;4747
 	Item	       	 	.res 1	;4748
@@ -1303,7 +1338,7 @@ SavedCurrentATB = $4745
 	Targets		.res 1  ;474B	;one byte, either party or monster targets
 	Damage		.res 1	;474C	;both bytes of damage OR'd together
 .endstruct
-;CurrentCommand = CurrentCommand.ID
+CurrentCommand = CurrentCommand::ID
 
 CommandOffset = $474D			;Current Command, but adjusted to match the order of the command table
 					;mostly just subtracts 1 vs the menu commands,
@@ -1337,12 +1372,13 @@ PendingReactions = $4756		;indicates PauseTimerChecks had some values set
 					;zero'd after action execution finishes
 
 .struct MonsterAI	;1620 bytes * 8 monsters
+.org $4759
 	Conditions		.res 170	;4759, 10*17 bytes.   4*4byte args then $FE
 	Actions		.res 640	;4803, 10*64 byte entries
 	ReactConditions	.res 170	;4A83, 10*17 bytes.   4*4byte args then $FE
 	ReactActions          .res 640        ;4B2D, 10*64 byte entries
 .endstruct
-;MonsterAI = MonsterAI.Conditions
+MonsterAI = MonsterAI::Conditions
 
 NextGFXQueueSlot = $79F9		;Max 101, though there can be more queued GFXs than that
 					;game works around it by just searching if so
@@ -1357,9 +1393,9 @@ MultiDamage = $79FB			;Used *24 when calculating the offset for displayed damage
 					;$79FB incremented along with multicommand at end of counter routine
 
 
-.macro CreateAttackInfoStruct name
+.macro CreateAttackInfoStruct name, addr
 .struct name			;AttackInfo
-					;12-bytes, multiple structures indexed by AttackerOffset2
+.org addr				;12-bytes, multiple structures indexed by AttackerOffset2
 					;the attacking weapon data is loaded into AttackInfo
 					;or 8 byte magic/Command structure into first 5 and last 3 bytes
 					;same structure at other locations is also used for all equipment data
@@ -1501,26 +1537,15 @@ name::Param3 := name::Status
 name := name::Targetting		;makes a define so we don't have to keep specifying a property when accessing the structure as a whole
 .endmacro
 
-.org $7E4049
-CreateAttackInfoStruct GearStats	;table with gear stats, 7*12 byte AttackInfo structs, then *4 for party members, total size 84 bytes per character
-
-.org $7E4049
-CreateAttackInfoStruct Headgear	;broken out into types for better labeling
-.org $7E4055
-CreateAttackInfoStruct Bodywear
-.org $7E4061
-CreateAttackInfoStruct Accessory
-.org $7E406D
-CreateAttackInfoStruct RHShield
-.org $7E4079
-CreateAttackInfoStruct LHShield
-.org $7E4085
-CreateAttackInfoStruct RHWeapon
-.org $7E4091
-CreateAttackInfoStruct LHWeapon
-
-.org $7E79FC
-CreateAttackInfoStruct AttackInfo	;16 of these, 12*16 = 192 bytes
+CreateAttackInfoStruct GearStats, $4049	;table with gear stats, 7*12 byte AttackInfo structs, then *4 for party members, total size 84 bytes per character
+CreateAttackInfoStruct Headgear, $4049	;broken out into types for better labeling
+CreateAttackInfoStruct Bodywear, $4055
+CreateAttackInfoStruct Accessory, $4061
+CreateAttackInfoStruct RHShield, $406D
+CreateAttackInfoStruct LHShield, $4079
+CreateAttackInfoStruct RHWeapon, $4085
+CreateAttackInfoStruct LHWeapon, $4091
+CreateAttackInfoStruct AttackInfo, $79FC	;16 of these, 12*16 = 192 bytes
 
 TargetAdjust = $7ABC			;causes some kind of adjustment to target index
 					;believe it's used to dispatch individual attacks from a multitarget ability
@@ -1601,13 +1626,21 @@ CurrentChar = $7B7B			;used in some routines to keep track of the current charac
 
 GearChanged = $7B7D			;>0 means equipment was changed in the battle item menu
 
-.struct CombinedStatus		;4 bytes * 16 participant slots, combines StatusX and AlwaysStatusX
-					;4 party, 4 unused?, 8 monsters
+.macro CreateCombinedStatus name, addr
+.struct name		;4 bytes * 16 participant slots, combines StatusX and AlwaysStatusX
+.org addr			;4 party, 4 unused?, 8 monsters
 	S1		.res 1	;7B7E 	;7B9E
 	S2		.res 1	;7B7F	;7B9F
 	S3		.res 1	;7B80	;7BA0
 	S4		.res 1	;7B81	;7BA1
 .endstruct
+.endmacro
+
+; Address of first party combined status
+CreateCombinedStatus CombinedStatus, $7B7E
+
+; Address of first monster combined status
+CreateCombinedStatus MonsterCombinedStatus, $7B9E
 
 BattleOver = $7BDE			;Flag for ending battle
 					;80h: Enemies dead
@@ -1690,8 +1723,8 @@ BlueLearned = $7C21		;ids of blue spells learned, 8 bytes
 
 NoValidTargets = $7C29		;set to 1 when retargetting fails to find a valid new target
 
-.org $7E7C2A
 .struct ForcedTarget 	;2 bytes * 8 entries in table, ends at
+.org $7C2A
 	Party			.res 1		;$7C2A
 	Monster		.res 1		;$7C2B
 .endstruct
@@ -1815,15 +1848,13 @@ wMusicChanged = $DBB3			;1 while music change routine is being called
 ;Rom Structures
 ROMRNG = $C0FEC0
 
-.org $D00000
-CreateMonsterStatsStruct ROMMonsterStats	;32 bytes * 256 regular monsters
+CreateMonsterStatsStruct ROMMonsterStats, $D00000	;32 bytes * 256 regular monsters
 ;ROMBossStats = ROMMonsterStats[$2000]			;then another 128 boss monsters
 
-.org $D03000
-CreateEncounterInfoStruct ROMEncounterInfo
+CreateEncounterInfoStruct ROMEncounterInfo, $D03000
 
-.org $D05000
 .struct ROMLoot		;4 bytes, 384 entries, ends at
+.org $D05000
 	RareSteal		.res 1
 	CommonSteal		.res 1
 	RareDrop		.res 1
@@ -1837,6 +1868,7 @@ ROMMonsterReleaseActions = $D08600	;monster actions for release
 ROMMonsterCoordinates = $D08900
 
 .struct ROMSpecialtyData		;monster specialty attacks, 2 bytes * 384 monsters
+.org $D09900
 	Properties		.res 1
 	Name			.res 1
 .endstruct
@@ -1899,6 +1931,7 @@ ROMToadOK = $D0EF58		;1 bit per spell, determines whether magic can be used as a
 ;$D0EF78 is code 	CleanupFieldItems_D0	;set quantities to 0 for id 0 items, set ids to 0 for qty 0 items
 
 .struct ROMMonsterFormData	;16 bytes * 4 entries
+.org $D0FFA0
 					;there's only one actual entry in the vanilla rom, the rest are blank
 					;even the one with data there is likely usused
 	Encounter		.res 2
@@ -1906,20 +1939,20 @@ ROMToadOK = $D0EF58		;1 bit per spell, determines whether magic can be used as a
 .endstruct
 
 .struct ROMOneTime	;4 bytes * 8 entries for one-time encounters
+.org $D0FFE0
 	Encounter		.res 2
 	Replacement		.res 2
 .endstruct
 
-.org $D10000
-CreateAttackInfoStruct ROMItems		;12 bytes, 256 entries, ends at $D10BFF
+CreateAttackInfoStruct ROMItems, $D10000		;12 bytes, 256 entries, ends at $D10BFF
 							;identical to AttackInfo .struct at, see that for details
-ROMWeapons := ROMItems
-ROMArmor := ROMItems + $600	;$D10600
+CreateAttackInfoStruct ROMWeapons, $D10000
+CreateAttackInfoStruct ROMArmor, $D10600
 ;consumable items use the 8 byte magic/ability structure instead
 
-.macro CreateMagicInfoStruct name
+.macro CreateMagicInfoStruct name, addr
 .Struct name		;8 bytes
-				;same format as AttackInfo Struct's first 4 and last 4 elements
+.org addr			;same format as AttackInfo Struct's first 4 and last 4 elements
 				;see that for details
 				;awkwardly, they copy .AtkType to the 5th position in attackinfo, instead of 9th to match weapons, so it's more like a 5/3 split
 	Targetting		.res 1		;0
@@ -1937,29 +1970,25 @@ name := name::Targetting	;makes a define so we don't have to keep specifying a p
 .endmacro
 
 
-.org $7E262A
-CreateMagicInfoStruct TempMagicInfo
+CreateMagicInfoStruct TempMagicInfo, $262A
+CreateMagicInfoStruct ROMConsumables, $D10A80		;8 bytes * 32 consumables
+CreateMagicInfoStruct ROMMagicInfo, $D10B80		;8 bytes * 256 spells
 
-.org $D10A80
-CreateMagicInfoStruct ROMConsumables		;8 bytes * 32 consumables
+CreateEquippableStruct ROMItemEquippable, $D12480	;4 bytes * 64 entries
 
-.org $D10B80
-CreateMagicInfoStruct ROMMagicInfo		;8 bytes * 256 spells
-
-.org $D12480
-CreateEquippableStruct ROMItemEquippable	;4 bytes * 64 entries
-
-.struct ROMElementDef	
+.struct ROMElementDef
+.org $D12580	
 	Absorb 	.res 1
 	Evade		.res 1
 	Immune	.res 1
 	Half		.res 1
 	Weak		.res 1
 .endstruct
-;ROMElementDef = ROMElementDef.0
+ROMElementDef = ROMElementDef::Absorb
 
 .struct ROMArmorStatus
-	Status0	.res 1		;high bit here indicates always status, for all other status below as well
+.org $D126C0
+	Status1	.res 1		;high bit here indicates always status, for all other status below as well
 	Status2       	.res 1		;only the last item per type with an always status will apply
 	Status3       	.res 1		
 	Status4       	.res 1		
@@ -1970,8 +1999,7 @@ CreateEquippableStruct ROMItemEquippable	;4 bytes * 64 entries
 
 ROMStatBonuses = $D12880	;16 bytes, 8 stat mod pairs
 
-.org $D12976
-CreateTimerStruct ROMGlobalTimer	;11 bytes
+CreateTimerStruct ROMGlobalTimer, $D12976	;11 bytes
 
 ROMMagicAnim = $D12981		;16 byte table of bitfields mapping to spells $80+
 				;1 indicates a given spell uses animation type 7 (magic)
@@ -1986,17 +2014,15 @@ ROMJobPointers = $D152C0	;2 bytes * 21, pointer to first ability for each job (n
 ROMJobLevels = $D152EA		;1 byte * 22, number of levels for each job (also ability count)
 ROMJobAbilities = $D15300	;3 bytes, 2 byte ap cost followed by 1 byte id, accessed via ROMJobPointers
 
-.org $D159E0
-CreateMagicInfoStruct ROMAbilityInfo		;8 bytes * 96 abilities
+CreateMagicInfoStruct ROMAbilityInfo, $D159E0		;8 bytes * 96 abilities
 
 ROMStatusDisableCommands = $D15CE0	;16 bit entries, index is command ID
 					;holds Status1 and Status2 that should disable that command
 
 ROMCommandDelay = $D15DA0	;1 byte per command, atb delay when used
 				;80h set -> use weapon or spell delay instead
-		
-.org $D16AB1
-CreateMagicInfoStruct ROMEffectInfo	;Spell effects for Animals, Mix, etc. 
+
+CreateMagicInfoStruct ROMEffectInfo, $D16AB1	;Spell effects for Animals, Mix, etc. 
 						;8 bytes * 105? abilities
 ROMTerrainSpells = $D16DF9	;4 bytes per terrain type
 							
