@@ -1,7 +1,7 @@
 import os
 
-START_POS = 0x20000
-BYTES_TO_CHECK = 0x9FFF
+START_POS = 0x59F00
+BYTES_TO_CHECK = 0x20E5
 
 def main():
     with open("../rom/ff5-en.sfc", "rb") as gen_file, open("../rom/Final Fantasy 5.sfc", "rb") as orig_file:
@@ -16,14 +16,16 @@ def main():
 
     has_errors = False
 
-    for i in range(START_POS, START_POS + BYTES_TO_CHECK):
-        if gen_data[i] != orig_data[i]:
+    for i in range(0, BYTES_TO_CHECK):
+        genAddr = START_POS+i
+        orgAddr = 0x109F00+i
+        if gen_data[genAddr] != orig_data[orgAddr]:
             has_errors = True
             if skip_first > 0:
                 skip_first -= 1
                 continue
-            print(f"Files differ at {i - START_POS:04X}")
-            print(f"Gen: {gen_data[i]:02X}, Orig: {orig_data[i]:02X}")
+            print(f"Files differ at {orgAddr:04X}")
+            print(f"Gen: {gen_data[genAddr]:02X}, Orig: {orig_data[orgAddr]:02X}")
             top -= 1
             if top == 0:
                 break
