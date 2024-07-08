@@ -395,5 +395,170 @@ PSW_C = %00000001
 
 ; ------------------------------------------------------------------------------
 
+; [ macros for reserving RAM variables ]
+
+.enum RAM_ADDR_SIZE
+        ZP = 1
+        NEAR = 2
+        FAR = 3
+.endenum
+
+::_ram_offset .set 0
+::_ram_verbose .set 0
+::_ram_addr_size .set RAM_ADDR_SIZE::FAR
+::_ram_scope_start .set 0
+
+.define ram_org(offset) ::_ram_offset .set offset
+.define ram_verbose(value) ::_ram_verbose .set value
+.define ram_addr_size(size) ::_ram_addr_size .set RAM_ADDR_SIZE::size
+
+.mac ram_label label, namespace
+        .ifblank namespace
+                .ident(.sprintf("%s_zp", .string(label))) := <::_ram_offset
+                .ident(.sprintf("%s_near", .string(label))) := near ::_ram_offset
+                .ident(.sprintf("%s_far", .string(label))) := ::_ram_offset
+                .if ::_ram_addr_size = RAM_ADDR_SIZE::ZP
+                        label := <::_ram_offset
+                .elseif ::_ram_addr_size = RAM_ADDR_SIZE::NEAR
+                        label := near ::_ram_offset
+                .elseif ::_ram_addr_size = RAM_ADDR_SIZE::FAR
+                        label := ::_ram_offset
+                .endif
+        .else
+                namespace::.ident(.sprintf("%s_zp", .string(label))) := <::_ram_offset
+                namespace::.ident(.sprintf("%s_near", .string(label))) := near ::_ram_offset
+                namespace::.ident(.sprintf("%s_far", .string(label))) := ::_ram_offset
+                .if ::_ram_addr_size = RAM_ADDR_SIZE::ZP
+                        namespace::label := <::_ram_offset
+                .elseif ::_ram_addr_size = RAM_ADDR_SIZE::NEAR
+                        namespace::label := near ::_ram_offset
+                .elseif ::_ram_addr_size = RAM_ADDR_SIZE::FAR
+                        namespace::label := ::_ram_offset
+                .endif
+        .endif
+.endmac
+
+.mac ram_res label, size
+        ; define the label
+        .ifnblank label
+                ram_label label
+
+                ; define labels for array items
+                .if .defined(NUM_ITEMS) && .defined(ITEM_SIZE)
+                        .local old_offset
+                        old_offset = ::_ram_offset
+                        .repeat NUM_ITEMS, i
+                                ram_label label, .ident(.sprintf("_%d", i))
+                                ::_ram_offset .set ::_ram_offset + ITEM_SIZE
+                        .endrep
+                        ::_ram_offset .set old_offset
+                .endif
+
+                ; print the label and address
+                .if ::_ram_verbose
+                        .if label <= $ff
+                                .out .sprintf("$%02x %s", label, .string(label))
+                        .elseif label <= $ffff
+                                .out .sprintf("$%04x %s", label, .string(label))
+                        .else
+                                .out .sprintf("$%06x %s", label, .string(label))
+                        .endif
+                .endif
+
+                ; define the size
+                .if size <> 0
+                        .scope label
+                        .endscope
+                        label::SIZE = size
+                .endif
+        .endif
+
+        ; increment the ram offset
+        ::_ram_offset .set ::_ram_offset + size
+.endmac
+
+.mac ram_byte label
+        ram_res label, 1
+.endmac
+
+.mac ram_word label
+        ram_res label, 2
+.endmac
+
+.mac ram_faraddr label
+        ram_res label, 3
+.endmac
+
+.mac ram_dword label
+        ram_res label, 4
+.endmac
+
+.mac ram_scope label
+        ram_res label, 0
+        .scope label
+        START = ::_ram_offset
+.endmac
+
+.mac end_ram_scope
+; define the size of this scope and end the scope
+        .ifndef SIZE
+                SIZE = ::_ram_offset - START
+        .endif
+        .endscope
+.endmac
+
+.mac ram_array label, num_items, item_size, num_blocks
+        ram_scope label
+        ITEM_SIZE = item_size
+        NUM_ITEMS = num_items
+        SIZE = ITEM_SIZE * NUM_ITEMS
+        .ifnblank num_blocks
+                ; array with more than 1 block
+                .assert item_size .mod num_blocks = 0, error, "Item size must be divisible by the number of blocks"
+                BLOCK_SIZE = item_size / num_blocks
+                NUM_BLOCKS = num_blocks
+                block_start .set START
+        .endif
+
+        ; create namespaces for each array item
+        .repeat NUM_ITEMS, i
+                .scope .ident(.sprintf("_%d", i))
+                .endscope
+                .ident(.sprintf("_%d", i)) = START + i * ITEM_SIZE
+        .endrep
+.endmac
+
+.mac end_ram_array
+        ; make sure we didn't overflow
+        .local bytes_over
+        .ifdef BLOCK_SIZE
+                bytes_over = ::_ram_offset - block_start - BLOCK_SIZE
+                .assert bytes_over <= 0, error, .sprintf("Array block too large by %d bytes", bytes_over)
+        .else
+                bytes_over = ::_ram_offset - START - ITEM_SIZE
+                .assert bytes_over <= 0, error, .sprintf("Array item too large by %d bytes", bytes_over)
+        .endif
+
+        ; increment the RAM offset
+        ::_ram_offset .set START + SIZE
+        end_ram_scope
+.endmac
+
+.mac end_ram_block
+        ; check if the block overflowed
+        .local bytes_over
+        bytes_over = ::_ram_offset - block_start - BLOCK_SIZE
+        .assert bytes_over <= 0, error, .sprintf("Array block too large by %d bytes", bytes_over)
+
+        ; go to the next block
+        ::_ram_offset .set block_start + BLOCK_SIZE * NUM_ITEMS
+        block_start .set ::_ram_offset
+.endmac
+
+.define array_item(array, index) array::.ident(.sprintf("_%d", index))
+.define array_member(array, index, member) array::.ident(.sprintf("_%d", index))::member
+
+; ------------------------------------------------------------------------------
+
 .endif
 .list on
