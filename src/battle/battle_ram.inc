@@ -18,7 +18,10 @@ TempCharm = $22			;for monster ai, indicates a charmed action
 ;$24-27 are used for FF5's 8 bit multiply routine, before copying to SNES hardware multiplier
 ;$2A-31 are used for FF5's 16 bit multiply routine
 
-AttackerOffset = $32	;16 bit offset into Character Structures (should be multiple of $80)
+ram_org $7e0032
+ram_addr_size ZP
+
+ram_word AttackerOffset; = $32	;16 bit offset into Character Structures (should be multiple of $80)
 			;also used as a "current" character offset when processesing non-attack things
 	;* Target/Attacker Offset = index * 80h
 	;     0 - Character1
@@ -30,43 +33,47 @@ AttackerOffset = $32	;16 bit offset into Character Structures (should be multipl
 	;   ...
 	;   580 - Monster8
 
-SpellOffset = $34	;16 bit offset into CharSpells struct, char index * 650
+ram_word SpellOffset; = $34	;16 bit offset into CharSpells struct, char index * 650
 
-TimerOffset = $36 	;16 bit offset into timer structures, pulled from rom for a given target
- 
-AttackerOffset2 = $39	;Offset into combat tables for multi-commands? 
-			;equal to MultiCommand*12 
+ram_word TimerOffset; = $36 	;16 bit offset into timer structures, pulled from rom for a given target
 
-RNGA = $3A	
-RNGB = $3B
+ram_byte
+
+ram_byte AttackerOffset2; = $39	;Offset into combat tables for multi-commands?
+			;equal to MultiCommand*12
+
+ram_byte RNGA; = $3A
+ram_byte RNGB; = $3B
+
+ram_byte
 
 ;$3D - 46 are used for various things (temp area)
 ;for loot
-TempMonsterIndex = $3D
-TempMonsterOffset = $3F
+ram_word TempMonsterIndex; = $3D
+ram_word TempMonsterOffset; = $3F
 
 ;for ai
 MMOffset = $3D			;init to Monster index of acting monster * 16 during AI script
 MMTargetOffset = $3F		;init to Monster index of acting monster * 32 during AI script
 
-AIScriptOffset = $41		;monster index *100 	
-AIBufferOffset = $43		
+AIScriptOffset = $41		;monster index *100
+AIBufferOffset = $43
 
 AISpellCount = $45		;number of spells already in Spell Queue (MonsterMagic)
 
 ;for magic
 HalfMP = $3D		;1 indicates half mp is active, 1 byte * 4 characters
 
-SpellOffsetRandom = $41	;16 bit offset into CharSpells struct, char index * 650 
+SpellOffsetRandom = $41	;16 bit offset into CharSpells struct, char index * 650
 				;used when randomly determining a magic spell to cast
 
 TempNumHits = $41		;meteor style multihit
 
-TempSpellOffset = $45		;16 bit offset into CharSpells struct, char index * 650 
+TempSpellOffset = $45		;16 bit offset into CharSpells struct, char index * 650
 
 ;for items
 TempHand = $45			;0 for RH, 1 for LH
-TempItemMagic = $46		
+TempItemMagic = $46
 
 
 AttackerIndex = $47
@@ -76,9 +83,9 @@ wTargetIndex = $48
 	;   1 - Character2
 	;   2 - Character3
 	;   3 - Character4
-	;   4 - Monster1 
-	;   5 - Monster2 
-	;   ... 
+	;   4 - Monster1
+	;   5 - Monster2
+	;   ...
 	;   B - Monster8
 
 TargetOffset = $49	;16 bit offset into Character Structures (should be multiple of $80)
@@ -95,18 +102,18 @@ M = $52		;Attack Multiplier (16 bit)
 
 Defense = $54		;Defense value used during calculations (16 bit)
 			;could be physical or magical depending on attack type
-			
+
 AtkMissed = $56		;Greater than 0 means attack has missed
 				;80h is something specific (physical miss?)
 
-;These are used for different things depending on attack type 
-Param1 = $57	
+;These are used for different things depending on attack type
+Param1 = $57
 Param2 = $58
 Param3 = $59
 			;Battle Params			$57		$58		$59
-				
-			;Weapons:	
-			
+
+			;Weapons:
+
 			;30 Fists			Crit%		-		-
 			;31 Swords: 			Element 	Proc% 		Proc
 			;32 Knives: 			Element 	Proc% 		Proc
@@ -116,20 +123,20 @@ Param3 = $59
 			;36 Bows(Element):		Hit%		Crit%		Element
 			;37 Katanas:			Crit%		Proc%		Proc
 			;38 Whips:			Hit%		Proc%		Proc
-			;39 Bells:			-		-		-					
+			;39 Bells:			-		-		-
 			;3A Long Axes:			Hit%		Proc%		Proc
 			;3B Rods:			Hit%		-		Element
 			;3C Rune:			Hit%		Dmg Boost	MP Cost
 			;64 Chicken Knife		-		Proc%		Proc
 			;6E Brave Blade			-		-		-
-			;72 Bows(Creature):		Creature Type	-		-		
+			;72 Bows(Creature):		Creature Type	-		-
 			;73 Spears(Creature):		Creature Type	-		-
-				
-			;Other:	
-				
+
+			;Other:
+
 			;01 Monster Fight		-		-		-
 			;02 Monster Specialty		-		-		Status (special format)
-			;03-05 Magic Sword		Animation	Element		Status 
+			;03-05 Magic Sword		Animation	Element		Status
 			;06 Magic			-		Spell Power	Element
 			;07 Gravity			Hit%		*Fraction/16	Status 2
 			;08 Flare			-		Spell Power	Element
@@ -231,8 +238,8 @@ Param3 = $59
 			;75 Do Nothing			-		-		-
 			;7E Maps to 74			-		-		-
 			;7F Maps to 75			-		-		-
-			
-			
+
+
 			;  *	high bit here causes autohit except when it's monster vs party
 			; 	likely unintended in some cases
 
@@ -251,12 +258,12 @@ MagicSword = $60 	;set when Magic Sword is applied
 			;bypasses element calculations, some other effects
 
 TargetDead = $61	;Set to 1 when Target is instantly killed (by MSword)
-		
+
 AtkHealed = $62
 
 AttackerDamaged = $63	;makes attacker take damage from attack instead of target
 			;no target healing though so isn't undead reversing drain
-			;not sure where this is used?  
+			;not sure where this is used?
 
 MonsterTargets = $65
 wMonsterTargets = $65	;1 bit per monster
@@ -265,10 +272,10 @@ wPartyTargets = $66	;1 bit per party member then 0000
 PartyTargets = $66
 
 ;$70 seems to be a temp var, used for passing data to/from C1 bank
-MonsterDead = $70	
-MenuCurrentChar = $70	
+MonsterDead = $70
+MenuCurrentChar = $70
 C1Temp = $70
-		
+
 ;$00A2			;written to in C1 code, checked in AICondition0C
 
 FieldItemsWon = $013B	;8 bytes, BattleItemsWon copied here at end
@@ -277,85 +284,81 @@ EncounterIndex = $04F0	;16 bit, index into $D03000 ROM combat tables
 
 TerrainType = $04F2
 
-.macro CreateFieldCharStruct name, addr
-.struct name				;see battle version at CharStruct for details
-.org addr
-	CharRow 	 	.res 1     	;00
-	Job 			.res 1		;01
-	Level	 		.res 1		;02
-	Exp			.res 3		;03-5
-	CurHP			.res 2		;06-7
-	MaxHP			.res 2		;08-9
-	CurMP			.res 2		;0A-B
-	MaxMP			.res 2		;0C-D
-	Headgear		.res 1		;0E
-	Bodywear              .res 1		;0F
-	Accessory             .res 1		;10
-	RHShield              .res 1		;11
-	LHShield              .res 1		;12
-	RHWeapon              .res 1		;13
-	LHWeapon              .res 1		;14
-	CaughtMonster         .res 1		;15
-	BattleCommands        .res 4		;16-19
-	Status1		.res 1		;1A
-	Status2	        .res 1		;1B
-	Status3       	.res 1		;1C 
-	Status4		.res 1		;1D
-	CmdStatus		.res 1		;1E
-	DamageMod		.res 1		;1F
-	Passives1             .res 1		;20
-	Passives2             .res 1		;21
-	ElementUp             .res 1		;22
-	EqWeight              .res 1		;23
-	BaseStr               .res 1		;24
-	BaseAgi               .res 1		;25
-	BaseVit               .res 1		;26
-	BaseMag               .res 1		;27
-	EquippedStr		.res 1		;28
-	EquippedAgi           .res 1		;29
-	EquippedVit           .res 1		;2A
-	EquippedMag           .res 1		;2B
-	Evade                 .res 1		;2C
-	Defense               .res 1		;2D
-	MEvade                .res 1		;2E
-	MDefense              .res 1		;2F
-	EAbsorb               .res 1		;30
-	EBlock                .res 1		;31		
-	EImmune               .res 1		;32
-	EHalf                 .res 1		;33
-	EWeak                 .res 1		;34
-	StatusImmune1         .res 1		;35
-	StatusImmune2		.res 1		;36
-	StatusImmune3         .res 1		;37
-	WeaponProperties      .res 1		;38
-	ArmorProperties       .res 1		;39
-	JobLevel              .res 1		;3A
-	AP                    .res 2		;3B-C
-	EnableSpells     	.res 3		;3D   		Sword/White	4 bits high/low unpacked into separate bytes later
+ram_org $7e0500
+ram_addr_size NEAR
+
+ram_array FieldChar, 4, 80
+	ram_byte CharRow; 	 	.res 1     	;00
+	ram_byte Job; 			.res 1		;01
+	ram_byte Level;	 		.res 1		;02
+	ram_faraddr Exp;			.res 3		;03-5
+	ram_word CurHP;			.res 2		;06-7
+	ram_word MaxHP;			.res 2		;08-9
+	ram_word CurMP;			.res 2		;0A-B
+	ram_word MaxMP;			.res 2		;0C-D
+	ram_byte Headgear;		.res 1		;0E
+	ram_byte Bodywear;              .res 1		;0F
+	ram_byte Accessory;             .res 1		;10
+	ram_byte RHShield;              .res 1		;11
+	ram_byte LHShield;              .res 1		;12
+	ram_byte RHWeapon;              .res 1		;13
+	ram_byte LHWeapon;              .res 1		;14
+	ram_byte CaughtMonster;         .res 1		;15
+	ram_res BattleCommands, 4;        .res 4		;16-19
+	ram_byte Status1;		.res 1		;1A
+	ram_byte Status2;	        .res 1		;1B
+	ram_byte Status3;       	.res 1		;1C
+	ram_byte Status4;		.res 1		;1D
+	ram_byte CmdStatus;		.res 1		;1E
+	ram_byte DamageMod;		.res 1		;1F
+	ram_byte Passives1;             .res 1		;20
+	ram_byte Passives2;             .res 1		;21
+	ram_byte ElementUp;             .res 1		;22
+	ram_byte EqWeight;              .res 1		;23
+	ram_byte BaseStr;               .res 1		;24
+	ram_byte BaseAgi;               .res 1		;25
+	ram_byte BaseVit;               .res 1		;26
+	ram_byte BaseMag;               .res 1		;27
+	ram_byte EquippedStr;		.res 1		;28
+	ram_byte EquippedAgi;           .res 1		;29
+	ram_byte EquippedVit;           .res 1		;2A
+	ram_byte EquippedMag;           .res 1		;2B
+	ram_byte Evade;                 .res 1		;2C
+	ram_byte Defense;               .res 1		;2D
+	ram_byte MEvade;                .res 1		;2E
+	ram_byte MDefense;              .res 1		;2F
+	ram_byte EAbsorb;               .res 1		;30
+	ram_byte EBlock;                .res 1		;31
+	ram_byte EImmune;               .res 1		;32
+	ram_byte EHalf;                 .res 1		;33
+	ram_byte EWeak;                 .res 1		;34
+	ram_byte StatusImmune1;         .res 1		;35
+	ram_byte StatusImmune2;		.res 1		;36
+	ram_byte StatusImmune3;         .res 1		;37
+	ram_byte WeaponProperties;      .res 1		;38
+	ram_byte ArmorProperties;       .res 1		;39
+	ram_byte JobLevel;              .res 1		;3A
+	ram_word AP;                    .res 2		;3B-C
+	ram_faraddr EnableSpells;     	.res 3		;3D   		Sword/White	4 bits high/low unpacked into separate bytes later
 						;3E		Black/Time
 						;3F		Summon/Misc	(Misc would be Songs/Blue but seems unused)
-	EquipWeapons		.res 2		;40		bitmask for equippable weapons
-	EquipArmor		.res 2		;42		bitmask for equippable armor
-	MonsterAttack		.res 1		;44		Only used for Goblin Punch and Monsters
-	MonsterAttackLH       .res 1		;45		Only used for Goblin Punch 
+	ram_word EquipWeapons;		.res 2		;40		bitmask for equippable weapons
+	ram_word EquipArmor;		.res 2		;42		bitmask for equippable armor
+	ram_byte MonsterAttack;		.res 1		;44		Only used for Goblin Punch and Monsters
+	ram_byte MonsterAttackLH;       .res 1		;45		Only used for Goblin Punch
 	;rest differs from the battle CharStruct
 	;could use Asar struct extensions but syntax would be annoying for the often-used CharStruct
-	Unused			.res 4		;46-2049
-	MasteryStr		.res 1		;4A		;mastery entries are for freelancer
-	MasteryAgi             .res 1          ;4B
-	MasteryVit             .res 1          ;4C
-	MasteryMag             .res 1          ;4D
-	MasteryPassives1       .res 1          ;4E
-	MasteryPassives2       .res 1          ;4F
-.endstruct
-name := name::CharRow
-.endmacro
+	ram_res Unused, 4;			.res 4		;46-2049
+	ram_byte MasteryStr;		.res 1		;4A		;mastery entries are for freelancer
+	ram_byte MasteryAgi;             .res 1          ;4B
+	ram_byte MasteryVit;             .res 1          ;4C
+	ram_byte MasteryMag;             .res 1          ;4D
+	ram_byte MasteryPassives1;       .res 1          ;4E
+	ram_byte MasteryPassives2;       .res 1          ;4F
+end_ram_array
 
-CreateFieldCharStruct FieldChar, $0500
-;FieldCharStats = $0500
-
-FieldItems = $0640	;256 item ids
-FieldItemsQty = $0740	;256 item qtys
+ram_res FieldItems, 256; = $0640	;256 item ids
+ram_res FieldItemsQty, 256; = $0740	;256 item qtys
 
 FieldAbilityCount = $08F3	;1 byte per character
 FieldAbilityList = $08F7	;20 bytes per character in order butz,lenna,galuf,faris
@@ -405,10 +408,11 @@ FieldTimerEnd = $0AFE		;16 bit
 
 MusicData = $1D00
 
-.macro CreateCharStruct name, addr
-.struct name
-.org addr
-	CharRow 	 	.res 1     	;$2000
+ram_org $7e2000
+ram_addr_size NEAR
+
+ram_array CharStruct, 12, 128
+	ram_byte CharRow; 	 	.res 1     	;$2000
 						;For Characters: first 3 bits indicate who it is(Butz, etc.) as a list
 						;then, 	08h	Gender (Male=0 / Female=1)
 						;	40h	Not in the team	?
@@ -416,26 +420,26 @@ MusicData = $1D00
 						;For Monsters:
 						;	40h	Always set?
 						;	80h 	Back Row
-	Job 			.res 1		;$2001
-	Level	 		.res 1		;$2002
-	Exp			.res 3		;$2003-5
-	CurHP			.res 2		;$2006-7
-	MaxHP			.res 2		;$2008-9
-	CurMP			.res 2		;$200A-B
-	MaxMP			.res 2		;$200C-D
-	Headgear		.res 1		;200E
-	Bodywear              .res 1		;200F
-	Accessory             .res 1		;2010
-	RHShield              .res 1		;2011
-	LHShield              .res 1		;2012
-	RHWeapon              .res 1		;2013
-	LHWeapon              .res 1		;2014
-	CaughtMonster         .res 1		;2015
-	BattleCommands        .res 4		;2016
+	ram_byte Job; 			.res 1		;$2001
+	ram_byte Level;	 		.res 1		;$2002
+	ram_faraddr Exp;			.res 3		;$2003-5
+	ram_word CurHP;			.res 2		;$2006-7
+	ram_word MaxHP;			.res 2		;$2008-9
+	ram_word CurMP;			.res 2		;$200A-B
+	ram_word MaxMP;			.res 2		;$200C-D
+	ram_byte Headgear;		.res 1		;200E
+	ram_byte Bodywear;              .res 1		;200F
+	ram_byte Accessory;             .res 1		;2010
+	ram_byte RHShield;              .res 1		;2011
+	ram_byte LHShield;              .res 1		;2012
+	ram_byte RHWeapon;              .res 1		;2013
+	ram_byte LHWeapon;              .res 1		;2014
+	ram_byte CaughtMonster;         .res 1		;2015
+	ram_res BattleCommands, 4;        .res 4		;2016
 						;2017
 						;2018
 						;2019
-	Status1		.res 1		;201A
+	ram_byte Status1;		.res 1		;201A
 				;80h = Wounded/Dead
 				;40h = Stone
 				;20h = Toad
@@ -445,7 +449,7 @@ MusicData = $1D00
 				;02h = Zombie
 				;01h = Blind
 				;00h = Normal
-	Status2	        .res 1		;201B
+	ram_byte Status2;	        .res 1		;201B
 				;80h Aging
 				;40h Sleep
 				;20h Paralyze
@@ -454,7 +458,7 @@ MusicData = $1D00
 				;04h Mute
 				;02h Image x2
 				;01h Image x1
-	Status3       	.res 1		;201C
+	ram_byte Status3;       	.res 1		;201C
 				;80h Reflect
 				;40h Armor
 				;20h Shell
@@ -463,47 +467,47 @@ MusicData = $1D00
 				;04h Slow
 				;02h Invulnerable
 				;01h Regen
-	Status4		.res 1		;201D
-				;80h Erased
-				;40h False Image
-				;20h Controlled
-				;10h Countdown
-				;08h HP Leak
-				;04h Singing
-				;02h Critical
-				;01h Hidden
-	CmdStatus		.res 1		;201E
-				;08h: If Flirted
-				;10h: If Jumping
-				;40h: If Guarding
-				;80h: If Defending
-	DamageMod		.res 1		;201F
-				;80h: Auto hit
-				;40h: Damage = Damage * 2
-				;20h: Damage = Damage / 2
-				;10h: M = M * 2
+	ram_byte Status4;		.res 1		;201D
+				; 80h Erased
+				; 40h False Image
+				; 20h Controlled
+				; 10h Countdown
+				; 08h HP Leak
+				; 04h Singing
+				; 02h Critical
+				; 01h Hidden
+	ram_byte CmdStatus;		.res 1		;201E
+				; 08h: If Flirted
+				; 10h: If Jumping
+				; 40h: If Guarding
+				; 80h: If Defending
+	ram_byte DamageMod;		.res 1		;201F
+				; 80h: Auto hit
+				; 40h: Damage = Damage * 2
+				; 20h: Damage = Damage / 2
+				; 10h: M = M * 2
 				; 8h: M = M / 2
 				; 4h: Defense = 0
 				; 1h: Damage * 2 vs Humans (80h Creature Type)
-	Passives1             .res 1		;2020
-				;80h:Counter
-				;40h:Evade
-				;20h:Barrier
-				;10h:Learning
-				;08h:Dash
-				;04h:DamageFloor
-				;02h:Pitfalls
-				;01h:Passages
-	Passives2             .res 1		;2021
-				;80h:Cover
-				;40h:Brawl
-				;20h:Double Grip
-				;10h:Medicine
-				;08h:Berserk
-				;04h:Caution
-				;02h:Pre-Emptive
-				;01h:2-Handed
-	ElementUp              .res 1		;2022
+	ram_byte Passives1;             .res 1		;2020
+				; 80h:Counter
+				; 40h:Evade
+				; 20h:Barrier
+				; 10h:Learning
+				; 08h:Dash
+				; 04h:DamageFloor
+				; 02h:Pitfalls
+				; 01h:Passages
+	ram_byte Passives2;             .res 1		;2021
+				; 80h:Cover
+				; 40h:Brawl
+				; 20h:Double Grip
+				; 10h:Medicine
+				; 08h:Berserk
+				; 04h:Caution
+				; 02h:Pre-Emptive
+				; 01h:2-Handed
+	ram_byte ElementUp;              .res 1		;2022
 				;80h Water 	note: 80h can't come from equipment
 				;40h Wind
 				;20h Earth
@@ -512,50 +516,50 @@ MusicData = $1D00
 				;04h Lightning
 				;02h Ice
 				;01h Fire
-	EqWeight              .res 1		;2023
-	BaseStr               .res 1		;2024
-	BaseAgi               .res 1		;2025
-	BaseVit               .res 1		;2026
-	BaseMag               .res 1		;2027
-	EquippedStr		.res 1		;2028
-	EquippedAgi           .res 1		;2029
-	EquippedVit           .res 1		;202A
-	EquippedMag           .res 1		;202B
-	Evade                 .res 1		;202C
-	Defense               .res 1		;202D
-	MEvade                .res 1		;202E
-	MDefense              .res 1		;202F
-	EAbsorb               .res 1		;2030
-	EBlock                .res 1		;2031		likely unused but seems functional?
-	EImmune               .res 1		;2032
-	EHalf                 .res 1		;2033
-	EWeak                 .res 1		;2034
-	StatusImmune1         .res 1		;2035
-	StatusImmune2		.res 1		;2036
-	StatusImmune3         .res 1		;2037
-	WeaponProperties      .res 1		;2038
-				;80h: Sword parry (Hardened, Defender)
-				;40h: Knife parry (Guardian)
-				;20h: Initiative
-				;08h: Magic on hit
-				;04h: Magic Sword OK
-				;02h: Command instead of attack
-				;01h: Wonder Rod
-	ArmorProperties       .res 1		;2039
-				;80h Magic block (Aegis shield)
-				;40h Elf Cape dodge
-				;20h Improved Brawl
-				;10h Improved Steal
-				;08h Half MP cost
-				;04h Sword Dance / Flirt up
-				;02h Become undead
-				;01h Improved Catch
-	JobLevel              .res 1		;203A
-	AP                    .res 2		;203B-C
-	EnableSpells     	.res 3		;203D   	Sword/White	4 bits high/low unpacked into separate bytes later
+	ram_byte EqWeight;              .res 1		;2023
+	ram_byte BaseStr;               .res 1		;2024
+	ram_byte BaseAgi;               .res 1		;2025
+	ram_byte BaseVit;               .res 1		;2026
+	ram_byte BaseMag;               .res 1		;2027
+	ram_byte EquippedStr;		.res 1		;2028
+	ram_byte EquippedAgi;           .res 1		;2029
+	ram_byte EquippedVit;           .res 1		;202A
+	ram_byte EquippedMag;           .res 1		;202B
+	ram_byte Evade;                 .res 1		;202C
+	ram_byte Defense;               .res 1		;202D
+	ram_byte MEvade;                .res 1		;202E
+	ram_byte MDefense;              .res 1		;202F
+	ram_byte EAbsorb;               .res 1		;2030
+	ram_byte EBlock;                .res 1		;2031		likely unused but seems functional?
+	ram_byte EImmune;               .res 1		;2032
+	ram_byte EHalf;                 .res 1		;2033
+	ram_byte EWeak;                 .res 1		;2034
+	ram_byte StatusImmune1;         .res 1		;2035
+	ram_byte StatusImmune2;		.res 1		;2036
+	ram_byte StatusImmune3;         .res 1		;2037
+	ram_byte WeaponProperties;      .res 1		;2038
+				; 80h: Sword parry (Hardened, Defender)
+				; 40h: Knife parry (Guardian)
+				; 20h: Initiative
+				; 08h: Magic on hit
+				; 04h: Magic Sword OK
+				; 02h: Command instead of attack
+				; 01h: Wonder Rod
+	ram_byte ArmorProperties;       .res 1		;2039
+				; 80h Magic block (Aegis shield)
+				; 40h Elf Cape dodge
+				; 20h Improved Brawl
+				; 10h Improved Steal
+				; 08h Half MP cost
+				; 04h Sword Dance / Flirt up
+				; 02h Become undead
+				; 01h Improved Catch
+	ram_byte JobLevel;              .res 1		;203A
+	ram_word AP;                    .res 2		;203B-C
+	ram_faraddr EnableSpells;     	.res 3		;203D   	Sword/White	4 bits high/low unpacked into separate bytes later
 						;203E		Black/Time
 						;203F		Summon/Misc	(Misc would be Songs/Blue but seems unused)
-	EquipWeapons		.res 2		;2040		bitmask for equippable weapons
+	ram_word EquipWeapons;		.res 2		;2040		bitmask for equippable weapons
 						;		low byte: 80h	Katana		high: 80h
 						;                         40h	Hammer                40h	Bell
 						;                         20h	Axe                   20h	Whip
@@ -564,7 +568,7 @@ MusicData = $1D00
 						;                         04h	Sword                 04h	Flail
 						;                         02h	Ninja Knife           02h	Staff
 						;                         01h	Knife                 01h	Rod
-	EquipArmor		.res 2		;2042		bitmask for equippable armor
+	ram_word EquipArmor;		.res 2		;2042		bitmask for equippable armor
 						;		low byte: 80h	Common Gear	high: 80h
 						;                         40h	Mage Robe             40h
 						;                         20h	Light Armor           20h
@@ -573,55 +577,55 @@ MusicData = $1D00
 						;                         04h	Light Helmet          04h	Thief Gear
 						;                         02h	Heavy Helmet          02h	Light Accessory
 						;                         01h	Shield                01h	Heavy Accessory
-	MonsterAttack		.res 1		;2044		Only used for Goblin Punch and Monsters
-	MonsterAttackLH       .res 1		;2045		Only used for Goblin Punch
-	Reaction1Command	.res 1		;2046		;post-remap command table values, unlike .Command
-	Reaction1Magic	.res 1		;2047
-	Reaction1Item		.res 1		;2048
-	Reaction1Element	.res 1		;2049
-	Reaction1Category	.res 1		;204A
-	Reaction1Targets	.res 1		;204B
-	Reaction1Damage	.res 1		;204C
-	Reaction2Command	.res 1		;204D
-	Reaction2Magic	.res 1		;204E
-	Reaction2Item		.res 1		;204F		;remaining 2nd counter attacks are at $207B
-	MSwordElemental1	.res 1		;2050
-	MSwordElemental2      .res 1		;2051
-	MSwordElemental3      .res 1		;2052
-	MSwordStatus1         .res 1		;2053
-	MSwordStatus2         .res 1		;2054
-	MSwordStatusSpecial   .res 1		;2055
+	ram_byte MonsterAttack;		.res 1		;2044		Only used for Goblin Punch and Monsters
+	ram_byte MonsterAttackLH;       .res 1		;2045		Only used for Goblin Punch
+	ram_byte Reaction1Command;	.res 1		;2046		;post-remap command table values, unlike .Command
+	ram_byte Reaction1Magic;	.res 1		;2047
+	ram_byte Reaction1Item;		.res 1		;2048
+	ram_byte Reaction1Element;	.res 1		;2049
+	ram_byte Reaction1Category;	.res 1		;204A
+	ram_byte Reaction1Targets;	.res 1		;204B
+	ram_byte Reaction1Damage;	.res 1		;204C
+	ram_byte Reaction2Command;	.res 1		;204D
+	ram_byte Reaction2Magic;	.res 1		;204E
+	ram_byte Reaction2Item;		.res 1		;204F		;remaining 2nd counter attacks are at $207B
+	ram_byte MSwordElemental1;	.res 1		;2050
+	ram_byte MSwordElemental2;      .res 1		;2051
+	ram_byte MSwordElemental3;      .res 1		;2052
+	ram_byte MSwordStatus1;         .res 1		;2053
+	ram_byte MSwordStatus2;         .res 1		;2054
+	ram_byte MSwordStatusSpecial;   .res 1		;2055
 				;80h Power-up (Flare sword)
 				;40h HP drain (Drain sword)
 				;20h MP drain (Psych sword)
-	ActionFlag		.res 1		;2056
+	ram_byte ActionFlag;		.res 1		;2056
 				;80h Physical/Other (physical attacks but also aborted commands)
 				;40h Item
 				;20h Magic
 				;10h Weapon used as Item
 				;08h X-Magic
 				;01h Costs MP
-	Command		.res 1		;2057		;queued command
+	ram_byte Command;		.res 1		;2057		;queued command
 								;maps to CommandTable as follows:
 								;$00	-> $00
 								;$01-2B	-> $00-2A	(character menu commands)
 								;$2C-4D	-> $2B 		(all magic commands)
 								;$4E-56 -> $2C-34	(commands used internally)
-	MonsterTargets	.res 1		;2058		Monster Target
-	PartyTargets          .res 1		;2059		Character Target
-	SelectedItem          .res 1		;205A		Chosen Item (for throw, etc), or spell (for magic)
+	ram_byte MonsterTargets;	.res 1		;2058		Monster Target
+	ram_byte PartyTargets;          .res 1		;2059		Character Target
+	ram_byte SelectedItem;          .res 1		;205A		Chosen Item (for throw, etc), or spell (for magic)
 								;initially this is a menu selection index then later replaced by the item/spell id
-	SecondActionFlag	.res 1		;205B
-	SecondCommand   	.res 1		;205C
-	SecondMonsterTargets	.res 1		;205D
-	SecondPartyTargets	.res 1		;205E
-	SecondSelectedItem	.res 1		;205F
-	Unused1		.res 1		;2060		Unused?
-	CmdCancelled		.res 1		;2061		set to 1 when zombie/charm/berserk cancels a player command
-	MonsterM		.res 1		;2062
-	Unused2		.res 1		;2063		Unused?
-	CantEvade             .res 1		;2064
-	CreatureType          .res 1		;2065
+	ram_byte SecondActionFlag;	.res 1		;205B
+	ram_byte SecondCommand;   	.res 1		;205C
+	ram_byte SecondMonsterTargets;	.res 1		;205D
+	ram_byte SecondPartyTargets;	.res 1		;205E
+	ram_byte SecondSelectedItem;	.res 1		;205F
+	ram_byte Unused1;		.res 1		;2060		Unused?
+	ram_byte CmdCancelled;		.res 1		;2061		set to 1 when zombie/charm/berserk cancels a player command
+	ram_byte MonsterM;		.res 1		;2062
+	ram_byte Unused2;		.res 1		;2063		Unused?
+	ram_byte CantEvade;             .res 1		;2064
+	ram_byte CreatureType;          .res 1		;2065
 				;80h Human
 				;40h Desert
 				;20h Heavy
@@ -630,16 +634,16 @@ MusicData = $1D00
 				;04h Creature/Beast
 				;02h Archae? Frog? (only set on ArchaeToad)
 				;01h Undead
-	CmdImmunity           .res 1		;2066		Command Immunity
+	ram_byte CmdImmunity;           .res 1		;2066		Command Immunity
 						;		80h Scan
 						;		10h Control
 						;		08h Catch
-	RewardExp		.res 2		;2067
-	RewardGil		.res 2		;2069
-	StolenItem		.res 1		;206B		When an item is stolen from a monster the item id is recorded here
-	RHCategory      	.res 1		;206C		;these are initialized but never used
-	LHCategory     	.res 1		;206D
-	Specialty             .res 1		;206E
+	ram_word RewardExp;		.res 2		;2067
+	ram_word RewardGil;		.res 2		;2069
+	ram_byte StolenItem;		.res 1		;206B		When an item is stolen from a monster the item id is recorded here
+	ram_byte RHCategory;      	.res 1		;206C		;these are initialized but never used
+	ram_byte LHCategory;     	.res 1		;206D
+	ram_byte Specialty;             .res 1		;206E
 				;80h Auto-hit and ignore defense
 				;40h Old
 				;20h Poison
@@ -648,71 +652,67 @@ MusicData = $1D00
 				;04h Charm
 				;02h HP Leak
 				;01h 1.5x damage
-	Song                  .res 1		;206F
+	ram_byte Song;                  .res 1		;206F
 				;80h Strength
 				;40h Agility
 				;20h Vitality (unused)
 				;10h Magic
 				;08h Level
-	AlwaysStatus1		.res 1		;2070
-	AlwaysStatus2	     	.res 1		;2071
-	AlwaysStatus3	     	.res 1		;2072
-	AlwaysStatus4	     	.res 1		;2073
-	BonusStr		.res 1		;2074		For Songs
-	BonusAgi		.res 1		;2075
-	BonusVit		.res 1		;2076		No song affects this, likely unused
-	BonusMag		.res 1		;2077
-	BonusLevel		.res 1		;2078
-	Unused3		.res 1		;2079		Only used in Atk Type 5B which is itself unused
+	ram_byte AlwaysStatus1;		.res 1		;2070
+	ram_byte AlwaysStatus2;	     	.res 1		;2071
+	ram_byte AlwaysStatus3;	     	.res 1		;2072
+	ram_byte AlwaysStatus4;	     	.res 1		;2073
+	ram_byte BonusStr;		.res 1		;2074		For Songs
+	ram_byte BonusAgi;		.res 1		;2075
+	ram_byte BonusVit;		.res 1		;2076		No song affects this, likely unused
+	ram_byte BonusMag;		.res 1		;2077
+	ram_byte BonusLevel;		.res 1		;2078
+	ram_byte Unused3;		.res 1		;2079		Only used in Atk Type 5B which is itself unused
 						;		Optional power drink fix uses this byte
-	MSwordAnim		.res 1		;207A		Used for Magic Sword Animations, high bit is hand
-	Reaction2Element	.res 1		;207B
-	Reaction2Category	.res 1		;207C
-	Reaction2Targets	.res 1		;207D
-	Reaction2Damage	.res 1		;207E
-	SpecialtyName		.res 1		;207F
-.endstruct
-name = name::CharRow
-.endmacro
-CreateCharStruct CharStruct, $2000
-CreateCharStruct CharStruct4, $2200
+	ram_byte MSwordAnim;		.res 1		;207A		Used for Magic Sword Animations, high bit is hand
+	ram_byte Reaction2Element;	.res 1		;207B
+	ram_byte Reaction2Category;	.res 1		;207C
+	ram_byte Reaction2Targets;	.res 1		;207D
+	ram_byte Reaction2Damage;	.res 1		;207E
+	ram_byte SpecialtyName;		.res 1		;207F
+end_ram_array
+.define CharStruct4 CharStruct::_4
 
-
-.struct SavedCharStats	;saved before releasing a monster (which overwrites stats), then later restored
-.org $2600
-	Level			.res 1	;2600
-	MonsterAttack		.res 1	;2601
-	MonsterM		.res 1	;2602
-	EquippedMag		.res 1	;2603
-	CharRow		.res 1	;2604
-	Status1               .res 1	;2605
-	Status2               .res 1	;2606
-	Status3               .res 1	;2607
-	Status4               .res 1	;2608
-	CmdStatus             .res 1	;2609
-	DamageMod             .res 1	;260A
-	Passives1             .res 1	;260B
-	Passives2             .res 1	;260C
-	ElementUp             .res 1	;260D
-	MSwordElemental1	.res 1	;260E
-	MSwordElemental2      .res 1	;260F
-	MSwordElemental3      .res 1	;2610
-	MSwordStatus1         .res 1	;2611
-	MSwordStatus2         .res 1	;2612
-	MSwordStatusSpecial   .res 1	;2613
-	AlwaysStatus1		.res 1	;2614
-	AlwaysStatus2	     	.res 1	;2615
-	AlwaysStatus3	     	.res 1	;2616
-	AlwaysStatus4	     	.res 1	;2617
-	BonusStr		.res 1	;2618
-	BonusAgi		.res 1	;2619
-	BonusVit		.res 1	;261A
-	BonusMag		.res 1	;261B
-	BonusLevel		.res 1	;261C
-	Unused3		.res 1	;261D	;this byte is saved/restored even though it is never used
-	MSwordAnim		.res 1	;261E
-	UnusedSave		.res 1	;261F	;there's space for a 20th byte to be saved, but it is never used
-.endstruct
+;saved before releasing a monster (which overwrites stats), then later restored
+ram_scope SavedCharStats
+	ram_byte Level;			.res 1	;2600
+	ram_byte MonsterAttack;		.res 1	;2601
+	ram_byte MonsterM;		.res 1	;2602
+	ram_byte EquippedMag;		.res 1	;2603
+	ram_byte CharRow;		.res 1	;2604
+	ram_byte Status1;               .res 1	;2605
+	ram_byte Status2;               .res 1	;2606
+	ram_byte Status3;               .res 1	;2607
+	ram_byte Status4;               .res 1	;2608
+	ram_byte CmdStatus;             .res 1	;2609
+	ram_byte DamageMod;             .res 1	;260A
+	ram_byte Passives1;             .res 1	;260B
+	ram_byte Passives2;             .res 1	;260C
+	ram_byte ElementUp;             .res 1	;260D
+	ram_byte MSwordElemental1;	.res 1	;260E
+	ram_byte MSwordElemental2;      .res 1	;260F
+	ram_byte MSwordElemental3;      .res 1	;2610
+	ram_byte MSwordStatus1;         .res 1	;2611
+	ram_byte MSwordStatus2;         .res 1	;2612
+	ram_byte MSwordStatusSpecial;   .res 1	;2613
+	ram_byte AlwaysStatus1;		.res 1	;2614
+	ram_byte AlwaysStatus2;	     	.res 1	;2615
+	ram_byte AlwaysStatus3;	     	.res 1	;2616
+	ram_byte AlwaysStatus4;	     	.res 1	;2617
+	ram_byte BonusStr;		.res 1	;2618
+	ram_byte BonusAgi;		.res 1	;2619
+	ram_byte BonusVit;		.res 1	;261A
+	ram_byte BonusMag;		.res 1	;261B
+	ram_byte BonusLevel;		.res 1	;261C
+	ram_byte Unused3;		.res 1	;261D	;this byte is saved/restored even though it is never used
+	ram_byte MSwordAnim;		.res 1	;261E
+	ram_byte UnusedSave;		.res 1	;261F	;there's space for a 20th byte to be saved, but it is never used
+end_ram_scope
 
 ;note, $2620 area is used as a temp area for a lot of different stuff in different routines
 Temp = $2620
@@ -728,42 +728,50 @@ AIBuffer = $2640		;AI buffer for monsters, max 64 bytes, ends with $FF
 TempTargetting = $26A0		;sometimes is number of targets minus 1
 				;sometimes is ability targetting information (a bitfield)
 
-.macro CreateMonsterStatsStruct name, addr
-.struct name
-.org addr
-	Speed		.res 1		;26F0	;3EFF	;D00000	;D02000
-	AttackPower		.res 1          ;26F1	;3F00	;D00001
-	AttackMult		.res 1          ;26F2	;3F01	;D00002
-	Evade			.res 1          ;26F3	;3F02	;D00003
-	Defense		.res 1          ;26F4	;3F03	;D00004
-	MagicPower		.res 1          ;26F5	;3F04	;D00005
-	MDefense		.res 1          ;26F6	;3F05	;D00006
-	MEvade			.res 1          ;26F7	;3F06	;D00007
-	HP			.res 2          ;26F8	;3F07	;D00008		;sets max and current HP
-	MP			.res 2          ;26FA	;3F09	;D0000A		;monsters always have 9999 max mp, this sets current MP
-	Exp			.res 2          ;26FC	;3F0B	;D0000C
-	Gil			.res 2          ;26FE	;3F0D	;D0000E
-	AttackFX		.res 1          ;2700	;3F0F	;D00010
-	EImmune		.res 1          ;2701	;3F10	;D00011
-	StatusImmune1		.res 1          ;2702	;3F11	;D00012
-	StatusImmune2		.res 1          ;2703	;3F12	;D00013
-	StatusImmune3		.res 1          ;2704	;3F13	;D00014
-	EAbsorb		.res 1          ;2705	;3F14	;D00015
-	CantEvade		.res 1          ;2706	;3F15	;D00016
-	EWeak			.res 1          ;2707	;3F16	;D00017
-	CreatureType		.res 1          ;2708	;3F17	;D00018
-	CmdImmunity		.res 1          ;2709	;3F18	;D00019
-	Status1		.res 1          ;270A	;3F19	;D0001A		;high bit here means all status are always instead of initial
-	Status2		.res 1          ;270B	;3F1A	;D0001B
-	Status3		.res 1          ;270C	;3F1B	;D0001C
-	Status4		.res 1          ;270D	;3F1C	;D0001D
-	EnemyNameID		.res 1          ;270E	;3F1D	;D0001E
-	Level			.res 1          ;270F	;3F1E	;D0001F
-.endstruct
-name := name::Speed
-.endmacro
+.mac make_monster_stats_array label, num_items
+	.ifblank num_items
+		ram_scope label
+	.else
+		ram_array label, num_items, 32
+	.endif
+		ram_byte Speed;		.res 1		;26F0	;3EFF	;D00000	;D02000
+		ram_byte AttackPower;		.res 1          ;26F1	;3F00	;D00001
+		ram_byte AttackMult;		.res 1          ;26F2	;3F01	;D00002
+		ram_byte Evade;			.res 1          ;26F3	;3F02	;D00003
+		ram_byte Defense;		.res 1          ;26F4	;3F03	;D00004
+		ram_byte MagicPower;		.res 1          ;26F5	;3F04	;D00005
+		ram_byte MDefense;		.res 1          ;26F6	;3F05	;D00006
+		ram_byte MEvade;			.res 1          ;26F7	;3F06	;D00007
+		ram_word HP;			.res 2          ;26F8	;3F07	;D00008		;sets max and current HP
+		ram_word MP;			.res 2          ;26FA	;3F09	;D0000A		;monsters always have 9999 max mp, this sets current MP
+		ram_word Exp;			.res 2          ;26FC	;3F0B	;D0000C
+		ram_word Gil;			.res 2          ;26FE	;3F0D	;D0000E
+		ram_byte AttackFX;		.res 1          ;2700	;3F0F	;D00010
+		ram_byte EImmune;		.res 1          ;2701	;3F10	;D00011
+		ram_byte StatusImmune1;		.res 1          ;2702	;3F11	;D00012
+		ram_byte StatusImmune2;		.res 1          ;2703	;3F12	;D00013
+		ram_byte StatusImmune3;		.res 1          ;2704	;3F13	;D00014
+		ram_byte EAbsorb;		.res 1          ;2705	;3F14	;D00015
+		ram_byte CantEvade;		.res 1          ;2706	;3F15	;D00016
+		ram_byte EWeak;			.res 1          ;2707	;3F16	;D00017
+		ram_byte CreatureType;		.res 1          ;2708	;3F17	;D00018
+		ram_byte CmdImmunity;		.res 1          ;2709	;3F18	;D00019
+		ram_byte Status1;		.res 1          ;270A	;3F19	;D0001A		;high bit here means all status are always instead of initial
+		ram_byte Status2;		.res 1          ;270B	;3F1A	;D0001B
+		ram_byte Status3;		.res 1          ;270C	;3F1B	;D0001C
+		ram_byte Status4;		.res 1          ;270D	;3F1C	;D0001D
+		ram_byte EnemyNameID;		.res 1          ;270E	;3F1D	;D0001E
+		ram_byte Level;			.res 1          ;270F	;3F1E	;D0001F
+	.ifblank num_items
+		end_ram_scope
+	.else
+		end_ram_array
+	.endif
 
-CreateMonsterStatsStruct TempMStats, $26F0
+.endmac
+
+ram_org $26f0
+make_monster_stats_array TempMStats
 
 ;$2720 region is still temp area, reused for various things
 
@@ -839,55 +847,46 @@ InventoryUsable = $2C34	;2 bits per character (256 items)
 	InstructionOffsetX sta, struct, field, index
 .endmacro
 
-.struct CharSpells	;650 bytes * 4 characters
-.org $2D34
-	ID		.res 130	;2D34
-	Level		.res 130	;2DB6		;init to $81
-	MP		.res 130	;2E38
-	Targetting	.res 130	;2EBA
-	Flags		.res 130	;2F3C		;init to $81, 0 when void
-							;80h: spell disabled
-							;01h: skips mp/status checks
-.endstruct
+ram_org $2d34
+ram_array CharSpells, 4, 650
+	ram_res ID, 130
+	ram_res Level, 130
+	ram_res MP, 130
+	ram_res Targetting, 130
+	ram_res Flags, 130
+end_ram_array
 
-.struct CharCommands		;20 bytes * 4 characters
-.org $375C
-	ID 		.res 4		;375C 		;command ids (such as Fight, Mug, Item, etc)
-	Level		.res 4		;3760		;probably unused
-	MP		.res 4		;3764		;probably unused
-	Targetting	.res 4		;3768
-	Flags		.res 4		;376C 		;init to $80, disabled
-.endstruct
+ram_array CharCommands, 4, 20
+	ram_res ID, 4
+	ram_res Level, 4
+	ram_res MP, 4
+	ram_res Targetting, 4
+	ram_res Flags, 4
+end_ram_array
 
-.struct HandItems		;12 bytes * 4 characters	;similar but doesn't match the others!
-.org $37AC
-	ID		.res 2		;
-	Level		.res 2		;37AE	;probably unused?, init to 1 when there's something in your hand tho
-	MP		.res 2		;37B0	;probably unused
-	Targetting	.res 2		;37B2
-	Flags		.res 2		;37B4	init to $80
-	Usable		.res 2		;37B6	same style as InventoryUsable, 2 bits per char
-.endstruct
+ram_array HandItems, 4, 12
+	ram_res ID, 2
+	ram_res Level, 2
+	ram_res MP, 2
+	ram_res Targetting, 2
+	ram_res Flags, 2
+	ram_res Usable, 2
+end_ram_array
 
-.struct CharControl	;command info when controlling monsters, 20 bytes
-				;one structure for each character
-.org $37DC
-	Actions	.res 4		;$37DC	 monster commands
-	Level		.res 4		;$37E0	;probably unused
-	MP		.res 4		;$37E4	;probably unused
-	Targetting 	.res 4		;$37E8	 monster command targetting info
-	Flags 		.res 4		;$37EC	 monster command flags
-						;Action $FF 	-> sets this to $80
-						;Others 	-> sets this to $00
-.endstruct
+ram_array CharControl, 4, 20
+	ram_res Actions, 4
+	ram_res Level, 4
+	ram_res MP, 4
+	ram_res Targetting, 4
+	ram_res Flags, 4
+end_ram_array
 
-.struct CharVitals	;8 bytes * 4 characters
-.org $382C
-	CurHP		.res 2
-	MaxHP		.res 2
-	CurMP		.res 2
-	MaxMP		.res 2
-.endstruct
+ram_array CharVitals, 4, 8
+	ram_word CurHP
+	ram_word MaxHP
+	ram_word CurMP
+	ram_word MaxMP
+end_ram_array
 
 
 .macro CreateGFXAIQueue name, addr
@@ -986,10 +985,9 @@ DisplayDamage = $3A4C		;a displayed damage number (16 bit)
 
 ;7 byte structure here (indexed by multicommand*7)
 ;saves data after an action to allow it to be animated by C1 bank code
-.macro CreateActionAnim name, addr
-.struct name
-.org addr
-	Flags		.res 1	;$3BCC	;3BD3	;3BDA	;3BE1
+ram_org $3bcc
+ram_array ActionAnim, 4, 7
+	ram_byte Flags;		.res 1	;$3BCC	;3BD3	;3BDA	;3BE1
 							;80h Attacker was a monster
 							;40h Target was a monster
 							;20h UnknownReaction $7BFB (changes party member position/stance?)
@@ -997,23 +995,18 @@ DisplayDamage = $3A4C		;a displayed damage number (16 bit)
 							;08h FightFlag (basic fight-ish actions)
 							;02h SpiritFlag
 							;01h Monster Specialty (Magic $81)
+	ram_byte OrigAttacker; 		.res 1	;$3BCD	;3BD4	;party or monster index
+	ram_byte OrigTargetBits; 	.res 1	;$3BCE	;3BD5
+	ram_byte TargetBits; 		.res 1	;$3BCF	;3BD6	;3BDD
+	ram_byte ReflectorBits;		.res 1 	;$3BD0	;3BD7
+	ram_byte ReflecteeBits;		.res 1	;$3BD1	;3BD8
+	ram_byte CoveredBits; 		.res 1	;$3BD2	;3BD9
+end_ram_array
 
-	OrigAttacker 		.res 1	;$3BCD	;3BD4	;party or monster index
-
-	OrigTargetBits 	.res 1	;$3BCE	;3BD5
-	TargetBits 		.res 1	;$3BCF	;3BD6	;3BDD
-	ReflectorBits		.res 1 	;$3BD0	;3BD7
-	ReflecteeBits		.res 1	;$3BD1	;3BD8
-	CoveredBits 		.res 1	;$3BD2	;3BD9
-.endstruct
-.endmacro
-
-;.org $7E3BCC
-CreateActionAnim ActionAnim0, $3BCC
-CreateActionAnim ActionAnim1, $3BD3
-CreateActionAnim ActionAnim2, $3BDA
-CreateActionAnim ActionAnim3, $3BE1
-
+.define ActionAnim0 ActionAnim::_0
+.define ActionAnim1 ActionAnim::_1
+.define ActionAnim2 ActionAnim::_2
+.define ActionAnim3 ActionAnim::_3
 
 BlockType = $3C3C		;type of block
 					;Set to 1 for Hardened/Defender
@@ -1163,7 +1156,8 @@ name = name::IntroFX
 
 CreateEncounterInfoStruct EncounterInfo, $3EEF
 
-CreateMonsterStatsStruct MonsterStats, $3EFF	;32 bytes * 8 monsters
+ram_org $3eff
+make_monster_stats_array MonsterStats, 8
 
 MonstersVisibleUnused = $3FFF		;1 bit per monster, copied from EncounterInfo.Visible and doesn't seem to ever get used
 
@@ -1418,7 +1412,7 @@ MultiDamage = $79FB			;Used *24 when calculating the offset for displayed damage
 							;04 Black
 							;02 White
 							;01 Blue
-					
+
 
 	;EquipmentType		;2	;79FE	404B	4087	4093
 						;For Weapons
@@ -1438,7 +1432,7 @@ MultiDamage = $79FB			;Used *24 when calculating the offset for displayed damage
 							;40h Guarding
 							;10h Jumping
 							;08h Throbbing (from Flirt)
-					
+
 
 	;ElementOrStatsUp	;3	;79FF	404C	4088	4094
 						;For Weapons
@@ -1471,7 +1465,7 @@ MultiDamage = $79FB			;Used *24 when calculating the offset for displayed damage
 							; 4h: Defense = 0
 							; 2h: SwdSlap?
 							; 1h: Damage * 2 vs Humans (80h Creature Type)
-					
+
 
 
 	;DoubleGrip 		;4 	;7A00	404D	4089	4095
@@ -1480,7 +1474,7 @@ MultiDamage = $79FB			;Used *24 when calculating the offset for displayed damage
 							;40 Double Grip allowed
 							;20-01 Table of which "equip notes" description to display, such as "Magic Sword OK"
 	MagicAtkType	.res 1		;For some reason (whyyy) they put attack type here for magic/items, rather than the same byte weapons use
-					
+
 	;Entries 5-8 are weapon only
 	Properties		.res 1;5	;7A01	404E	408A	4096
 						;Special properties
@@ -1492,25 +1486,25 @@ MultiDamage = $79FB			;Used *24 when calculating the offset for displayed damage
 							;04h: Magic Sword OK                      ;04h Sword Dance / Flirt up
 							;02h: Command instead of attack           ;02h Become undead
 							;01h: Wonder Rod                          ;01h Improved Catch
-					
+
 
 	;ItemMagic		;6	;7A02	404F	408B	4097
 	ShieldEvade		.res 1	;Byte also reused for shield evade values
 					;Item magic:
 							;80: Breaks after Use
 							;40-01 Magic cast
-					
+
 
 	;AtkPower		;7 	;7A03	4050	408C	4098
 	Defense			.res 1;Attack power or Defense, depending if weapon/magic or armor
-					
+
 
 	;AtkType		;8	;7A04	4051	408D	4099
 	MEvade		.res 1;Magic Evade for armor
 					;Flag + Attack formula for weapons
 							;80 Don't Retarget (can hit inactive/dead)
 							;40-01 [Attack formula]  Attack formula
-					
+
 
 	;Param1		;9	;7A05	4052	408E	409A	;Parameter 1
 	MDefense			.res 1	 			;or MDefense for armor
@@ -1848,8 +1842,13 @@ wMusicChanged = $DBB3			;1 while music change routine is being called
 ;Rom Structures
 ROMRNG = $C0FEC0
 
-CreateMonsterStatsStruct ROMMonsterStats, $D00000	;32 bytes * 256 regular monsters
-;ROMBossStats = ROMMonsterStats[$2000]			;then another 128 boss monsters
+ram_addr_size FAR
+
+ram_org $d00000
+make_monster_stats_array ROMMonsterStats
+
+ram_org $d02000
+make_monster_stats_array ROMBossStats
 
 CreateEncounterInfoStruct ROMEncounterInfo, $D03000
 
@@ -1959,7 +1958,7 @@ CreateAttackInfoStruct ROMArmor, $D10600
 	Category		.res 1		;1
 	Misc			.res 1		;2 Also used as CmdStatus
 	MPCost 			.res 1		;3 Also used for DamageMod
-	AtkType			.res 1		;4	
+	AtkType			.res 1		;4
 	Param1			.res 1	 	;5
 	Param2			.res 1		;6
 	Param3			.res 1		;7
@@ -1977,7 +1976,7 @@ CreateMagicInfoStruct ROMMagicInfo, $D10B80		;8 bytes * 256 spells
 CreateEquippableStruct ROMItemEquippable, $D12480	;4 bytes * 64 entries
 
 .struct ROMElementDef
-.org $D12580	
+.org $D12580
 	Absorb 	.res 1
 	Evade		.res 1
 	Immune	.res 1
@@ -1990,8 +1989,8 @@ ROMElementDef = ROMElementDef::Absorb
 .org $D126C0
 	Status1	.res 1		;high bit here indicates always status, for all other status below as well
 	Status2       	.res 1		;only the last item per type with an always status will apply
-	Status3       	.res 1		
-	Status4       	.res 1		
+	Status3       	.res 1
+	Status4       	.res 1
 	Immune1        .res 1
 	Immune2        .res 1
 	Immune3        .res 1
@@ -2022,10 +2021,10 @@ ROMStatusDisableCommands = $D15CE0	;16 bit entries, index is command ID
 ROMCommandDelay = $D15DA0	;1 byte per command, atb delay when used
 				;80h set -> use weapon or spell delay instead
 
-CreateMagicInfoStruct ROMEffectInfo, $D16AB1	;Spell effects for Animals, Mix, etc. 
+CreateMagicInfoStruct ROMEffectInfo, $D16AB1	;Spell effects for Animals, Mix, etc.
 						;8 bytes * 105? abilities
 ROMTerrainSpells = $D16DF9	;4 bytes per terrain type
-							
+
 ROMCombineSpells = $D16EF9	;144 bytes?
 				;Effect spell ids for combine/mix
 				;12*item2 + item1

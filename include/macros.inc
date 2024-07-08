@@ -524,8 +524,10 @@ PSW_C = %00000001
         .repeat NUM_ITEMS, i
                 .scope .ident(.sprintf("_%d", i))
                 .endscope
-                .ident(.sprintf("_%d", i)) = START + i * ITEM_SIZE
+                ::_ram_offset .set START + i * ITEM_SIZE
+                ram_label .ident(.sprintf("_%d", i)), label
         .endrep
+        ::_ram_offset .set START
 .endmac
 
 .mac end_ram_array
