@@ -26,4 +26,12 @@ BIT_7               = %10000000
 ; ---------------------------------------------------------------------------
 
 .endif
+
+.enum ATTACK
+        FIRE            = $00
+        BATTLE          = $80
+        SPECIAL         = $81
+        GOBLIN_PUNCH    = $93
+.endenum
+
 .list on
