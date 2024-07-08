@@ -52,7 +52,7 @@ _0000:  sei
         phx
         pld
         ldx     #0
-        stx     $00
+        stx     $06
         jsl     InitSound_ext
         lda     #$f1                    ; cutscene $f1 (title/credits)
         jsr     ShowCutscene
@@ -172,7 +172,7 @@ _0134:  cmp     #$3e                    ; judgment staff ???
         ldx     #$0032
 _013b:  jsr     ExecTriggerScript
 _013e:  stz     $16aa
-        jsr     $14e9                   ; pixelate screen (poison)
+        jsr     PoisonMosaic                   ; pixelate screen (poison)
         jmp     _00ad
 _0147:  jsr     CheckTriggers
         jsr     $a18b                   ; update timer
@@ -280,8 +280,8 @@ _0220:  stz     $55
         sta     $1089
         jsr     $5476                   ; reload map
         jmp     _00ad
-_0246:  jsr     $0f8c
-        jsr     $1a1d
+_0246:  jsr     _c00f8c
+        jsr     _c01a1d
         jsr     $4c95                   ; clear sprite data
         jsr     $2137
         jsr     $612b
@@ -323,7 +323,7 @@ _02ac:  lda     $58
         beq     _02b5
         stz     $58
         jmp     _00ad
-_02b5:  jsr     $1ae4
+_02b5:  jsr     _c01ae4
         jsr     $3bac
         jsr     $4c95       ; clear sprite data
         jsr     $4834
@@ -396,7 +396,7 @@ _0345:  jsr     $6465
 _0348:  lda     $a1
         beq     _0354
         stz     $a1
-        jsr     $1d1e       ; copy party sprite graphics to vram
+        jsr     TfrPartyGfx
         jmp     _0408
 _0354:  lda     $a2
         beq     _035d
@@ -416,7 +416,7 @@ _036c:  lda     $a5
 _0378:  lda     $a6
         beq     _038b
         stz     $a6
-        ldx     $00
+        ldx     $06
         stx     $71
         jsr     $6e7a
         jsr     $8be4
@@ -431,7 +431,7 @@ _0392:  jsr     $8f78       ; draw yes/no indicator
         lda     $70
         and     #$01
         bne     _03c7
-        ldx     $00
+        ldx     $06
         stx     $71
         jsr     $6df5       ; horizontal scrolling (bg1)
         lda     $1121
@@ -446,7 +446,7 @@ _03b7:  lda     $1121
         stx     $71
         jsr     $6df5       ; horizontal scrolling (bg3)
 _03c4:  jmp     _0408
-_03c7:  ldx     $00
+_03c7:  ldx     $06
         stx     $71
         jsr     $6e7a       ; vertical scrolling (bg1)
         lda     $1121
@@ -464,7 +464,7 @@ _03ea:  jmp     _0408
 _03ed:  lda     $a1
         beq     _03f9
         stz     $a1
-        jsr     $1d1e       ; copy party sprite graphics to vram
+        jsr     TfrPartyGfx
         jmp     _0408
 _03f9:  lda     $a2
         beq     _0405
@@ -546,7 +546,7 @@ _046a:  longa
         sta     $23
         lda     $d8e082,x
         sta     $26
-        lda     $00
+        lda     $06
         shorta
 _047c:  ldx     $23
         lda     $d8e080,x
@@ -591,7 +591,7 @@ _04da:  cmp     #$fa                    ; $fa: compare ram (1-byte)
         lda     $d8e081,x
         and     #$3fff
         tay
-        lda     $00
+        lda     $06
         shorta
         lda     $d8e082,x
         and     #$c0
@@ -622,7 +622,7 @@ _051c:  cmp     #$f9                    ; $f9: compare ram (2-byte)
         lda     $0500,y
         cmp     $d8e083,x
         beq     _0568
-        lda     $00
+        lda     $06
         shorta
         jmp     _05e5
 _0543:  cmp     #$00
@@ -631,13 +631,13 @@ _0543:  cmp     #$00
         lda     $0500,y
         cmp     $d8e083,x
         bcs     _0568
-        lda     $00
+        lda     $06
         shorta
         jmp     _05e5
 _0558:  lda     $0500,y
         cmp     $d8e083,x
         bcc     _0568
-        lda     $00
+        lda     $06
         shorta
         jmp     _05e5
 _0568:  ldx     $23
@@ -650,13 +650,13 @@ _0573:  cmp     #$f8                    ; $f8: boolean compare ram (1-byte)
         lda     $d8e081,x
         and     #$3fff
         tay
-        lda     $00
+        lda     $06
         shorta
         lda     $0500,y
         and     $d8e083,x
         bne     _0568
         jmp     _05e5
-        lda     $00
+        lda     $06
         shorta
         ldx     $23
         inx5
@@ -684,7 +684,7 @@ _05cb:  longa                           ; $f5: boolean compare ram (2-byte)
         lda     $d8e081,x
         and     #$3fff
         tay
-        lda     $00
+        lda     $06
         shorta
         lda     $0500,y
         and     $d8e083,x
@@ -707,7 +707,7 @@ _05fc:  lda     #$01
         ldx     $23
         lda     $d8e081,x               ; event index
         sta     $ce
-        lda     $00
+        lda     $06
         shorta
         ldx     $ce
         beq     _0617
@@ -760,7 +760,7 @@ _0654:  cpx     $23
         adc     #$0004
         tax
         jmp     _0654
-_066a:  lda     $00
+_066a:  lda     $06
         shorta
         lda     #$01
         sta     $5a
@@ -768,7 +768,7 @@ _066a:  lda     $00
         lda     $ce2402,x
         asl
         tax
-        lda     $00
+        lda     $06
         shorta
         jsr     ExecTriggerScript
 _0681:  longa
@@ -810,14 +810,14 @@ _06d2:  lda     $ce36c2,x
         sta     $0ad6                   ; map index
         cmp     #$0005
         bcs     _06f8
-        lda     $00
+        lda     $06
         shorta
         lda     $ce36c4,x
         sta     $1088
         lda     $ce36c5,x
         sta     $1089
         bra     _0737
-_06f8:  lda     $00
+_06f8:  lda     $06
         shorta
         lda     $ce36c3,x
         and     #$08
@@ -840,7 +840,7 @@ _0707:  lda     $ce36c3,x
         and     #$3f
         sta     $1089
 _0737:  inc     $6e
-_0739:  lda     $00
+_0739:  lda     $06
         shorta
         rts
 
@@ -859,7 +859,7 @@ _073e:  lda     $61
         and     #$1f
         beq     _074b
 _074a:  rts
-_074b:  jsr     $1733                   ; update local tile properties (world map)
+_074b:  jsr     _c01733                   ; update local tile properties (world map)
         lda     $0adc
         dec
         asl2
@@ -867,7 +867,7 @@ _074b:  jsr     $1733                   ; update local tile properties (world ma
         lda     $0adc
         beq     _075f
         jmp     _07ee
-_075f:  ldy     $00
+_075f:  ldy     $06
         sty     $23
 _0763:  ldy     $23
         lda     $0ade,y
@@ -946,7 +946,7 @@ _07ee:  dec
         lda     $10b8
         bne     _07ed
         inc     $10b8
-        ldy     $00
+        ldy     $06
 _0814:  tya
         lsr2
         inc
@@ -1173,7 +1173,7 @@ _098e:  lda     #$03
         sta     $169b
         jsr     _c022fb
 _09b8:  rts
-_09b9:  jsr     $09f7
+_09b9:  jsr     _c009f7
         ldx     #$0028
         jsr     ExecTriggerScript
         jsr     _c00a11
@@ -1208,6 +1208,14 @@ _09e4:  lda     $3d
 _09f2:  inc     $3d
         bne     _09cc
         rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+; [  ]
+
+.proc _c009f7
 _09f7:  lda     #$01
         sta     $5b
         jsr     $4798
@@ -1264,7 +1272,7 @@ _0a46:  dec     $3d
 
 BoardShip:
 _0a4d:  ldx     #$01fc
-        jsr     $046a       ; execute trigger script
+        jsr     ExecTriggerScript
         rts
 
 ; ---------------------------------------------------------------------------
@@ -1329,9 +1337,9 @@ _0aa3:  lda     #$03
         jmp     _0bd1
 _0ab5:  dec
         bne     _0ac5
-        jsr     $09f7
+        jsr     _c009f7
         ldx     #$002c
-        jsr     $046a       ; execute trigger script
+        jsr     ExecTriggerScript
         jsr     _c00a11
         rts
 _0ac5:  lda     $10fa       ; world tile properties byte 1
@@ -1493,7 +1501,7 @@ _0c1f:  lda     #$10
         sta     $0adb
         lda     #$02
         sta     $c0
-        jsr     $09f7
+        jsr     _c009f7
         ldx     #$002c
         jsr     ExecTriggerScript
         jsr     _c00a11
@@ -1595,7 +1603,7 @@ _0d3d:  lda     $61
         lda     $63
         and     #$1f
         bne     _0d73
-        jsr     $17e8       ; update local tile properties (normal map)
+        jsr     _c017e8       ; update local tile properties (normal map)
         lda     #$f1
         jsr     $ca3c       ; get event flag $01xx
         cmp     #$00
@@ -1612,7 +1620,7 @@ _0d63:  jsr     $317b       ; check npc events
         lda     $02
         and     #$80
         beq     _0d73       ; branch if the a button is not down
-        jsr     $0d74       ; check treasure chests
+        jsr     CheckTreasure
 _0d73:  rts
 
 .endproc
@@ -1623,7 +1631,7 @@ _0d73:  rts
 
 .proc CheckTreasure
 
-_0d72:  longa
+_0d74:  longa
         lda     $0ad4
         tax
         lda     $d13000,x               ; first treasure on this map
@@ -1634,7 +1642,7 @@ _0d72:  longa
         and     #$00ff
         asl2
         sta     $26
-        lda     $00
+        lda     $06
         shorta
         lda     $0adb
         tax
@@ -1688,14 +1696,14 @@ _0dd3:  longa
         clc
         adc     $0d
         tax
-        lda     $00
+        lda     $06
         shorta
         lda     $7f0000,x
         cmp     #$02
         bne     _0e2e
         lda     #$8e
         jsr     $463c                   ; play sound effect
-        ldx     $00
+        ldx     $06
         stx     $73
         ldx     #$0101
         stx     $2c
@@ -1715,8 +1723,8 @@ _0e33:  plx
         jmp     _0ebc
 _0e47:  and     #$e0                    ; gp
         bne     _0e63
-        jsr     $0f3d                   ; calculate gp (chest)
-        jsr     $0efe                   ; give gp
+        jsr     CalcGil
+        jsr     GiveGil
         jsr     $4dd7
         ldx     #$0003
         stx     $af
@@ -1746,7 +1754,7 @@ _0e7e:  lda     $12                     ; item
         inc
         sta     $0740,y
         bra     _0ead
-_0e98:  ldy     $00
+_0e98:  ldy     $06
 _0e9a:  lda     $0640,y
         beq     _0ea2
         iny
@@ -1863,7 +1871,7 @@ _0f3d:  stz     $39
         clc
         adc     $38
         sta     $38
-        lda     $00
+        lda     $06
         shorta
         rts
 
@@ -1882,7 +1890,7 @@ _c00f88:
 
 ; [  ]
 
-.proc c0_0f8c
+.proc _c00f8c
 
 _0f8c:  lda     $ba
         bne     _0f92
@@ -1898,7 +1906,7 @@ _0f9f:  lda     $57
         beq     _0fa7
         ldx     $3b
         stx     $02
-_0fa7:  jsr     $104a
+_0fa7:  jsr     _c0104a
         lda     $03
         and     #$0f
         bne     _0fb3
@@ -1908,7 +1916,7 @@ _0fb3:  lda     $03
         beq     _0fc7
         lda     #$01
         sta     $c4
-        jsr     $1055
+        jsr     _c01055
         lda     $c4
         beq     _1003
         jmp     _1006
@@ -1917,7 +1925,7 @@ _0fc7:  lda     $03
         beq     _0fdb
         lda     #$02
         sta     $c4
-        jsr     $1055
+        jsr     _c01055
         lda     $c4
         beq     _1003
         jmp     _1006
@@ -1926,7 +1934,7 @@ _0fdb:  lda     $03
         beq     _0fef
         lda     #$03
         sta     $c4
-        jsr     $1055
+        jsr     _c01055
         lda     $c4
         beq     _1003
         jmp     _1006
@@ -1935,7 +1943,7 @@ _0fef:  lda     $03
         beq     _1006
         lda     #$04
         sta     $c4
-        jsr     $1055
+        jsr     _c01055
         lda     $c4
         beq     _1003
         jmp     _1006
@@ -1955,8 +1963,8 @@ _1006:  sta     $ba
         stz     $16aa
         lda     $0adc
         bne     _102c
-        jsr     $148d       ; poison damage
-_102c:  jsr     $103a
+        jsr     DoPoisonDmg
+_102c:  jsr     _c0103a
         lda     #$fc
         jsr     $c796
         lda     #$fd
@@ -1969,7 +1977,7 @@ _102c:  jsr     $103a
 
 ; [  ]
 
-.proc c0_103a
+.proc _c0103a
 
 _103a:  lda     $ca
         beq     _1049
@@ -1977,7 +1985,7 @@ _103a:  lda     $ca
         tax
         lda     f:_11b8,x   ; pointer to tile in  movement direction
         tax
-        jsr     $119a       ; get world tile transparent/underwater flags
+        jsr     _c0119a       ; get world tile transparent/underwater flags
 _1049:  rts
 
 .endproc
@@ -1986,12 +1994,12 @@ _1049:  rts
 
 ; [  ]
 
-.proc c0_104a
+.proc _c0104a
 
 _104a:  lda     $ca
         bne     _1054
         ldx     #$0008      ; tile at party location
-        jsr     $119a       ; get world tile transparent/underwater flags
+        jsr     _c0119a       ; get world tile transparent/underwater flags
 _1054:  rts
 
 .endproc
@@ -2000,14 +2008,14 @@ _1054:  rts
 
 ; [  ]
 
-.proc c0_1055
+.proc _c01055
 
 _1055:  lda     $c4         ; movement direction
         dec
         sta     $0adb       ; party facing direction
         lda     $57
         bne     _10c3       ; return if an event is running
-        jsr     $112d       ; check if there is a vehicle at the current position
+        jsr     _c0112d       ; check if there is a vehicle at the current position
         cmp     #$01
         beq     _10c3       ; return if there is a vehicle present
         lda     $c4
@@ -2054,7 +2062,7 @@ _10ad:  tax
         and     $0d
         beq     _10c4       ; branch if not passable
 _10c3:  rts
-_10c4:  jsr     $10c8
+_10c4:  jsr     _c010c8
         rts
 
 .endproc
@@ -2063,7 +2071,7 @@ _10c4:  jsr     $10c8
 
 ; [  ]
 
-.proc c0_10c8
+.proc _c010c8
 
 _10c8:  ldx     $0ad6       ; map index
         cpx     #$0003
@@ -2118,7 +2126,7 @@ _112a:  stz     $c4
 ; return 0 if not, 1 if there is a vehicle
 ; $23 is a pointer to vehicle data
 
-.proc c0_112d
+.proc _c0112d
 
 _112d:  lda     $0adc
         bne     _118f
@@ -2133,7 +2141,7 @@ _112d:  lda     $0adc
         clc
         adc     f:_1196,x
         sta     $76
-        ldy     $00
+        ldy     $06
         sty     $23         ; pointer to vehicle data (+$0add)
 _114e:  ldy     $23
         lda     $0ade,y
@@ -2176,7 +2184,7 @@ _1196:  .byte   $ff,$00,$01,$00
 
 ; [ get world tile transparent/underwater flags ]
 
-.proc c0_119a
+.proc _c0119a
 
 _119a:  lda     $10be,x     ; get tile index * 3
         longa
@@ -2219,7 +2227,7 @@ _11d5:  lda     $57
         ldx     $3b         ; override pressed buttons with ???
         stx     $02
         bra     _11fc
-_11df:  jsr     $151d       ; update party sprite priority (current tile)
+_11df:  jsr     _c0151d       ; update party sprite priority (current tile)
         lda     $10fb       ; map tile properties byte 2
         and     #$40
         beq     _11f6       ; branch if not forced facing direction
@@ -2255,8 +2263,8 @@ _1212:  lda     $10fa       ; map tile properties byte 1
         bra     _122c
 _122a:  lda     #$01        ; use upstairs tile damage properties
 _122c:  sta     $c9
-        jsr     $13a6       ; update party z-level (current tile)
-        jsr     $16b7
+        jsr     _c013a6       ; update party z-level (current tile)
+        jsr     _c016b7
         lda     $10fb       ; map tile properties byte 2
         and     #$30
         lsr4
@@ -2271,7 +2279,7 @@ _122c:  sta     $c9
 _124f:  lda     $03
         and     #$80
         beq     _127a       ; branch if b button is not pressed
-        ldx     $00
+        ldx     $06
 _1257:  lda     $0500,x     ; branch if character not present
         and     #$40
         bne     _1265
@@ -2283,29 +2291,29 @@ _1265:  longa               ; next character
         clc
         adc     #$0050
         tax
-        lda     $00
+        lda     $06
         shorta
         cpx     #$0140
         bne     _1257
         bra     _127a
 _1278:  asl     $c0         ; double speed
 _127a:  lda     $1120
-        jsr     $161f       ; calculate parallax scroll
+        jsr     CalcParallaxScroll
         sta     $1080
         stz     $1081
         lda     $1120
         lsr2
-        jsr     $161f       ; calculate parallax scroll
+        jsr     CalcParallaxScroll
         sta     $1082
         stz     $1083
         lda     $1120
         lsr4
-        jsr     $161f       ; calculate parallax scroll
+        jsr     CalcParallaxScroll
         sta     $1084
         stz     $1085
         lda     $1120
         lsr6
-        jsr     $161f       ; calculate parallax scroll
+        jsr     CalcParallaxScroll
         sta     $1086
         stz     $1087
         lda     $10fb       ; map tile properties byte 2
@@ -2320,8 +2328,8 @@ _12c5:  lda     $57
         beq     _12d8       ; branch if party is already moving
         stz     $5d
         stz     $16aa
-        jsr     $13d7       ; tile damage
-        jsr     $148d       ; poison damage
+        jsr     DoTileDmg
+        jsr     DoPoisonDmg
 _12d8:  lda     $03
         and     #$0f
         bne     _12e1       ; branch if any direction buttons are pressed
@@ -2331,7 +2339,7 @@ _12e1:  lda     $03         ; check up button
         beq     _12f5
         lda     #$01        ; up
         sta     $c4
-        jsr     $163a       ; check if party can move
+        jsr     _c0163a       ; check if party can move
         lda     $c4
         beq     _1331
         jmp     _1336
@@ -2340,7 +2348,7 @@ _12f5:  lda     $03         ; check right button
         beq     _1309
         lda     #$02        ; right
         sta     $c4
-        jsr     $163a       ; check if party can move
+        jsr     _c0163a       ; check if party can move
         lda     $c4
         beq     _1331
         jmp     _1336
@@ -2349,7 +2357,7 @@ _1309:  lda     $03         ; check down button
         beq     _131d
         lda     #$03        ; down
         sta     $c4
-        jsr     $163a       ; check if party can move
+        jsr     _c0163a       ; check if party can move
         lda     $c4
         beq     _1331
         jmp     _1336
@@ -2358,7 +2366,7 @@ _131d:  lda     $03         ; check left button
         beq     _1336
         lda     #$04        ; left
         sta     $c4
-        jsr     $163a       ; check if party can move
+        jsr     _c0163a       ; check if party can move
         lda     $c4
         beq     _1331
         jmp     _1336
@@ -2371,7 +2379,7 @@ _1336:  sta     $ba         ; set facing/moving direction
         lda     #$01
         sta     $5d
         stz     $59
-        jsr     $1372       ; update party z-level (destination tile)
+        jsr     _c01372       ; update party z-level (destination tile)
         lda     $57
         bne     _134e       ; branch if an event is running
         lda     $10fb       ; map tile properties byte 2
@@ -2380,17 +2388,17 @@ _1336:  sta     $ba         ; set facing/moving direction
 _134e:  lda     $ba
         dec
         sta     $0adb       ; set facing direction
-_1354:  jsr     $1538       ; update party sprite priority (destination tile)
+_1354:  jsr     _c01538       ; update party sprite priority (destination tile)
         lda     #$fc
         jsr     $c796       ;
         lda     #$fd
         jsr     $c796       ;
-        jsr     $155b
-        jsr     $15ac
+        jsr     _c0155b
+        jsr     _c015ac
 _1367:  jsr     $2973
         lda     $58
         bne     _1371
-        jsr     $16da
+        jsr     _c016da
 _1371:  rts
 
 .endproc
@@ -2398,6 +2406,8 @@ _1371:  rts
 ; ---------------------------------------------------------------------------
 
 ; [ update party z-level (destination tile) ]
+
+.proc _c01372
 
 _1372:  lda     $ba         ; movement direction
         tax
@@ -2424,9 +2434,13 @@ _139a:  lda     $10f2,x     ; map tile properties byte 1
         sta     $cb         ; show/hide party sprite
 _13a5:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [ update party z-level (current tile) ]
+
+.proc _c013a6
 
 _13a6:  lda     $10fa       ; map tile properties byte 1
         and     #$03
@@ -2452,11 +2466,15 @@ _13d2:  lda     #$01        ; hide party sprite
         sta     $cb
 _13d6:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [ tile damage ]
 
-_13d7:  ldx     $00
+.proc DoTileDmg
+
+_13d7:  ldx     $06
 _13d9:  lda     $0500,x
         and     #$40
         bne     _13ea       ; skip empty character slots
@@ -2469,11 +2487,11 @@ _13ea:  longa
         clc
         adc     #$0050
         tax
-        lda     $00
+        lda     $06
         shorta
         cpx     #$0140
         bne     _13d9
-        ldy     $00
+        ldy     $06
 _13fd:  lda     $0500,y
         and     #$40
         bne     _1463       ; skip empty character slots
@@ -2499,12 +2517,12 @@ _141d:  lda     $c9
         lda     $0506,y
         beq     _143c
         sec
-        sbc     f:_c0147d,x   ; subtract hp
+        sbc     f:TileDmgTbl,x   ; subtract hp
         beq     _1439
         bcs     _143c
 _1439:  lda     #$0001
 _143c:  sta     $0506,y
-        lda     $00
+        lda     $06
         shorta
         lda     #$8f
         sta     $16aa
@@ -2517,36 +2535,40 @@ _144e:  lda     $c9
         and     #$07
         beq     _1463
         tax
-        lda     f:_c01475-1,x
+        lda     f:TileDmgSfxTbl-1,x
         jsr     $463c       ; play sound effect
 _1463:  longa
         tya
         clc
         adc     #$0050
         tay
-        lda     $00
+        lda     $06
         shorta
         cpy     #$0140
         bne     _13fd
 _1474:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; tile damage sound effect
-_c01475:
+TileDmgSfxTbl:
 @1475:  .byte   $94, $94, $94, $94, $94, $94, $94, $94
 
 ; tile damage values (0, 50, 50, 100, 300, 400, 500, 1000)
-_c0147d:
-@147d:  .word   $0000, $0032, $0032, $0064, $012c, $0190, $01f4, $03e8
+TileDmgTbl:
+@147d:  .word   0, 50, 50, 100, 300, 400, 500, 1000
 
 ; ---------------------------------------------------------------------------
 
 ; [ poison damage ]
 
+.proc DoPoisonDmg
+
 _148d:  lda     $57
         bne     _14e8       ; return if an event is running
-        ldy     $00
+        ldy     $06
 _1493:  lda     $0500,y
         and     #$40
         bne     _14d7       ; branch if character slot is empty
@@ -2573,24 +2595,28 @@ _1493:  lda     $0500,y
         bcs     _14d0
 _14cd:  lda     #$0001
 _14d0:  sta     $0506,y
-        lda     $00
+        lda     $06
         shorta
 _14d7:  longa
         tya
         clc
         adc     #$0050
         tay
-        lda     $00
+        lda     $06
         shorta
         cpy     #$0140
         bne     _1493
 _14e8:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [ pixelate screen (poison) ]
 
-_14e9:  ldy     $00
+.proc PoisonMosaic
+
+_14e9:  ldy     $06
 _14eb:  lda     $0500,y
         and     #$40
         bne     _150b
@@ -2609,15 +2635,19 @@ _150b:  longa
         clc
         adc     #$0050
         tay
-        lda     $00
+        lda     $06
         shorta
         cpy     #$0140
         bne     _14eb
         rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [ update party sprite priority (current tile) ]
+
+.proc _c0151d
 
 _151d:  ldx     $c7         ; party sprite priority
         cpx     #$01e8
@@ -2632,9 +2662,13 @@ _151d:  ldx     $c7         ; party sprite priority
         stx     $c7
 _1537:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [ update party sprite priority (destination tile) ]
+
+.proc _c01538
 
 _1538:  lda     $ba         ; party moving direction
         tax
@@ -2653,9 +2687,13 @@ _1555:  ldx     #$01e8      ; change to low priority
         stx     $c7
 _155a:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [  ]
+
+.proc _c0155b
 
 _155b:  lda     $0adb
         lsr
@@ -2695,11 +2733,15 @@ _1581:  ldx     $06
         stz     $ba
 _15ab:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [  ]
 
-_15ac:  ldx     $00
+.proc _c015ac
+
+_15ac:  ldx     $06
 _15ae:  lda     $0500,x
         and     #$40
         bne     _15bc
@@ -2711,7 +2753,7 @@ _15bc:  longa
         clc
         adc     #$0050
         tax
-        lda     $00
+        lda     $06
         shorta
         cpx     #$0140
         bne     _15ae
@@ -2746,6 +2788,8 @@ _15cf:  lda     $0adb
         stz     $57
 _1612:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 _c01613:
@@ -2767,7 +2811,9 @@ _c0161b:
 ; 2 = return $c0 << 1 (2x)
 ; 3 = return zero (no scroll)
 
-_161f:  and     #$03
+.proc CalcParallaxScroll
+
+_161f:  and     #%11
         bne     _1627
         lda     $c0
         bra     _1639
@@ -2784,11 +2830,15 @@ _162f:  dec
 _1637:  lda     $06
 _1639:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [ check if party can move ]
 
 ; $c4: direction (none, up, right, down, left)
+
+.proc _c0163a
 
 _163a:  lda     $57
         beq     _163f       ; return if an event is running
@@ -2849,9 +2899,13 @@ _16ac:  lda     $10f2,x     ; map tile properties byte 1
         rts
 _16b6:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [  ]
+
+.proc _c016b7
 
 _16b7:  lda     $10fa       ; map tile properties byte 1
         and     #$04
@@ -2870,9 +2924,13 @@ _16c4:  lda     $0ad8
         plx
 _16d9:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [  ]
+
+.proc _c016da
 
 _16da:  lda     $ba
         tax
@@ -2901,6 +2959,8 @@ _16ef:  lda     $ba
         plx
 _1711:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; none, up, right, down, left
@@ -2926,6 +2986,8 @@ _c0172a:
 ; ---------------------------------------------------------------------------
 
 ; [ update local tiles (world map) ]
+
+.proc _c01733
 
 _1733:  lda     $0ad8       ; x position
         sta     $0d
@@ -2988,10 +3050,10 @@ _1733:  lda     $0ad8       ; x position
         tax
         lda     $7f0000,x
         and     #$00ff
-        sta     $10c8
+        sta     _c010c8
         asl
         clc
-        adc     $10c8
+        adc     _c010c8
         tax
         lda     $1186,x
         sta     $10fc
@@ -3013,9 +3075,13 @@ _1733:  lda     $0ad8       ; x position
         shorta
         rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [ update local tiles (normal map) ]
+
+.proc _c017e8
 
 _17e8:  lda     $0ad8       ; x position
         and     #$3f
@@ -3152,7 +3218,7 @@ _17e8:  lda     $0ad8       ; x position
         lda     $7f3000,x
         sta     $10e2
         lda     $7f0000,x
-        sta     $10c8
+        sta     _c010c8
         and     #$00ff
         asl
         tax
@@ -3246,9 +3312,13 @@ _17e8:  lda     $0ad8       ; x position
         shorta
         rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [ get tile properties at current tile (unused ???) ]
+
+.proc _c019f1
 
 _19f1:  lda     $76         ; y position
         and     #$3f
@@ -3276,9 +3346,13 @@ _19f1:  lda     $76         ; y position
         pla
         rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [  ]
+
+.proc _c01a1d
 
 _1a1d:  lda     $ba
         bne     _1a24
@@ -3381,6 +3455,14 @@ _1ad3:  lda     $61
         inc     $56
 _1ae1:  inc     $41
         rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
+; [  ]
+
+.proc _c01ae4
 
 _1ae4:  lda     $be
         beq     _1af5
@@ -3626,19 +3708,27 @@ _1cc6:  lda     $61
 _1cd4:  inc     $41
         rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [ update showing character ]
 
+.proc UpdateTopChar
+
 _1cd7:  lda     $0ada
         cmp     #$07
         bcs     _1ce1       ; branch if a vehicle
-        jsr     $1ce2       ; update party graphic
+        jsr     UpdatePlayerGfx
 _1ce1:  rts
+
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ update party graphic ]
+
+.proc UpdatePlayerGfx
 
 _1ce2:  ldy     $06
 _1ce4:  lda     $0500,y     ; find the front character
@@ -3670,9 +3760,13 @@ _1d0f:  longa        ; next character
         bra     _1ce4
 _1d1d:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [ copy party sprite graphics to vram ]
+
+.proc TfrPartyGfx
 
 _1d1e:  lda     $0ada       ; party graphic
         cmp     #$09
@@ -3780,6 +3874,8 @@ _1dda:  pla
         jsr     $4ad5       ; copy 3bpp graphics to vram
         rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; pointers to vehicle graphics (+$db0000)
@@ -3880,8 +3976,9 @@ _c01eb5:
 
 ; [  ]
 
-_c01ec5:
-_1ec5:  ldy     $00
+.proc _c01ec5
+
+_1ec5:  ldy     $06
         sty     $23
 _1ec9:  ldy     $23
         lda     $6f
@@ -3934,9 +4031,9 @@ _1eea:  lda     $0adf,y
         and     #$1c
         cmp     #$08
         bcs     _1f45
-        jsr     $1fb4
+        jsr     _c01fb4
         bra     _1f48
-_1f45:  jsr     $1f57
+_1f45:  jsr     _c01f57
 _1f48:  lda     $23
         clc
         adc     #$04
@@ -3946,9 +4043,13 @@ _1f48:  lda     $23
         jmp     _1ec9
 _1f56:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [  ]
+
+.proc _c01f57
 
 _1f57:  lda     $23
         asl2
@@ -3991,9 +4092,13 @@ _1f60:  lda     $13
         sta     $0293,y
 _1fb3:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [  ]
+
+.proc _c01fb4
 
 _1fb4:  lda     $23
         asl2
@@ -4029,6 +4134,8 @@ _1fbd:  lda     $13
         dec     $09
         bne     _1fbd
         rts
+
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -5139,6 +5246,1022 @@ _c02a95:
 
 ; ---------------------------------------------------------------------------
 
+; [ execute npc script ]
+
+.proc ExecNPCScript
+
+@2f95:  longa
+        lda     $147f,x     ; npc script
+        asl
+        tax
+        lda     $ce0000,x
+        sta     $23
+        sta     $29
+        lda     $ce0002,x
+        sta     $26
+        lda     $06
+        shorta
+@2fae:  ldx     $23
+        lda     $ce0000,x
+        cmp     #$f0        ; find the end of the script ($f0)
+        beq     @2fcd
+        sec
+        sbc     #$f0
+        tax
+        lda     f:NPCCmdNumBytes,x
+        clc
+        adc     $23
+        sta     $23
+        lda     #$00
+        adc     $24
+        sta     $24
+        bra     @2fae
+@2fcd:  inx
+        longa
+        ldy     $06
+@2fd2:  cpx     $26
+        beq     @2fe3
+        lda     $ce0000,x   ; copy npc dialog
+        sta     $13d6,y
+        inx2
+        iny2
+        bra     @2fd2
+@2fe3:  lda     $06
+        shorta
+@2fe7:  ldx     $29
+        lda     $ce0000,x   ; npc script command
+
+; command $ff: execute event
+@2fed:  cmp     #$ff
+        bne     @2ff4
+        jmp     $314d
+
+; command $fe: if event flag $00xx set
+@2ff4:  cmp     #$fe
+        bne     @3006
+        lda     $ce0001,x
+        jsr     $ca2f       ; get event flag $00xx
+        cmp     #$00
+        bne     @303c
+        jmp     $3136
+
+; command $fd: if event flag $00xx clear
+@3006:  cmp     #$fd
+        bne     @3018
+        lda     $ce0001,x
+        jsr     $ca2f       ; get event flag $00xx
+        cmp     #$00
+        beq     @303c
+        jmp     $3136
+
+; command $fc: if event flag $01xx set
+@3018:  cmp     #$fc
+        bne     @302a
+        lda     $ce0001,x
+        jsr     $ca3c       ; get event flag $01xx
+        cmp     #$00
+        bne     @303c
+        jmp     $3136
+
+; command $fb: if event flag $01xx clear
+@302a:  cmp     #$fb
+        bne     @3045
+        lda     $ce0001,x
+        jsr     $ca3c       ; get event flag $01xx
+        cmp     #$00
+        beq     @303c
+        jmp     $3136
+@303c:  ldx     $29         ; skip 2 bytes
+        inx2
+        stx     $29
+        jmp     $2fe7
+
+; command $fa: if character data xxxx <=> yy
+@3045:  cmp     #$fa
+        bne     @3092
+        longa
+        lda     $ce0001,x
+        and     #$3fff
+        tay
+        lda     $06
+        shorta
+        lda     $ce0002,x
+        and     #$c0
+        bne     @306b
+
+; 0 (if equal)
+@305f:  lda     $0500,y     ; character data
+        cmp     $ce0003,x
+        beq     @3087
+        jmp     $3136
+
+; 1 (if greater)
+@306b:  cmp     #$40
+        bne     @307b
+        lda     $0500,y
+        cmp     $ce0003,x
+        bcs     @3087
+        jmp     $3136
+
+; 2 (if less)
+@307b:  lda     $0500,y
+        cmp     $ce0003,x
+        bcc     @3087
+        jmp     $3136
+
+@3087:  ldx     $29         ; skip 4 bytes
+        inx4
+        stx     $29
+        jmp     $2fe7
+
+; command $f9: if character data xxxx <=> yyyy
+@3092:  cmp     #$f9
+        bne     @30de
+        longa
+        lda     $ce0001,x
+        and     #$3fff
+        tay
+        lda     $ce0001,x
+        and     #$c000
+        bne     @30b9
+        lda     $0500,y     ; character data
+        cmp     $ce0003,x
+        beq     @3087
+        lda     $06
+        shorta
+        jmp     $3136
+
+@30b9:  .a16
+        cmp     #$4000
+        bne     @30ce
+        lda     $0500,y
+        cmp     $ce0003,x
+        bcs     @30fc
+        lda     $06
+        shorta
+        jmp     $3136
+@30ce:  lda     $0500,y
+        cmp     $ce0003,x
+        bcc     @30fc
+        lda     $06
+        shorta
+        jmp     $3136
+
+; command $f8: if character data xxxx & yy
+@30de:  cmp     #$f8
+        bne     @310c
+        longa
+        lda     $ce0001,x   ; pointer to character data
+        and     #$3fff
+        tay
+        lda     $06
+        shorta
+        lda     $0500,y     ; character data
+        and     $ce0003,x   ; mask
+        bne     @3087
+        jmp     $3136
+
+@30fc:  lda     $06         ; skip 5 bytes
+        shorta
+        ldx     $29
+        inx5
+        stx     $29
+        jmp     $2fe7
+
+; command $f7: if party is facing xx
+@310c:  cmp     #$f7
+        bne     @311c
+        lda     $ce0001,x
+        cmp     $0adb       ; facing direction
+        bne     @3136
+        jmp     $303c
+
+; command $f5: if character data xxxx & yyyy
+@311c:  longa
+        lda     $ce0001,x
+        and     #$3fff
+        tay
+        lda     $06
+        shorta
+        lda     $0500,y
+        and     $ce0003,x
+        bne     @3136
+        jmp     $3087
+
+; condition not met, check next condition
+@3136:  ldx     $29
+@3138:  inx
+        lda     $ce0000,x
+        cmp     #$ff
+        bne     @3138
+        inx
+        inx
+        inx
+        stx     $29
+        cpx     $d0
+        beq     @314d
+        jmp     $2fe7
+@314d:  lda     #$01
+        sta     $57
+        stz     $ba
+        longa
+        ldx     $29
+        lda     $ce0001,x   ; event index
+        sta     $ce
+        lda     $06
+        shorta
+        ldx     $ce
+        beq     @3168
+        jsr     $a217       ; execute event
+@3168:  stz     $57
+        rts
+
+.endproc
+
+; number of bytes for each npc script command ($f0-$ff)
+NPCCmdNumBytes:
+@316b:  .byte   0,0,0,0,0,4,1,2,4,5,4,2,2,2,2,3
+
+; ---------------------------------------------------------------------------
+
+; [ check npc events ]
+
+@317b:  lda     $0adb       ; facing direction
+        asl2
+        tax
+        lda     $c0329b,x   ; pointer to forward tile
+        tay
+        lda     $10f3,y     ; tile properties byte 2
+        cmp     #$ff
+        bne     @31a0       ; branch if not a through-tile
+        lda     $c0329e,x   ; forward x2 (interact through tile)
+        tay
+        jsr     $324b       ; get object at tile
+        cmp     #$ff
+        bne     @319a       ; return if no object
+        rts
+@319a:  jsr     $3289       ; get pointer to object
+        jmp     $3230
+@31a0:  jsr     $324b       ; get object at tile
+        cmp     #$ff
+        beq     @31ad       ; branch if no object
+        jsr     $3289       ; get pointer to object
+        jmp     $3230
+@31ad:  lda     $c0329c,x
+        tay
+        jsr     $324b
+        cmp     #$ff
+        beq     @31d6
+        jsr     $3289
+        lda     $147b,x
+        bmi     @31d6
+        lda     $0adb
+        dec
+        and     #$03
+        sta     $08
+        lda     $147c,x
+        lsr
+        and     #$03
+        cmp     $08
+        bne     @31d6
+        jmp     $3230
+@31d6:  lda     $0adb
+        asl2
+        tax
+        lda     $c0329d,x
+        tay
+        jsr     $324b
+        cmp     #$ff
+        beq     @3205
+        jsr     $3289
+        lda     $147b,x
+        bmi     @3205
+        lda     $0adb
+        inc
+        and     #$03
+        sta     $08
+        lda     $147c,x
+        lsr
+        and     #$03
+        cmp     $08
+        bne     @3205
+        jmp     $3230
+@3205:  lda     $0adb
+        asl2
+        tax
+        lda     $c0329e,x
+        tay
+        jsr     $324b
+        cmp     #$ff
+        beq     @322d
+        jsr     $3289
+        lda     $147b,x
+        bmi     @322d
+        lda     $147c,x
+        lsr
+        and     #$03
+        cmp     $0adb
+        bne     @322d
+        jmp     $3230
+@322d:  jmp     $324a
+@3230:  lda     $147e,x     ; check if object faces party when active
+        bmi     @3240
+        lda     $0adb       ; party facing direction
+        inc2
+        and     #$03
+        asl
+        sta     $147c,x     ; set graphic frame
+@3240:  phx
+        jsr     $39b3       ; update object sprites
+        plx
+        jsr     $2f95       ; execute npc script
+        stz     $e4         ;
+@324a:  rts
+
+; ---------------------------------------------------------------------------
+
+; [ get object at tile ]
+
+; y: pointer to tile properties
+
+@324b:  lda     $10fa       ; map tile properties byte 1
+        and     #$04
+        beq     @3261       ; branch if not a bridge tile
+
+; party is on a bridge tile
+        lda     $c3
+        and     #$01
+        beq     @3286       ; ignore object if party is below bridge
+        lda     $10f2,y     ; map tile properties byte 1
+        and     #$01
+        beq     @3286       ; ignore if tile is not passable to upper z-level
+        bra     @327c
+
+; party is not on a bridge tile
+@3261:  lda     $10f2,y     ; map tile properties byte 1
+        and     #$04
+        beq     @3271       ; branch if target tile is not a bridge tile
+        lda     $c2
+        and     #$01
+        beq     @3286
+        jmp     $327c
+@3271:  lda     $10f2,y     ; map tile properties byte 1
+        and     #$03
+        beq     @327c
+        and     $c2
+        beq     @3286
+@327c:  lda     $10d8,y
+        beq     @3286
+        cmp     #$ff
+        beq     @3286
+        rts
+@3286:  lda     #$ff        ; no object
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ get pointer to object data ]
+
+@3289:  and     #$7f
+        sta     $4202
+        lda     #$14
+        sta     $4203
+        nop4
+        ldx     $4216
+        rts
+
+; ---------------------------------------------------------------------------
+
+; pointers to tiles in direction (forward, forward/left, forward/right, forward x2 )
+@329b:  .byte   $02,$00,$04,$12
+@329f:  .byte   $0a,$04,$10,$16
+@32a3:  .byte   $0e,$10,$0c,$18
+@32a7:  .byte   $06,$0c,$00,$14
+
+; ---------------------------------------------------------------------------
+
+; [ update objects ]
+
+@32ab:  lda     $e6         ; number of objects
+        bne     @32b0       ; return if there are no objects
+        rts
+@32b0:  stz     $e5         ; current object
+        ldy     $06
+        sty     $e9         ; pointer to current object
+@32b6:  ldy     $e9
+        lda     $147e,y
+        and     #$04
+        beq     @32ca       ; branch if object is not stationary
+        lda     $147b,y
+        ora     #$80
+        sta     $147b,y     ; object does not move
+        jmp     $348a
+@32ca:  lda     $147e,y     ;
+        and     #$08
+        bne     @32d9
+        lda     $147d,y
+        bpl     @32d9
+        jmp     $34b9
+@32d9:  lda     $147d,y
+        and     #$7f
+        beq     @32e3
+        jmp     $34b9
+@32e3:  lda     $1485,y
+        and     #$fd
+        sta     $1485,y
+        lda     $e4
+        beq     @32ff
+        and     #$7f
+        cmp     $e5
+        bne     @32ff
+        stz     $e4
+        lda     $1485,y
+        ora     #$02
+        sta     $1485,y
+@32ff:  longa
+        lda     $1477,y
+        and     #$3f00
+        xba
+        sta     $0d
+        lda     $1479,y
+        lsr
+        lsr
+        and     #$0fc0
+        ora     $0d
+        tax
+        tay
+        lda     $06
+        shorta
+        lda     #$7f
+        pha
+        plb
+        longa
+        lda     $3000,x     ; bg1 tile
+        sta     $f5
+        lda     a:$0000,x     ; object
+        sta     $eb
+        tya
+        sec
+        sbc     #$0040
+        and     #$0fff
+        tax
+        lda     $3000,x
+        sta     $f7
+        lda     a:$0000,x
+        sta     $ed
+        tya
+        and     #$0fc0
+        sta     $0d
+        tya
+        dec
+        and     #$003f
+        ora     $0d
+        tax
+        lda     $3000,x
+        sta     $fd
+        lda     a:$0000,x
+        sta     $f3
+        tya
+        and     #$0fc0
+        sta     $0d
+        tya
+        inc
+        and     #$003f
+        ora     $0d
+        tax
+        lda     $3000,x
+        sta     $f9
+        lda     a:$0000,x
+        sta     $ef
+        tya
+        clc
+        adc     #$0040
+        and     #$0fff
+        tax
+        lda     $3000,x
+        sta     $fb
+        lda     a:$0000,x
+        sta     $f1
+        lda     $06
+        shorta
+        lda     #$00
+        pha
+        plb
+        lda     $eb
+        longa
+        and     #$00ff
+        asl
+        tax
+        lda     $06
+        shorta
+        lda     $1186,x     ; tile properties byte 1
+        and     #$83
+        sta     $0c         ; $0c = z-level and npc passability
+        lda     $1187,x     ; tile properties byte 2
+        and     #$0f
+        sta     $0b         ; $0b = direction passability
+        ldy     $e9
+        lda     $147b,y     ;
+        and     #$7f
+        sta     $147b,y
+        lda     $1485,y
+        bpl     @33c2       ; branch if random movement does not depend on party position
+        and     #$40
+        bne     @33bc
+        jsr     $351c       ; move toward party
+        jmp     $342c
+@33bc:  jsr     $3555       ; move away from party
+        jmp     $342c
+@33c2:  lda     $1485,y     ; movement type
+        and     #$30
+        bne     @342c       ; branch if object has custom movement
+        lda     $147b,y
+        and     #$7f
+        bne     @33db       ; branch if already moving
+        jsr     $4f2b       ; generate random number
+        and     #$03
+        inc
+        sta     $147b,y     ; random movement direction
+        bra     @342c
+@33db:  jsr     $4f2b       ; generate random number
+        cmp     #$20
+        bcs     @342c
+        lda     $147b,y
+        lsr
+        bcc     @340a
+        jsr     $4f2b       ; generate random number
+        lsr
+        bcs     @33fc
+        ldx     #$0004
+        jsr     $34eb       ; check if npc can move to tile
+        beq     @342c
+        sta     $147b,y
+        jmp     $348a
+@33fc:  ldx     #$0008
+        jsr     $34eb       ; check if npc can move to tile
+        beq     @342c
+        sta     $147b,y
+        jmp     $348a
+@340a:  jsr     $4f2b       ; generate random number
+        lsr
+        bcs     @341e
+        ldx     #$0002
+        jsr     $34eb       ; check if npc can move to tile
+        beq     @342c
+        sta     $147b,y
+        jmp     $348a
+@341e:  ldx     #$0006
+        jsr     $34eb       ; check if npc can move to tile
+        beq     @342c
+        sta     $147b,y
+        jmp     $348a
+@342c:  lda     $147b,y     ; facing direction
+        asl
+        tax
+        jsr     $34eb       ; check if npc can move to tile
+        bne     @348a
+        lda     $1485,y     ; movement type
+        and     #$30
+        cmp     #$10
+        beq     @346b       ; branch if object moves in a circle
+        cmp     #$30
+        beq     @3459       ; branch if object moves in a straight line
+
+; move back and forth
+        lda     $147b,y     ; facing direction
+        dec
+        clc
+        adc     #$02        ; reverse direction
+        and     #$03
+        inc
+        asl
+        tax
+        jsr     $34eb       ; check if npc can move to tile
+        beq     @347f
+        sta     $147b,y
+        bra     @348a
+
+; move in a straight line
+@3459:  lda     $147b,y     ; facing direction
+        and     #$03
+        inc
+        asl
+        tax
+        jsr     $34eb       ; check if npc can move to tile
+        beq     @347f
+        sta     $147b,y
+        bra     @348a
+
+; move in a circle
+@346b:  lda     $147b,y     ; facing direction
+        dec
+        dec
+        and     #$03
+        inc
+        asl
+        tax
+        jsr     $34eb       ; check if npc can move to tile
+        beq     @347f
+        sta     $147b,y
+        bra     @348a
+@347f:  lda     $147b,y
+        ora     #$80
+        sta     $147b,y
+        jmp     $34b9
+@348a:  lda     $1485,y
+        lsr
+        bcs     @3493
+        jmp     $34b9
+@3493:  ldy     $e9
+        jsr     $3cf8       ; remove object from object layout
+        lda     $147b,y
+        bpl     @349f
+        lda     #$00
+@349f:  and     #$7f
+        tax
+        lda     $1478,y
+        clc
+        adc     $c034e1,x
+        sta     $75
+        lda     $147a,y
+        clc
+        adc     $c034e6,x
+        sta     $76
+        jsr     $3ce0       ; add object to object layout
+@34b9:  ldy     $e9
+        lda     $147b,y
+        and     #$7f
+        beq     @34c7
+        dec
+        asl
+        sta     $147c,y
+@34c7:  longa       ; next object
+        lda     $e9
+        clc
+        adc     #$0014
+        sta     $e9
+        lda     $06
+        shorta
+        inc     $e5
+        lda     $e5
+        cmp     $e6
+        beq     @34e0
+        jmp     $32b6
+@34e0:  rts
+
+@34e1:  .byte   $00,$00,$01,$00,$ff
+@34e6:  .byte   $00,$ff,$00,$01,$00
+
+; ---------------------------------------------------------------------------
+
+; [ check if npc can move to tile ]
+
+; x: direction
+; a: movement direction (out, zero if can't move)
+
+@34eb:  lda     $eb,x       ; bg1 tile
+        phx
+        longa
+        and     #$00ff
+        asl
+        tax
+        lda     $06
+        shorta
+        lda     $1186,x     ; tile properties
+        plx
+        and     #$83
+        cmp     $0c         ; check z-level and npc passability
+        bne     @3514
+        lda     $f5,x       ; object at tile
+        bne     @3514
+        txa
+        lsr
+        tax
+        lda     $0b         ; check direction passability
+        and     $c03517,x
+        beq     @3514
+        txa                 ; can move (return movement direction)
+        rts
+@3514:  lda     #$00        ; can't move
+        rts
+
+@3517:  .byte   $00,$08,$01,$04,$02
+
+; ---------------------------------------------------------------------------
+
+; [ move toward party ]
+
+@351c:  ldy     $e9
+        lda     $1478,y
+        cmp     $0ad8
+        bcs     @3536
+        lda     $147a,y
+        cmp     $0ad9
+        bcs     @3532
+        lda     #$01
+        bra     @3544
+@3532:  lda     #$00
+        bra     @3544
+@3536:  lda     $147a,y
+        cmp     $0ad9
+        bcs     @3542
+        lda     #$02
+        bra     @3544
+@3542:  lda     #$03
+@3544:  sta     $08
+        jsr     $4f2b       ; generate random number
+        and     #$01
+        clc
+        adc     $08
+        and     #$03
+        inc
+        sta     $147b,y
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ move away from party ]
+
+@3555:  ldy     $e9
+        lda     $1478,y     ; object x position
+        cmp     $0ad8
+        bcs     @356f       ; branch if greater than party x position
+        lda     $147a,y
+        cmp     $0ad9
+        bcs     @356b
+        lda     #$03
+        bra     @357d
+@356b:  lda     #$02
+        bra     @357d
+@356f:  lda     $147a,y
+        cmp     $0ad9
+        bcs     @357b
+        lda     #$00
+        bra     @357d
+@357b:  lda     #$01
+@357d:  sta     $08
+        jsr     $4f2b       ; generate random number
+        and     #$01
+        clc
+        adc     $08
+        and     #$03
+        inc
+        sta     $147b,y
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ update hiryuu sprites ]
+
+.proc DrawHiryuu
+
+@358e:  lda     $169f
+        beq     @359a       ; return if no hiryuu
+        lda     $1485
+        and     #$01
+        bne     @359b
+@359a:  rts
+@359b:  lda     #$aa
+        sta     $0400
+        sta     $0401
+        sta     $0402
+        sta     $0403
+        lda     #$a0
+        sta     $041f
+        lda     $147c
+        lsr3
+        sta     $0c
+        lda     $147e
+        and     #$04
+        beq     @35c5
+        lda     #$01
+        sta     $0c
+        lda     #$07
+        bra     @35f5
+@35c5:  lda     $1485
+        and     #$08
+        beq     @35dd
+        lda     $147b
+        beq     @35f5
+        lda     $1479
+        and     #$80
+        clc
+        rol2
+        adc     #$08
+        bra     @35f5
+@35dd:  lda     $1485
+        bpl     @35f0
+        lda     $3e
+        lsr3
+        and     #$03
+        tax
+        lda     $c037bd,x
+        bra     @35f5
+@35f0:  lda     $147c       ; body frame
+        and     #$07
+@35f5:  longa
+        asl4
+        sta     $23
+        asl
+        clc
+        adc     $23
+        tax
+        lda     $1477
+        lsr3
+        clc
+        adc     #$0010
+        sec
+        sbc     $61
+        sta     $13
+        lda     $1479
+        lsr3
+        clc
+        adc     #$0018
+        sec
+        sbc     $63
+        sta     $15
+        lda     $1488
+        beq     @3652
+        lda     $1485
+        and     #$0004
+        bne     @3636
+        lda     $1488
+        and     #$00ff
+        lsr
+        bra     @363e
+@3636:  lda     $1488
+        and     #$00ff
+        lsr2
+@363e:  phx
+        tax
+        lda     $c022db,x
+        plx
+        and     #$00ff
+        asl
+        sta     $0f
+        lda     $15
+        sec
+        sbc     $0f
+        sta     $15
+@3652:  lda     $06
+        tay
+        shorta
+@3657:  longa
+        cpy     #$0000
+        bne     @3671
+        lda     $0c
+        and     #$0007
+        phx
+        asl
+        tax
+        lda     $c037c9,x
+        plx
+        ora     $c037d5,x
+        bra     @3675
+@3671:  lda     $c037d5,x
+@3675:  sta     $0202,y
+        and     #$01ff
+        beq     @36b6
+        lda     $c037d3,x
+        and     #$00ff
+        cmp     #$0080
+        bcc     @368c
+        ora     #$ff00
+@368c:  adc     $13
+        and     #$07ff
+        cmp     #$0200
+        bcs     @36b6
+        lsr
+        sec
+        sbc     #$0008
+        sta     $0d
+        lda     $c037d4,x
+        and     #$00ff
+        cmp     #$0080
+        bcc     @36ac
+        ora     #$ff00
+@36ac:  adc     $15
+        and     #$07ff
+        cmp     #$01e0
+        bcc     @36bd
+@36b6:  lda     #$00f0
+        sta     $0f
+        bra     @36d5
+@36bd:  lsr
+        sec
+        sbc     #$0010
+        sta     $0f
+        cpy     #$0000
+        bne     @36d5
+        lda     $0c
+        and     #$0008
+        lsr2
+        clc
+        adc     $0f
+        sta     $0f
+@36d5:  lda     $06
+        shorta
+        lda     $0d
+        cmp     #$f8
+        bcc     @36f9
+        phx
+        phy
+        tya
+        lsr2
+        and     #$03
+        tax
+        tya
+        lsr4
+        tay
+        lda     $0400,y
+        ora     $c037b9,x
+        sta     $0400,y
+        ply
+        plx
+@36f9:  lda     $0d
+        sta     $0200,y
+        lda     $0f
+        sta     $0201,y
+        inx4
+        iny4
+        cpy     #$0030
+        beq     @3713
+        jmp     $3657
+@3713:  longa
+        lda     $148b
+        lsr3
+        clc
+        adc     #$0010
+        sec
+        sbc     $61
+        sta     $13
+        lda     $148d       ; poison damage
+        lsr3
+        clc
+        adc     #$0018
+        sec
+        sbc     $63
+        sta     $15
+        lda     $06
+        shorta
+        ldx     $06
+        ldy     $06
+@373b:  longa
+        lda     $c037c3,x
+        sta     $03fa,y
+        lda     $c037c1,x
+        and     #$00ff
+        cmp     #$0080
+        bcc     @3753
+        ora     #$ff00
+@3753:  adc     $13
+        and     #$07ff
+        cmp     #$0200
+        bcs     @3775
+        lsr
+        sec
+        sbc     #$0008
+        sta     $0d
+        lda     $c037c2,x
+        and     #$00ff
+        adc     $15
+        and     #$07ff
+        cmp     #$01e0
+        bcc     @377c
+@3775:  lda     #$00f0
+        sta     $0f
+        bra     @3783
+@377c:  lsr
+        sec
+        sbc     #$0010
+        sta     $0f
+@3783:  lda     $06
+        shorta
+        lda     $0d
+        cmp     #$f8
+        bcc     @37a1
+        cpy     #$0000
+        bne     @3799
+        lda     $041f
+        ora     #$10
+        bra     @379e
+@3799:  lda     $041f
+        ora     #$40
+@379e:  sta     $041f
+@37a1:  lda     $0d
+        sta     $03f8,y
+        lda     $0f
+        sta     $03f9,y
+        iny4
+        inx4
+        cpy     #$0008
+        bne     @373b
+        rts
+
+.endproc
+
+; ---------------------------------------------------------------------------
+
 ; [ show cutscene ]
 
 ; A: cutscene id
@@ -5234,7 +6357,6 @@ _4e69:  .a8
         sta     hOBJSEL
         stz     hOAMADDL
         stz     hOAMADDH
-
         rts
 
 .endproc
@@ -5677,7 +6799,7 @@ WorldMod2:
 
 _ccf0:  .a8
         .i16
-        ldx     $00
+        ldx     $06
         stx     $16a8
         lda     #$6f
         jsr     $463c
@@ -5709,7 +6831,7 @@ _cd24:  lda     $013b
         lda     #1
         sta     $0134
         jsr     $454f
-_cd46:  jsr     $1cd7
+_cd46:  jsr     UpdateTopChar
         rts
 
 .endproc
@@ -5792,3 +6914,5 @@ SRAMSlotTbl:
         .res    12
         .addr   Reset
         .res    2
+
+; ===========================================================================
