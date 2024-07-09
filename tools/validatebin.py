@@ -1,7 +1,7 @@
 import os
 
-START_POS = 0x59F00
-BYTES_TO_CHECK = 0x28FF
+START_POS = 0x59C00
+BYTES_TO_CHECK = 0x2BFF
 
 def main():
     with open("../rom/ff5-en.sfc", "rb") as gen_file, open("../rom/Final Fantasy 5.sfc", "rb") as orig_file:
@@ -9,7 +9,7 @@ def main():
         orig_data = orig_file.read()
 
     # How many addresses you want to see at a time
-    top = 200
+    top = 5
     # In case you want to skip a few mistakes
     skip_first = 0
     print(f"Skipped first {skip_first} mistakes")
@@ -18,7 +18,7 @@ def main():
 
     for i in range(0, BYTES_TO_CHECK):
         genAddr = START_POS+i
-        orgAddr = 0x109F00+i
+        orgAddr = 0x109C00+i
         if gen_data[genAddr] != orig_data[orgAddr]:
             has_errors = True
             if skip_first > 0:
