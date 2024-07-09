@@ -57,15 +57,20 @@ AI_SCRIPT_INC = 1
 .endmac
 
 ;AI Condition 04: Alone 
-;Param1: if 0, succeeds when completely alone
-;	 if non-0, succeeds when all active monsters are the same
-.mac if_alone are_monsters_same
-    .byte $04, $00, are_monsters_same, $00
+;succeeds when completely alone
+.mac if_alone
+    .byte $04, $00, $00, $00
+.endmac
+
+;AI Condition 04: Alone 
+;succeeds when all active monsters are the same
+.mac if_monsters_same
+    .byte $04, $00, $01, $00 
 .endmac
 
 ;AI Condition 05: Compare Visible Monsters
 ;Param1: if 0, succeeds if visible monsters match provided value
-;	 if non-0, succeeds if they do not match
+;     if non-0, succeeds if they do not match
 ;Param2: Monster Bits (1 bit per monster)
 .mac if_monster_visible is_inverted, monster_bitmask
     .byte $05, is_inverted, $00, monster_bitmask
@@ -74,7 +79,7 @@ AI_SCRIPT_INC = 1
 ;AI Condition 06: Reaction to Command and/or Element
 ;Param1: if set, inverts test so a match fails the condition, and ignores element when checking commands
 ;Param2: Command (post-remap values)
-;	 Command $07, normally BuildUp, is used as a flag to skip the command check and just check element
+;     Command $07, normally BuildUp, is used as a flag to skip the command check and just check element
 ;Param3: Element (ignored if zero)
 .mac react_to is_inverted, command, element
     .byte $06, is_inverted, command, element
@@ -83,7 +88,7 @@ AI_SCRIPT_INC = 1
 ;AI Condition $07: Reaction to Command and/or Category
 ;Param1: if set, inverts test so a match fails the condition, and ignores category when checking commands
 ;Param2: Command (post-remap values)
-;	 Command $07, normally BuildUp, is used as a flag to skip the command check and just check category
+;     Command $07, normally BuildUp, is used as a flag to skip the command check and just check category
 ;Param3: Category (ignored if zero)
 .mac react_to_cmd is_inverted, command, category
     .byte $07, is_inverted, command, category
@@ -104,10 +109,15 @@ AI_SCRIPT_INC = 1
 .endmac
 
 ;AI Condition $0A: Reaction to Targetting
-;Param3: if 0, succeeds when attack was single target
-;	 if non-0, succeeds when attack was multi target
-.mac react_to_targetting is_multi_target
-    .byte $0A, $00, $00, is_multi_target
+; succeeds when attack was single target
+.mac if_single_target
+    .byte $0A, $00, $00, $00
+.endmac
+
+;AI Condition $0A: Reaction to Targetting
+; succeeds when attack was multi target
+.mac if_multi_target
+    .byte $0A, $00, $00, $00
 .endmac
 
 ;AI Condition 0B: Check CharStruct param
@@ -161,9 +171,9 @@ AI_SCRIPT_INC = 1
 ; ---------------------------AI Special Commands-------------------------------
 
 ;AI Command $F2, Show Monster
-;Param1/Type:  	bitfield but only $40 (random) is supported
-;Param2/Data1: 	bitfield of valid monsters to show
-;		.. or if 0, picks a random monster other than self
+;Param1/Type:      bitfield but only $40 (random) is supported
+;Param2/Data1:     bitfield of valid monsters to show
+;     .. or if 0, picks a random monster other than self
 .mac show_monster param1, param2
     .byte $FD, $F2, param1, param2
 .endmac
@@ -192,6 +202,10 @@ AI_SCRIPT_INC = 1
 ; Param1: Number of bytes after this command to perform a no-interrupt
 .mac no_interrupt length
     .byte $FD, $F7, length, $F0
+.endmac
+
+.mac end_interrupt
+
 .endmac
 
 ;AI Command $F8: Change Music

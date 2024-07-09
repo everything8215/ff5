@@ -361,7 +361,7 @@ _10A06C:
 
 AIScript_1B:
 _10A081:
-    if_alone $00
+    if_alone
     begin_block
         random_choice $80, $89, $80
     end_cond_block
@@ -401,7 +401,7 @@ _10A0A2:
 
 AIScript_1E:
 _10A0B1:
-    if_alone $00
+    if_alone
     begin_block
         random_choice $80, $DA, $DA
     end_cond_block
@@ -537,7 +537,7 @@ _10A173:
 
 AIScript_26:
 _10A17E:
-    if_alone $00
+    if_alone
     begin_block
         random_choice $80, $80, $81
     end_cond_block
@@ -592,7 +592,7 @@ _10A19B:
 
 AIScript_28:
 _10A1E3:
-    if_alone $00
+    if_alone
     begin_block
         random_choice $8B, $8B, $80
     end_cond_block
@@ -641,7 +641,7 @@ _10A215:
     end_block
 
     if_dying
-    if_alone $00
+    if_alone
     begin_block
         show_monster $83, $0C
         .byte $EE
@@ -668,7 +668,7 @@ _10A22B:
 
 AIScript_2D:
 _10A240:
-    if_alone $00
+    if_alone
     begin_block
         show_text $1401
         .byte $A2
@@ -700,7 +700,7 @@ _10A25F:
 
 AIScript_2F:
 _10A26E:
-    if_alone $01
+    if_monsters_same
     begin_block
         .byte $A2
     end_cond_block
@@ -850,7 +850,7 @@ _10A32D:
         .byte $80
     end_block
 
-    if_alone $00
+    if_alone
     react_to_dmg
     begin_block
         change_target $23, $F0
@@ -1158,7 +1158,7 @@ _10A4A7:
 
 AIScript_50:
 _10A4B3:
-    if_alone $00
+    if_alone
     begin_block
         random_choice $80, $80, $81
     end_cond_block
@@ -1337,7 +1337,7 @@ _10A587:
         random_choice $80, $81, $A2
     end_block
 
-    if_alone $00
+    if_alone
     react_to $00, $2B, $00
     begin_block
         show_monster $07, $FC
@@ -1476,7 +1476,7 @@ _10A622:
 
 AIScript_67:
 _10A635:
-    if_alone $00
+    if_alone
     begin_block
         show_monster $82, $10
         .byte $EE
@@ -1509,7 +1509,7 @@ _10A64C:
 
 AIScript_69:
 _10A660:
-    if_alone $00
+    if_alone
     begin_block
         .byte $80
     end_cond_block
@@ -1772,7 +1772,7 @@ _10A78E:
 
 AIScript_7D:
 _10A79F:
-    if_alone $00
+    if_alone
     begin_block
         random_choice $34, $2E, $AA
         random_choice $2E, $47, $AA
@@ -1807,7 +1807,7 @@ _10A7C0:
 
 AIScript_7F:
 _10A7D5:
-    if_alone $00
+    if_alone
     begin_block
         .byte $B2, $80, $80
     end_cond_block
@@ -1841,7 +1841,7 @@ _10A7EF:
 
 AIScript_81:
 _10A803:
-    if_alone $00
+    if_alone
     begin_block
         random_choice $80, $CC, $CC
         random_choice $80, $CC, $80
@@ -1883,7 +1883,7 @@ _10A833:
 
 AIScript_84:
 _10A83E:
-    if_alone $00
+    if_alone
     begin_block
         random_choice $80, $80, $81
     end_cond_block
@@ -2125,7 +2125,7 @@ _10A961:
 
 AIScript_95:
 _10A979:
-    if_alone $00
+    if_alone
     begin_block
         .byte $AA
         no_interrupt $0A
@@ -2649,7 +2649,7 @@ _10AC55:
 
 AIScript_B5:
 _10AC60:
-    if_alone $00
+    if_alone
     begin_block
         show_text $5C01
         .byte $AA, $D7
@@ -2670,7 +2670,7 @@ _10AC60:
 
 AIScript_B6:
 _10AC7A:
-    if_alone $00
+    if_alone
     begin_block
         .byte $34
     end_cond_block
@@ -2802,7 +2802,7 @@ _10AD0A:
 
 AIScript_BF:
 _10AD15:
-    if_alone $00
+    if_alone
     begin_block
         random_choice $80, $C5, $AA
     end_cond_block
@@ -2890,7 +2890,7 @@ _10AD79:
 
 AIScript_C5:
 _10AD90:
-    if_alone $00
+    if_alone
     begin_block
         random_choice $80, $B5, $80
     end_cond_block
@@ -2911,7 +2911,7 @@ _10AD90:
 
 AIScript_C6:
 _10ADAF:
-    if_alone $00
+    if_alone
     begin_block
         random_choice $80, $EB, $81
     end_cond_block
@@ -3059,7 +3059,7 @@ _10AE6D:
 
 AIScript_CF:
 _10AE7C:
-    if_alone $00
+    if_alone
     begin_block
         random_choice $CA, $CD, $CE
     end_cond_block
@@ -3108,7 +3108,7 @@ _10AEAC:
 
 AIScript_D2:
 _10AEC0:
-    if_alone $00
+    if_alone
     begin_block
         no_interrupt $08
         random_choice $30, $32, $31
@@ -4495,7 +4495,7 @@ _10B6C8:
 AIScript_127:
 _10B6D7:
     if_var_eq $00, $01
-    if_alone $00
+    if_alone
     begin_block
         show_monster $80, $FC
         .byte $EE
@@ -4612,7 +4612,7 @@ _10B74D:
     end_block
 
     if_dying
-    if_alone $00
+    if_alone
     begin_block
         no_interrupt $13
         show_text $D203
@@ -4957,7 +4957,7 @@ _10BA29:
 
 AIScript_139:
 _10BA47:
-    if_alone $00
+    if_alone
     begin_block
         random_choice $80, $B7, $81
     end_cond_block
@@ -5154,7 +5154,7 @@ _10BBB2:
 
 AIScript_141:
 _10BBC9:
-    if_alone $00
+    if_alone
     begin_block
         show_monster $80, $C0
         .byte $EE
@@ -5352,7 +5352,7 @@ _10BD32:
         .byte $A3
     end_block
 
-    react_to_targetting $01
+    if_multi_target
     check_status $0D, $03, $40
     react_to $00, $07, $00
     begin_block
@@ -5666,7 +5666,7 @@ _10BFE1:
 
 AIScript_152:
 _10BFF0:
-    if_alone $00
+    if_alone
     begin_block
         show_text $0C01
         show_text $0D01
@@ -5695,7 +5695,7 @@ _10BFF0:
 
 AIScript_153:
 _10C033:
-    if_alone $01
+    if_monsters_same
     begin_block
         .byte $A2
     end_cond_block
@@ -5926,7 +5926,7 @@ _10C1E9:
     end_cond_block
 
     if_var_eq $01, $01
-    if_alone $00
+    if_alone
     begin_block
         .byte $EF
     end_cond_block
@@ -5955,7 +5955,7 @@ _10C1E9:
         random_choice $80, $80, $34
     end_cond_block
 
-    if_alone $00
+    if_alone
     begin_block
         show_text $7C07
         show_text $7D02
@@ -5981,7 +5981,7 @@ _10C1E9:
     end_block
 
     if_dying
-    if_alone $00
+    if_alone
     begin_block
         show_text $AF03
         .byte $AA
@@ -6217,7 +6217,7 @@ _10C46B:
     end_block
 
     if_dying
-    if_alone $00
+    if_alone
     if_var_eq $00, $01
     begin_block
         show_text $5B03
