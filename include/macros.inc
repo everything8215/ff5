@@ -449,7 +449,11 @@ PSW_C = %00000001
                         old_offset = ::_ram_offset
                         .repeat NUM_ITEMS, i
                                 ram_label label, .ident(.sprintf("_%d", i))
-                                ::_ram_offset .set ::_ram_offset + ITEM_SIZE
+                                .ifdef BLOCK_SIZE
+                                        ::_ram_offset .set ::_ram_offset + BLOCK_SIZE
+                                .else
+                                        ::_ram_offset .set ::_ram_offset + ITEM_SIZE
+                                .endif
                         .endrep
                         ::_ram_offset .set old_offset
                 .endif
