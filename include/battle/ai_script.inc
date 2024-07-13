@@ -15,7 +15,7 @@ AI_SCRIPT_INC = 1
 
 ; === How to code AI in FF5 ===
 ;
-; AI in FF5 consists of two sections: Conditions and Blocks, and they always 
+; AI in FF5 consists of two sections: Conditions and Blocks, and they always
 ; come in pairs. There may be up to 4 conditions sequentially, and in order for
 ; the block to execute all conditions must be true (AND operator is applied)
 ; A block always starts with $FE (begin_block macro) and ends with $FF for normal
@@ -23,7 +23,7 @@ AI_SCRIPT_INC = 1
 ; Blocks consist of either actions that are taken sequentially, or can be broken
 ; up into lists with $FD which indicates either a random_choice of 3 actions, or
 ; if the first byte after $FD is greater than $F0 indicates a special command
-; such as show_tex, show_monster, or any other macros defined below 
+; such as show_text, show_monster, or any other macros defined below
 
 ; -------------------------------AI Conditions---------------------------------
 
@@ -56,16 +56,16 @@ AI_SCRIPT_INC = 1
     .byte $03, $00, var, val
 .endmac
 
-;AI Condition 04: Alone 
+;AI Condition 04: Alone
 ;succeeds when completely alone
 .mac if_alone
     .byte $04, $00, $00, $00
 .endmac
 
-;AI Condition 04: Alone 
+;AI Condition 04: Alone
 ;succeeds when all active monsters are the same
 .mac if_monsters_same
-    .byte $04, $00, $01, $00 
+    .byte $04, $00, $01, $00
 .endmac
 
 ;AI Condition 05: Compare Visible Monsters
@@ -142,7 +142,7 @@ AI_SCRIPT_INC = 1
 .mac check_event_flag flag, bitmask
     .byte $0D, $0, flag, bitmask
 .endmac
- 
+
  ;AI Condition $0E: Reaction to Damage
 .mac react_to_dmg
     .byte $0E, $00, $00, $00
@@ -199,10 +199,9 @@ AI_SCRIPT_INC = 1
 .endmac
 
 ;AI Command $F7: No Interrupt
-; Param1: addr of where no-interrupt stops. Everything inbetween will be 
-.mac no_interrupt addr
+.mac no_interrupt
     .local start
-    .byte $FD, $F7, addr-start, $F0
+    .byte $FD, $F7, :+ - start, $F0
     start := *
 .endmac
 
@@ -224,7 +223,7 @@ AI_SCRIPT_INC = 1
     .byte $FD, $F9, flag, bitmask
 .endmac
 
-;AI Command $FA: Set Stats or Toggle Status 
+;AI Command $FA: Set Stats or Toggle Status
 ;Param1: Offset within CharStruct
 ;Param2: Value to set, or Status to toggle (only highest status bit applies)
 .mac set_char_param offset, value
