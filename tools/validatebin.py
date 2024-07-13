@@ -7,7 +7,7 @@ def check_memory_region(gen_data, orig_data, start_pos, bytes_to_check):
     global bytes_identical
     global bytes_checked
     # How many addresses you want to see at a time
-    top = 5
+    top = 50
     # In case you want to skip a few mistakes
     skip_first = 0
     if skip_first > 0:

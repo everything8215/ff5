@@ -117,7 +117,7 @@ AI_SCRIPT_INC = 1
 ;AI Condition $0A: Reaction to Targetting
 ; succeeds when attack was multi target
 .mac if_multi_target
-    .byte $0A, $00, $00, $00
+    .byte $0A, $00, $00, $01
 .endmac
 
 ;AI Condition 0B: Check CharStruct param
@@ -199,13 +199,15 @@ AI_SCRIPT_INC = 1
 .endmac
 
 ;AI Command $F7: No Interrupt
-; Param1: Number of bytes after this command to perform a no-interrupt
-.mac no_interrupt length
-    .byte $FD, $F7, length, $F0
+; Param1: addr of where no-interrupt stops. Everything inbetween will be 
+.mac no_interrupt addr
+    .local start
+    .byte $FD, $F7, addr-start, $F0
+    start := *
 .endmac
 
 .mac end_interrupt
-
+    :
 .endmac
 
 ;AI Command $F8: Change Music

@@ -3,7 +3,6 @@
 .segment "ai_script"
 .include "battle/ai_script.inc"
 
-
 ; ------------------------------------------------------------------------------
 
 AI_SCRIPT_ARRAY_LENGTH = 384
@@ -14,6 +13,7 @@ AIScriptPtr:
 begin_fixed_block AIScript, $28FF
 
 ; ------------------------------------------------------------------------------
+
 
 AIScript_00:
 _109F00:
@@ -440,23 +440,25 @@ _10A0CF:
     if_dying
     react_to_magic $00, $4D
     begin_block
-        no_interrupt $12
-        show_text $0805
-        show_text $0905
-        show_text $3B05
-        show_text $3C05
-        .byte $AA
+        no_interrupt :+
+            show_text $0805
+            show_text $0905
+            show_text $3B05
+            show_text $3C05
+            .byte $AA
     end_cond_block
+    end_interrupt
 
     if_dying
     begin_block
-        no_interrupt $12
-        show_text $3905
-        show_text $3A05
-        show_text $3B05
-        show_text $3C05
-        .byte $AA
+        no_interrupt :+
+            show_text $3905
+            show_text $3A05
+            show_text $3B05
+            show_text $3C05
+            .byte $AA
     end_cond_block
+    end_interrupt
 
     if_hp_less $0D, $0320
     react_to_dmg
@@ -580,8 +582,8 @@ _10A19B:
         .byte $AA
     end_cond_block
 
-    ;react_to_magic $00, $17
-    .byte $08, $00, $17, $F0    ; TODO: determine why this happens
+    .byte $08, $00, $17, $F0
+    ;react_to_magic $00, $17    ; TODO: figure out why this happens
     begin_block
         change_target $23, $F0
         .byte $17
@@ -676,11 +678,12 @@ _10A240:
 
     normal_react
     begin_block
-        no_interrupt $0A
-        show_text $0B01
-        change_target $0E, $F0
-        .byte $AC
+        no_interrupt :+
+            show_text $0B01
+            change_target $0E, $F0
+            .byte $AC
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -1993,11 +1996,12 @@ _10A8B7:
     normal_react
     begin_block
         .byte $AA
-        no_interrupt $0A
-        show_text $6001
-        show_monster $45, $70
-        .byte $EE
+        no_interrupt :+
+            show_text $6001
+            show_monster $45, $70
+            .byte $EE
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -2007,10 +2011,11 @@ AIScript_8D:
 _10A8CC:
     check_status $26, $00, $80
     begin_block
-        no_interrupt $07
-        show_monster $00, $E0
-        .byte $EE, $A7
+        no_interrupt :+
+            show_monster $00, $E0
+            .byte $EE, $A7
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
@@ -2050,9 +2055,10 @@ _10A902:
     normal_react
     begin_block
         random_choice $DE, $DE, $81
-        no_interrupt $03
-        .byte $81, $81
+        no_interrupt :+
+            .byte $81, $81
     end_block
+    end_interrupt
 
     if_dying
     begin_block
@@ -2128,11 +2134,12 @@ _10A979:
     if_alone
     begin_block
         .byte $AA
-        no_interrupt $0A
-        show_text $2902
-        show_monster $80, $00
-        .byte $EE
+        no_interrupt :+
+            show_text $2902
+            show_monster $80, $00
+            .byte $EE
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
@@ -2295,15 +2302,15 @@ _10AA5D:
         random_choice $C3, $C3, $81
     end_cond_block
 
-    ;if_monster_visible $00, $40
-    .byte $05, $00, $F0, $40 ; TODO: determine why this happens
+    .byte $05, $00, $F0, $40
+    ;if_monster_visible $00, $40    ; TODO: figure out why this happens
     begin_block
         set_cond_var $00, $02
         .byte $E7
     end_cond_block
 
-    ;if_monster_visible $00, $60
-    .byte $05, $00, $F0, $60 ; TODO: determine why this happens
+    .byte $05, $00, $F0, $60
+    ;if_monster_visible $00, $60    ; TODO: figure out why this happens
     begin_block
         set_cond_var $00, $02
         .byte $E7
@@ -2342,9 +2349,10 @@ _10AAA7:
 
     react_to_cmd $01, $2B, $00
     begin_block
-        no_interrupt $03
-        .byte $D7, $D7
+        no_interrupt :+
+            .byte $D7, $D7
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -2363,10 +2371,11 @@ _10AACD:
 
     react_to_cmd $00, $2B, $00
     begin_block
-        no_interrupt $09
-        show_text $1502
-        .byte $80, $80, $80, $80
+        no_interrupt :+
+            show_text $1502
+            .byte $80, $80, $80, $80
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -2400,15 +2409,15 @@ _10AB03:
         random_choice $B6, $B6, $81
     end_cond_block
 
-    ;if_monster_visible $00, $20
-    .byte $05, $00, $F0, $20 ; TODO: determine why this happens
+    .byte $05, $00, $F0, $20
+    ;if_monster_visible $00, $20    ; TODO figure out why this happens
     begin_block
         set_cond_var $01, $02
         .byte $E7
     end_cond_block
 
-    ;if_monster_visible $00, $60
-    .byte $05, $00, $F0, $60 ; TODO: determine why this happens
+    .byte $05, $00, $F0, $60
+    ;if_monster_visible $00, $60    ; TODO figure out why this happens
     begin_block
         set_cond_var $01, $02
         .byte $E7
@@ -2522,9 +2531,10 @@ _10ABAC:
 
     react_to $00, $04, $00
     begin_block
-        no_interrupt $03
-        .byte $E4, $A5
+        no_interrupt :+
+            .byte $E4, $A5
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -2602,8 +2612,9 @@ AIScript_B3:
 _10AC16:
     if_monster_visible $00, $08
     begin_block
-        no_interrupt $03
-        .byte $81, $81, $81
+        no_interrupt :+
+            .byte $81, $81, $81
+        end_interrupt
         show_monster $40, $F0
         .byte $EE
     end_cond_block
@@ -2681,10 +2692,11 @@ _10AC7A:
         .byte $AA
         show_text $2D02
         .byte $AA
-        no_interrupt $07
-        change_target $06, $F0
-        .byte $A0, $AF
+        no_interrupt :+
+            change_target $06, $F0
+            .byte $A0, $AF
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -3110,20 +3122,23 @@ AIScript_D2:
 _10AEC0:
     if_alone
     begin_block
-        no_interrupt $08
-        random_choice $30, $32, $31
-        random_choice $30, $32, $31
-        no_interrupt $09
-        random_choice $15, $29, $17
-        random_choice $3F, $40, $2F
+        no_interrupt :+
+            random_choice $30, $32, $31
+            random_choice $30, $32, $31
+        end_interrupt
+        no_interrupt :+
+            random_choice $15, $29, $17
+            random_choice $3F, $40, $2F
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
-        no_interrupt $09
-        random_choice $34, $20, $AA
-        random_choice $3D, $2D, $AA
+        no_interrupt :+
+            random_choice $34, $20, $AA
+            random_choice $3D, $2D, $AA
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -3146,22 +3161,24 @@ _10AF00:
     if_var_eq $00, $01
     begin_block
         random_choice $EF, $AA, $AA
-        no_interrupt $0E
-        random_choice $E2, $E2, $80
-        set_cond_var $00, $00
-        show_monster $85, $E0
-        .byte $EE
+        no_interrupt :+
+            random_choice $E2, $E2, $80
+            set_cond_var $00, $00
+            show_monster $85, $E0
+            .byte $EE
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
         .byte $AA
-        no_interrupt $0E
-        random_choice $A7, $A7, $80
-        set_cond_var $00, $01
-        show_monster $05, $1C
-        .byte $EE
+        no_interrupt :+
+            random_choice $A7, $A7, $80
+            set_cond_var $00, $01
+            show_monster $05, $1C
+            .byte $EE
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -3223,15 +3240,17 @@ _10AF5E:
 
     if_var_eq $00, $01
     begin_block
-        no_interrupt $0C
-        show_text $7301
-        random_choice $80, $80, $AA
-        random_choice $80, $80, $AA
-        no_interrupt $0D
-        show_text $7801
-        random_choice $80, $80, $AA
-        random_choice $80, $80, $AA
+        no_interrupt :+
+            show_text $7301
+            random_choice $80, $80, $AA
+            random_choice $80, $80, $AA
+        end_interrupt
+        no_interrupt :+
+            show_text $7801
+            random_choice $80, $80, $AA
+            random_choice $80, $80, $AA
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
@@ -3383,9 +3402,10 @@ AIScript_E4:
 _10B06A:
     normal_react
     begin_block
-        no_interrupt $03
-        .byte $80, $A2
+        no_interrupt :+
+            .byte $80, $A2
     end_block
+    end_interrupt
 
     if_dying
     begin_block
@@ -3424,13 +3444,14 @@ AIScript_E7:
 _10B09C:
     normal_react
     begin_block
-        no_interrupt $0F
-        change_target $23, $F0
-        .byte $2B
-        show_text $6101
-        show_monster $05, $80
-        .byte $EE
+        no_interrupt :+
+            change_target $23, $F0
+            .byte $2B
+            show_text $6101
+            show_monster $05, $80
+            .byte $EE
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -3440,12 +3461,13 @@ AIScript_E8:
 _10B0B5:
     normal_react
     begin_block
-        no_interrupt $0B
-        .byte $DB
-        show_text $6101
-        show_monster $05, $80
-        .byte $EE
+        no_interrupt :+
+            .byte $DB
+            show_text $6101
+            show_monster $05, $80
+            .byte $EE
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -3455,12 +3477,13 @@ AIScript_E9:
 _10B0CA:
     normal_react
     begin_block
-        no_interrupt $0B
-        .byte $DC
-        show_text $6101
-        show_monster $05, $80
-        .byte $EE
+        no_interrupt :+
+            .byte $DC
+            show_text $6101
+            show_monster $05, $80
+            .byte $EE
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -3470,12 +3493,13 @@ AIScript_EA:
 _10B0DF:
     normal_react
     begin_block
-        no_interrupt $0B
-        .byte $81
-        show_text $6101
-        show_monster $05, $80
-        .byte $EE
+        no_interrupt :+
+            .byte $81
+            show_text $6101
+            show_monster $05, $80
+            .byte $EE
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -3485,12 +3509,13 @@ AIScript_EB:
 _10B0F4:
     normal_react
     begin_block
-        no_interrupt $0B
-        .byte $DA
-        show_text $6101
-        show_monster $05, $80
-        .byte $EE
+        no_interrupt :+
+            .byte $DA
+            show_text $6101
+            show_monster $05, $80
+            .byte $EE
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -3500,12 +3525,13 @@ AIScript_EC:
 _10B109:
     normal_react
     begin_block
-        no_interrupt $0B
-        .byte $89
-        show_text $6101
-        show_monster $05, $80
-        .byte $EE
+        no_interrupt :+
+            .byte $89
+            show_text $6101
+            show_monster $05, $80
+            .byte $EE
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -3515,12 +3541,13 @@ AIScript_ED:
 _10B11E:
     normal_react
     begin_block
-        no_interrupt $0B
-        .byte $8B
-        show_text $6101
-        show_monster $05, $80
-        .byte $EE
+        no_interrupt :+
+            .byte $8B
+            show_text $6101
+            show_monster $05, $80
+            .byte $EE
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -3530,12 +3557,13 @@ AIScript_EE:
 _10B133:
     normal_react
     begin_block
-        no_interrupt $0B
-        .byte $91
-        show_text $6101
-        show_monster $05, $80
-        .byte $EE
+        no_interrupt :+
+            .byte $91
+            show_text $6101
+            show_monster $05, $80
+            .byte $EE
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -3545,12 +3573,13 @@ AIScript_EF:
 _10B148:
     normal_react
     begin_block
-        no_interrupt $0B
-        .byte $B9
-        show_text $6101
-        show_monster $05, $80
-        .byte $EE
+        no_interrupt :+
+            .byte $B9
+            show_text $6101
+            show_monster $05, $80
+            .byte $EE
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -3728,9 +3757,10 @@ _10B215:
 
     react_to_dmg
     begin_block
-        no_interrupt $03
-        .byte $81, $81
+        no_interrupt :+
+            .byte $81, $81
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -3743,9 +3773,10 @@ _10B22F:
         .byte $DD
         random_choice $BD, $92, $CA
         .byte $DD
-        no_interrupt $08
-        random_choice $A7, $B2, $DD
-        random_choice $C2, $D6, $BD
+        no_interrupt :+
+            random_choice $A7, $B2, $DD
+            random_choice $C2, $D6, $BD
+        end_interrupt
         .byte $AD
         random_choice $BD, $92, $CA
         .byte $DD
@@ -3753,10 +3784,11 @@ _10B22F:
 
     react_to_dmg
     begin_block
-        no_interrupt $09
-        random_choice $C6, $C6, $C7
-        random_choice $C6, $C6, $E2
+        no_interrupt :+
+            random_choice $C6, $C6, $C7
+            random_choice $C6, $C6, $E2
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -3802,10 +3834,11 @@ _10B287:
     normal_react
     begin_block
         .byte $AA, $AA
-        no_interrupt $07
-        show_monster $05, $80
-        .byte $EE, $DA
+        no_interrupt :+
+            show_monster $05, $80
+            .byte $EE, $DA
     end_block
+    end_interrupt
 
     react_to_cmd $00, $04, $00
     if_var_eq $00, $01
@@ -3859,11 +3892,12 @@ _10B2E0:
         random_choice $15, $37, $3A
         random_choice $12, $25, $13
         random_choice $16, $28, $26
-        no_interrupt $0A
-        show_text $0402
-        show_monster $05, $40
-        .byte $EE
+        no_interrupt :+
+            show_text $0402
+            show_monster $05, $40
+            .byte $EE
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -3900,15 +3934,17 @@ _10B323:
     if_var_eq $00, $00
     if_hp_less $0D, $012C
     begin_block
-        no_interrupt $09
-        show_text $0A01
-        show_monster $80, $C0
-        .byte $EE
-        no_interrupt $0A
-        change_target $10, $F0
-        .byte $38
-        set_cond_var $00, $01
+        no_interrupt :+
+            show_text $0A01
+            show_monster $80, $C0
+            .byte $EE
+        end_interrupt
+        no_interrupt :+
+            change_target $10, $F0
+            .byte $38
+            set_cond_var $00, $01
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
@@ -3936,10 +3972,11 @@ _10B356:
     if_hp_less $0D, $0320
     react_to_dmg
     begin_block
-        no_interrupt $06
-        .byte $80
-        random_choice $81, $80, $AA
+        no_interrupt :+
+            .byte $80
+            random_choice $81, $80, $AA
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -3953,11 +3990,12 @@ _10B37B:
 
     react_to_dmg
     begin_block
-        no_interrupt $07
-        .byte $DB
-        show_monster $45, $60
-        .byte $EE
+        no_interrupt :+
+            .byte $DB
+            show_monster $45, $60
+            .byte $EE
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -3971,11 +4009,12 @@ _10B395:
 
     react_to_dmg
     begin_block
-        no_interrupt $07
-        .byte $2A
-        show_monster $45, $A0
-        .byte $EE
+        no_interrupt :+
+            .byte $2A
+            show_monster $45, $A0
+            .byte $EE
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -3990,11 +4029,12 @@ _10B3AF:
 
     react_to_dmg
     begin_block
-        no_interrupt $07
-        .byte $E6
-        show_monster $45, $C0
-        .byte $EE
+        no_interrupt :+
+            .byte $E6
+            show_monster $45, $C0
+            .byte $EE
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -4068,11 +4108,13 @@ AIScript_110:
 _10B41A:
     normal_react
     begin_block
-        no_interrupt $02
-        .byte $80, $80
+        no_interrupt :+
+            .byte $80, $80
+        end_interrupt
         random_choice $80, $80, $81
-        no_interrupt $02
-        .byte $81, $81
+        no_interrupt :+
+            .byte $81, $81
+        end_interrupt
         random_choice $80, $80, $81
     end_block
 
@@ -4126,16 +4168,17 @@ _10B44C:
 
     if_dying
     begin_block
-        no_interrupt $1E
-        change_music $3E00
-        show_text $E307
-        show_text $E407
-        show_text $E507
-        show_text $E607
-        show_text $E707
-        show_monster $8D, $DE
-        .byte $EE
+        no_interrupt :+
+            change_music $3E00
+            show_text $E307
+            show_text $E407
+            show_text $E507
+            show_text $E607
+            show_text $E707
+            show_monster $8D, $DE
+            .byte $EE
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -4241,15 +4284,16 @@ _10B537:
 
     if_dying
     begin_block
-        no_interrupt $17
-        show_monster $80, $08
-        .byte $EE
-        show_text $D904
-        show_text $D604
-        show_text $D704
-        show_text $D804
-        .byte $AA
+        no_interrupt :+
+            show_monster $80, $08
+            .byte $EE
+            show_text $D904
+            show_text $D604
+            show_text $D704
+            show_text $D804
+            .byte $AA
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -4431,17 +4475,18 @@ _10B63A:
     react_to_dmg
     if_var_eq $00, $00
     begin_block
-        no_interrupt $19
-        show_text $1E02
-        .byte $3A
-        show_text $1F02
-        .byte $16
-        show_text $2002
-        .byte $1C
-        show_text $2102
-        .byte $E8
-        set_cond_var $00, $01
+        no_interrupt :+
+            show_text $1E02
+            .byte $3A
+            show_text $1F02
+            .byte $16
+            show_text $2002
+            .byte $1C
+            show_text $2102
+            .byte $E8
+            set_cond_var $00, $01
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -4592,16 +4637,17 @@ _10B74D:
 
     if_hp_less $0D, $1770
     begin_block
-        no_interrupt $1B
-        show_monster $80, $C0
-        .byte $EE
-        show_text $2402
-        show_text $2502
-        show_text $2602
-        show_text $2702
-        change_target $27, $F0
-        .byte $AC
+        no_interrupt :+
+            show_monster $80, $C0
+            .byte $EE
+            show_text $2402
+            show_text $2502
+            show_text $2602
+            show_text $2702
+            change_target $27, $F0
+            .byte $AC
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
@@ -4614,14 +4660,15 @@ _10B74D:
     if_dying
     if_alone
     begin_block
-        no_interrupt $13
-        show_text $D203
-        show_text $D304
-        .byte $E7
-        show_text $D405
-        show_text $D503
-        .byte $AA
+        no_interrupt :+
+            show_text $D203
+            show_text $D304
+            .byte $E7
+            show_text $D405
+            show_text $D503
+            .byte $AA
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -4698,10 +4745,11 @@ _10B7DE:
 
     normal_react
     begin_block
-        no_interrupt $09
-        random_choice $3F, $3F, $AA
-        random_choice $3F, $3F, $AA
+        no_interrupt :+
+            random_choice $3F, $3F, $AA
+            random_choice $3F, $3F, $AA
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -4847,22 +4895,26 @@ _10B933:
 
     normal_react
     begin_block
-        no_interrupt $09
-        show_text $B705
-        show_text $B805
-        .byte $80
-        no_interrupt $06
-        .byte $80
-        show_text $B902
-        .byte $AA
-        no_interrupt $06
-        .byte $80
-        show_text $BA02
-        .byte $AA
-        no_interrupt $06
-        .byte $80
-        show_text $BB02
-        .byte $AA
+        no_interrupt :+
+            show_text $B705
+            show_text $B805
+            .byte $80
+        end_interrupt
+        no_interrupt :+
+            .byte $80
+            show_text $B902
+            .byte $AA
+        end_interrupt
+        no_interrupt :+
+            .byte $80
+            show_text $BA02
+            .byte $AA
+        end_interrupt
+        no_interrupt :+
+            .byte $80
+            show_text $BB02
+            .byte $AA
+        end_interrupt
         change_music $2D00
         show_text $B005
         show_text $B105
@@ -4885,16 +4937,19 @@ AIScript_137:
 _10B9A3:
     if_hp_less $0D, $3E80
     begin_block
-        no_interrupt $08
-        random_choice $80, $81, $AA
-        random_choice $30, $32, $80
-        no_interrupt $08
-        random_choice $30, $80, $81
-        random_choice $31, $80, $AA
-        no_interrupt $09
-        random_choice $31, $80, $AA
-        random_choice $32, $80, $81
+        no_interrupt :+
+            random_choice $80, $81, $AA
+            random_choice $30, $32, $80
+        end_interrupt
+        no_interrupt :+
+            random_choice $30, $80, $81
+            random_choice $31, $80, $AA
+        end_interrupt
+        no_interrupt :+
+            random_choice $31, $80, $AA
+            random_choice $32, $80, $81
     end_cond_block
+    end_interrupt
 
     if_hp_less $0D, $1B58
     begin_block
@@ -5045,12 +5100,13 @@ _10BABA:
 
     react_to_magic $00, $AC
     begin_block
-        no_interrupt $0C
-        change_target $23, $F0
-        .byte $31, $A9
-        show_monster $49, $F0
-        .byte $EE
+        no_interrupt :+
+            change_target $23, $F0
+            .byte $31, $A9
+            show_monster $49, $F0
+            .byte $EE
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -5072,12 +5128,13 @@ _10BAF9:
 
     react_to_magic $00, $AC
     begin_block
-        no_interrupt $0C
-        change_target $23, $F0
-        .byte $32, $A9
-        show_monster $4A, $F0
-        .byte $EE
+        no_interrupt :+
+            change_target $23, $F0
+            .byte $32, $A9
+            show_monster $4A, $F0
+            .byte $EE
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -5099,12 +5156,13 @@ _10BB38:
 
     react_to_magic $00, $AC
     begin_block
-        no_interrupt $0C
-        change_target $23, $F0
-        .byte $30, $A9
-        show_monster $4B, $F0
-        .byte $EE
+        no_interrupt :+
+            change_target $23, $F0
+            .byte $30, $A9
+            show_monster $4B, $F0
+            .byte $EE
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -5126,11 +5184,12 @@ _10BB77:
 
     react_to_magic $00, $AC
     begin_block
-        no_interrupt $08
-        .byte $BB, $A9
-        show_monster $4C, $F0
-        .byte $EE
+        no_interrupt :+
+            .byte $BB, $A9
+            show_monster $4C, $F0
+            .byte $EE
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -5177,10 +5236,11 @@ AIScript_142:
 _10BBEF:
     check_status $26, $00, $80
     begin_block
-        no_interrupt $07
-        show_monster $00, $E0
-        .byte $EE, $A7
+        no_interrupt :+
+            show_monster $00, $E0
+            .byte $EE, $A7
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
@@ -5199,10 +5259,11 @@ AIScript_143:
 _10BC1A:
     check_status $26, $00, $80
     begin_block
-        no_interrupt $07
-        show_monster $00, $E0
-        .byte $EE, $A7
+        no_interrupt :+
+            show_monster $00, $E0
+            .byte $EE, $A7
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
@@ -5220,10 +5281,11 @@ AIScript_144:
 _10BC41:
     check_status $26, $00, $80
     begin_block
-        no_interrupt $07
-        show_monster $00, $E0
-        .byte $EE, $A7
+        no_interrupt :+
+            show_monster $00, $E0
+            .byte $EE, $A7
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
@@ -5304,21 +5366,24 @@ _10BCD8:
     begin_block
         random_choice $80, $80, $81
         random_choice $80, $80, $81
-        no_interrupt $08
-        random_choice $80, $81, $D1
-        random_choice $80, $D1, $D1
+        no_interrupt :+
+            random_choice $80, $81, $D1
+            random_choice $80, $D1, $D1
+        end_interrupt
         random_choice $80, $80, $81
         random_choice $80, $D1, $81
         random_choice $80, $84, $84
-        no_interrupt $08
-        random_choice $D1, $D1, $81
-        random_choice $81, $80, $D1
+        no_interrupt :+
+            random_choice $D1, $D1, $81
+            random_choice $81, $80, $D1
+        end_interrupt
         random_choice $80, $D1, $81
         random_choice $80, $80, $81
-        no_interrupt $09
-        random_choice $80, $81, $D1
-        random_choice $80, $81, $D1
+        no_interrupt :+
+            random_choice $80, $81, $D1
+            random_choice $80, $81, $D1
     end_block
+    end_interrupt
 
     react_to_cmd $00, $2B, $00
     begin_block
@@ -5371,13 +5436,16 @@ AIScript_149:
 _10BD72:
     if_var_eq $01, $02
     begin_block
-        no_interrupt $03
-        .byte $45, $45, $45
-        no_interrupt $03
-        .byte $C2, $CC, $84
-        no_interrupt $04
-        .byte $CD, $CC, $84
+        no_interrupt :+
+            .byte $45, $45, $45
+        end_interrupt
+        no_interrupt :+
+            .byte $C2, $CC, $84
+        end_interrupt
+        no_interrupt :+
+            .byte $CD, $CC, $84
     end_cond_block
+    end_interrupt
 
     if_var_eq $00, $02
     begin_block
@@ -5566,20 +5634,22 @@ _10BF28:
     begin_block
         show_text $8101
         .byte $81
-        no_interrupt $0B
-        show_text $8203
-        show_text $8303
-        .byte $33, $22, $45
-        no_interrupt $1E
-        show_text $6202
-        show_text $6302
-        show_text $6402
-        show_text $6502
-        show_text $6602
-        set_cond_var $00, $01
-        set_cond_var $01, $01
-        .byte $AA
+        no_interrupt :+
+            show_text $8203
+            show_text $8303
+            .byte $33, $22, $45
+        end_interrupt
+        no_interrupt :+
+            show_text $6202
+            show_text $6302
+            show_text $6402
+            show_text $6502
+            show_text $6602
+            set_cond_var $00, $01
+            set_cond_var $01, $01
+            .byte $AA
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
@@ -5591,12 +5661,13 @@ _10BF28:
     if_var_eq $00, $03
     react_to $00, $07, $00
     begin_block
-        no_interrupt $0E
-        show_text $6B03
-        set_event_flag $02, $80
-        change_target $0D, $F0
-        .byte $A5
+        no_interrupt :+
+            show_text $6B03
+            set_event_flag $02, $80
+            change_target $0D, $F0
+            .byte $A5
     end_cond_block
+    end_interrupt
 
     if_var_eq $00, $02
     react_to $00, $07, $00
@@ -5683,11 +5754,12 @@ _10BFF0:
 
     normal_react
     begin_block
-        no_interrupt $0A
-        show_text $0B01
-        change_target $0E, $F0
-        .byte $AC
+        no_interrupt :+
+            show_text $0B01
+            change_target $0E, $F0
+            .byte $AC
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -5916,14 +5988,15 @@ AIScript_159:
 _10C1E9:
     if_var_eq $02, $01
     begin_block
-        no_interrupt $13
-        set_char_param $1C, $02
-        show_text $A902
-        change_target $0A, $F0
-        .byte $33
-        change_target $0A, $F0
-        .byte $AC
+        no_interrupt :+
+            set_char_param $1C, $02
+            show_text $A902
+            change_target $0A, $F0
+            .byte $33
+            change_target $0A, $F0
+            .byte $AC
     end_cond_block
+    end_interrupt
 
     if_var_eq $01, $01
     if_alone
@@ -5941,19 +6014,23 @@ _10C1E9:
 
     if_var_eq $00, $02
     begin_block
-        no_interrupt $08
-        random_choice $80, $80, $EA
-        random_choice $80, $80, $81
-        no_interrupt $08
-        random_choice $80, $80, $81
-        random_choice $80, $80, $81
-        no_interrupt $08
-        random_choice $80, $80, $EA
-        random_choice $80, $80, $81
-        no_interrupt $09
-        random_choice $80, $80, $81
-        random_choice $80, $80, $34
+        no_interrupt :+
+            random_choice $80, $80, $EA
+            random_choice $80, $80, $81
+        end_interrupt
+        no_interrupt :+
+            random_choice $80, $80, $81
+            random_choice $80, $80, $81
+        end_interrupt
+        no_interrupt :+
+            random_choice $80, $80, $EA
+            random_choice $80, $80, $81
+        end_interrupt
+        no_interrupt :+
+            random_choice $80, $80, $81
+            random_choice $80, $80, $34
     end_cond_block
+    end_interrupt
 
     if_alone
     begin_block
@@ -5992,22 +6069,23 @@ _10C1E9:
     react_to_dmg
     check_event_flag $01, $04
     begin_block
-        no_interrupt $33
-        change_music $2200
-        show_monster $80, $84
-        .byte $EE
-        show_text $8E07
-        show_text $8007
-        show_text $8F07
-        show_text $9007
-        show_text $9107
-        show_text $9207
-        show_text $9307
-        show_text $9407
-        set_char_param $1C, $02
-        set_cond_var $01, $01
-        .byte $AA
+        no_interrupt :+
+            change_music $2200
+            show_monster $80, $84
+            .byte $EE
+            show_text $8E07
+            show_text $8007
+            show_text $8F07
+            show_text $9007
+            show_text $9107
+            show_text $9207
+            show_text $9307
+            show_text $9407
+            set_char_param $1C, $02
+            set_cond_var $01, $01
+            .byte $AA
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -6105,13 +6183,14 @@ _10C34A:
     if_var_eq $00, $00
     react_to_dmg
     begin_block
-        no_interrupt $15
-        show_text $3D03
-        show_text $3E03
-        show_text $3F03
-        set_cond_var $00, $01
-        random_choice $8B, $80, $81
+        no_interrupt :+
+            show_text $3D03
+            show_text $3E03
+            show_text $3F03
+            set_cond_var $00, $01
+            random_choice $8B, $80, $81
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -6145,12 +6224,13 @@ AIScript_160:
 _10C3E5:
     if_var_eq $00, $01
     begin_block
-        no_interrupt $0F
-        show_text $7B03
-        change_target $0D, $F0
-        .byte $D8, $E7
-        set_cond_var $00, $00
+        no_interrupt :+
+            show_text $7B03
+            change_target $0D, $F0
+            .byte $D8, $E7
+            set_cond_var $00, $00
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
@@ -6162,12 +6242,13 @@ _10C3E5:
 
     react_to_magic $00, $4D
     begin_block
-        no_interrupt $0B
-        .byte $E7
-        show_text $7A03
-        set_cond_var $00, $01
-        .byte $AA
+        no_interrupt :+
+            .byte $E7
+            show_text $7A03
+            set_cond_var $00, $01
+            .byte $AA
     end_cond_block
+    end_interrupt
 
     if_var_eq $00, $00
     react_to $01, $2B, $00
@@ -6232,12 +6313,14 @@ _10C46B:
 
     if_dying
     begin_block
-        no_interrupt $0F
-        show_text $4F02
-        set_cond_var $00, $01
-        show_monster $85, $60
-        .byte $EE
+        .byte $FD, $F7, $0F, $F0 
+        ;no_interrupt :+
+            show_text $4F02
+            set_cond_var $00, $01
+            show_monster $85, $60
+            .byte $EE
     end_block
+    ;end_interrupt
 
 ; ------------------------------------------------------------------------------
 
@@ -6318,12 +6401,13 @@ _10C4F6:
     normal_react
     begin_block
         random_choice $80, $B2, $81
-        no_interrupt $0F
-        show_text $4F02
-        show_monster $00, $E0
-        .byte $EE, $A3
-        set_cond_var $00, $01
+        no_interrupt :+
+            show_text $4F02
+            show_monster $00, $E0
+            .byte $EE, $A3
+            set_cond_var $00, $01
     end_block
+    end_interrupt
 
     end_block
 ; ------------------------------------------------------------------------------
@@ -6335,21 +6419,24 @@ _10C528:
     begin_block
         random_choice $C2, $80, $83
         random_choice $CC, $CA, $DC
-        no_interrupt $08
-        random_choice $C2, $80, $83
-        random_choice $9A, $87, $88
-        no_interrupt $09
-        random_choice $80, $80, $EB
-        random_choice $80, $80, $B6
+        no_interrupt :+
+            random_choice $C2, $80, $83
+            random_choice $9A, $87, $88
+        end_interrupt
+        no_interrupt :+
+            random_choice $80, $80, $EB
+            random_choice $80, $80, $B6
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
         .byte $AA
-        no_interrupt $06
-        set_cond_var $00, $01
-        .byte $D1
+        no_interrupt :+
+            set_cond_var $00, $01
+            .byte $D1
     end_block
+    end_interrupt
 
     react_to_magic $00, $AC
     begin_block
@@ -6388,15 +6475,18 @@ AIScript_16B:
 _10C59E:
     if_monster_visible $00, $D0
     begin_block
-        no_interrupt $08
-        random_choice $45, $C8, $81
-        random_choice $3F, $81, $81
-        no_interrupt $08
-        random_choice $45, $C8, $81
-        random_choice $C2, $C8, $81
-        no_interrupt $08
-        random_choice $45, $80, $81
-        random_choice $3F, $C8, $81
+        no_interrupt :+
+            random_choice $45, $C8, $81
+            random_choice $3F, $81, $81
+        end_interrupt
+        no_interrupt :+
+            random_choice $45, $C8, $81
+            random_choice $C2, $C8, $81
+        end_interrupt
+        no_interrupt :+
+            random_choice $45, $80, $81
+            random_choice $3F, $C8, $81
+        end_interrupt
         .byte $A6
     end_cond_block
 
@@ -6445,16 +6535,19 @@ AIScript_16C:
 _10C622:
     if_monster_visible $00, $C8
     begin_block
-        no_interrupt $08
-        random_choice $45, $C8, $81
-        random_choice $3F, $81, $81
-        no_interrupt $08
-        random_choice $45, $C8, $81
-        random_choice $C2, $C8, $81
-        no_interrupt $09
-        random_choice $45, $80, $81
-        random_choice $3F, $C8, $81
+        no_interrupt :+
+            random_choice $45, $C8, $81
+            random_choice $3F, $81, $81
+        end_interrupt
+        no_interrupt :+
+            random_choice $45, $C8, $81
+            random_choice $C2, $C8, $81
+        end_interrupt
+        no_interrupt :+
+            random_choice $45, $80, $81
+            random_choice $3F, $C8, $81
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
@@ -6472,16 +6565,19 @@ AIScript_16D:
 _10C65F:
     if_monster_visible $00, $C4
     begin_block
-        no_interrupt $08
-        random_choice $45, $45, $81
-        random_choice $3F, $81, $81
-        no_interrupt $08
-        random_choice $45, $45, $81
-        random_choice $C2, $C2, $81
-        no_interrupt $09
-        random_choice $45, $80, $81
-        random_choice $3F, $C8, $81
+        no_interrupt :+
+            random_choice $45, $45, $81
+            random_choice $3F, $81, $81
+        end_interrupt
+        no_interrupt :+
+            random_choice $45, $45, $81
+            random_choice $C2, $C2, $81
+        end_interrupt
+        no_interrupt :+
+            random_choice $45, $80, $81
+            random_choice $3F, $C8, $81
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
@@ -6498,16 +6594,19 @@ AIScript_16E:
 _10C69C:
     if_monster_visible $00, $C2
     begin_block
-        no_interrupt $08
-        random_choice $45, $45, $81
-        random_choice $3F, $81, $81
-        no_interrupt $08
-        random_choice $45, $45, $81
-        random_choice $C2, $C2, $81
-        no_interrupt $09
-        random_choice $45, $80, $81
-        random_choice $3F, $C8, $81
+        no_interrupt :+
+            random_choice $45, $45, $81
+            random_choice $3F, $81, $81
+        end_interrupt
+        no_interrupt :+
+            random_choice $45, $45, $81
+            random_choice $C2, $C2, $81
+        end_interrupt
+        no_interrupt :+
+            random_choice $45, $80, $81
+            random_choice $3F, $C8, $81
     end_cond_block
+    end_interrupt
 
     normal_react
     begin_block
@@ -6567,12 +6666,13 @@ _10C6DD:
 
     react_to_magic $00, $AC
     begin_block
-        no_interrupt $0F
-        show_text $AA03
-        show_text $AB04
-        change_target $05, $F0
-        .byte $9B, $EF
+        no_interrupt :+
+            show_text $AA03
+            show_text $AB04
+            change_target $05, $F0
+            .byte $9B, $EF
     end_block
+    end_interrupt
 
 ; ------------------------------------------------------------------------------
 
