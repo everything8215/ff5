@@ -1,415 +1,511 @@
-;Defines and structures to label addresses used by combat routines
+; ------------------------------------------------------------------------------
+
+; Defines and structures to label addresses used by combat routines
+; Generally in order of their appearance in the game's address space
 
 ram_verbose 0
-
-;Generally in order of their appearance in the game's address space
-.org $7E0000
-
-;$08-$23 are used as scratch variables
-;not normally labeling these, but I do label some when info is passed between routines using them
-
-;these are set for magic routines
-TempAttachedSpell = $20    ;spell cast routines will cast this spell after the normally queued spell (phoenix revive)
-TempSkipNaming = $21    ;spell will be cast without a name box
-TempPartyTargets = $22    ;targets for attached spell above
-TempMonsterTargets = $23  ;targets for attached spell above
-
-;for monster ai
-TempCharm = $22      ;for monster ai, indicates a charmed action
-
-;$24-27 are used for FF5's 8 bit multiply routine, before copying to SNES hardware multiplier
-;$2A-31 are used for FF5's 16 bit multiply routine
-
-; ------------------------------------------------------------------------------
-
-ram_org $7e0032
+ram_org $00
 ram_addr_size ZP
 
-ram_word AttackerOffset; = $32  ;16 bit offset into Character Structures (should be multiple of $80)
-      ;also used as a "current" character offset when processesing non-attack things
-  ;* Target/Attacker Offset = index * 80h
-  ;     0 - Character1
-  ;    80 - Character2
-  ;   100 - Character3
-  ;   180 - Character4
-  ;   200 - Monster1
-  ;   280 - Monster2
-  ;   ...
-  ;   580 - Monster8
+; ------------------------------------------------------------------------------
 
-ram_word SpellOffset; = $34  ;16 bit offset into CharSpells struct, char index * 650
-
-ram_word TimerOffset; = $36   ;16 bit offset into timer structures, pulled from rom for a given target
-
-ram_byte
-
-ram_byte AttackerOffset2; = $39  ;Offset into combat tables for multi-commands?
-      ;equal to MultiCommand*12
-
-ram_byte RNGA; = $3A
-ram_byte RNGB; = $3B
-
-ram_byte
+ram_word z00
+ram_word z02
+ram_word z04
+ram_word z06
 
 ; ------------------------------------------------------------------------------
 
-;$3D - 46 are used for various things (temp area)
+; $08-$23 are used as scratch variables
+; not normally labeling these, but I do label some when info is passed between routines using them
+ram_res zTemp, 28
+
+; these are set for magic routines
+
+; spell cast routines will cast this spell after the normally queued spell (phoenix revive)
+zTempAttachedSpell := zTemp + 24  ; $20
+
+; spell will be cast without a name box
+zTempSkipNaming := zTemp + 25  ; $21
+
+; targets for attached spell above
+zTempPartyTargets := zTemp + 26  ; $22
+
+; targets for attached spell above
+zTempMonsterTargets := zTemp + 27  ; $23
+
+; for monster ai, indicates a charmed action
+zTempCharm := zTemp + 26  ; $22
+
+; ------------------------------------------------------------------------------
+
+; $24-27 are used for FF5's 8 bit multiply routine, before copying to SNES hardware multiplier
+ram_byte zMult8A  ; $24
+ram_byte zMult8B  ; $25
+ram_word zMult8Prod  ; $26
+ram_word  ; $28
+
+; $2A-31 are used for FF5's 16 bit multiply routine
+ram_word zMult16A  ; $2a
+ram_word zMult16B  ; $2c
+ram_dword zMult16Prod  ; $2e
+
+; ------------------------------------------------------------------------------
+
+; 16 bit offset into Character Structures (should be multiple of $80)
+; also used as a "current" character offset when processesing non-attack things
+; * Target/Attacker Offset = index * 80h
+;     0 - Character1
+;    80 - Character2
+;   100 - Character3
+;   180 - Character4
+;   200 - Monster1
+;   280 - Monster2
+;   ...
+;   580 - Monster8
+ram_word zAttackerOffset  ; $32
+
+; 16 bit offset into CharSpells struct, char index * 650
+ram_word zSpellOffset  ; $34
+
+; 16 bit offset into timer structures, pulled from rom for a given target
+ram_word zTimerOffset  ; $36
+
+ram_byte z38
+
+; Offset into combat tables for multi-commands?
+; equal to MultiCommand*12
+ram_byte zAttackerOffset2  ; $39
+
+ram_byte zRNGA  ; $3a
+ram_byte zRNGB  ; $3b
+
+ram_byte z3c  ; $3c
+
+; ------------------------------------------------------------------------------
+
+; $3d-46 are used for various things (temp area)
+
+ram_res zTemp2, 10
+push_ram_offset
+
+; ------------------------------------------------------------------------------
+
 ;for loot
-TempMonsterIndex = $3D
-TempMonsterOffset = $3F
+ram_org zTemp2
+ram_word zTempMonsterIndex  ; $3d
+ram_word zTempMonsterOffset  ; $3f
+
+; ------------------------------------------------------------------------------
 
 ;for ai
-MMOffset = $3D      ;init to Monster index of acting monster * 16 during AI script
-MMTargetOffset = $3F    ;init to Monster index of acting monster * 32 during AI script
 
-AIScriptOffset = $41    ;monster index *100
-AIBufferOffset = $43
+ram_org zTemp2
 
-AISpellCount = $45    ;number of spells already in Spell Queue (MonsterMagic)
+;init to Monster index of acting monster * 16 during AI script
+ram_word zMMOffset  ; $3d
 
-;for magic
-HalfMP = $3D    ;1 indicates half mp is active, 1 byte * 4 characters
+;init to Monster index of acting monster * 32 during AI script
+ram_word zMMTargetOffset  ; $3f
 
-SpellOffsetRandom = $41  ;16 bit offset into CharSpells struct, char index * 650
-        ;used when randomly determining a magic spell to cast
+;monster index * 100
+ram_word zAIScriptOffset  ; $41
+ram_word zAIBufferOffset  ; $43
 
-TempNumHits = $41    ;meteor style multihit
-
-TempSpellOffset = $45    ;16 bit offset into CharSpells struct, char index * 650
-
-;for items
-TempHand = $45      ;0 for RH, 1 for LH
-TempItemMagic = $46
+;number of spells already in Spell Queue (MonsterMagic)
+ram_word zAISpellCount  ; $45
 
 ; ------------------------------------------------------------------------------
 
-ram_org $47
+;for magic
 
-ram_byte AttackerIndex
-ram_byte wTargetIndex
-  ;* Target/Attacker index:
-  ;   0 - Character1
-  ;   1 - Character2
-  ;   2 - Character3
-  ;   3 - Character4
-  ;   4 - Monster1
-  ;   5 - Monster2
-  ;   ...
-  ;   B - Monster8
+ram_org zTemp2
 
-ram_word TargetOffset; = $49  ;16 bit offset into Character Structures (should be multiple of $80)
+; 1 indicates half mp is active, 1 byte * 4 characters
+ram_res zHalfMP, 4; = $3d
 
-ram_word AIOffset; = $4B
+; 16 bit offset into CharSpells struct, char index * 650
+; used when randomly determining a magic spell to cast
+ram_word zSpellOffsetRandom; = $41
 
-ram_byte AtkElement; = $4D
-ram_byte HitPercent; = $4E
-ram_byte EvadePercent; = $4F
+; meteor style multihit
+zTempNumHits := zSpellOffsetRandom
 
-ram_word Attack; = $50    ;Attack Damage during calcuations (16 bit)
+ram_word
+; 16 bit offset into CharSpells struct, char index * 650
+ram_word zTempSpellOffset  ; $45
 
-ram_word M; = $52    ;Attack Multiplier (16 bit)
+; ------------------------------------------------------------------------------
 
-ram_word Defense; = $54    ;Defense value used during calculations (16 bit)
-      ;could be physical or magical depending on attack type
+;for items
 
-ram_byte AtkMissed; = $56    ;Greater than 0 means attack has missed
-        ;80h is something specific (physical miss?)
+ram_org zTemp2
+
+ram_res {}, 8
+
+;0 for RH, 1 for LH
+ram_byte zTempHand  ; $45
+ram_byte zTempItemMagic  ; $46
+
+; ------------------------------------------------------------------------------
+
+pop_ram_offset
+
+; ------------------------------------------------------------------------------
+
+;* Target/Attacker index:
+;   0 - Character1
+;   1 - Character2
+;   2 - Character3
+;   3 - Character4
+;   4 - Monster1
+;   5 - Monster2
+;   ...
+;   11 - Monster8
+ram_byte zAttackerIndex  ; $47
+ram_byte zTargetIndex  ; $48
+
+; 16 bit offset into Character Structures (should be multiple of $80)
+ram_word zTargetOffset  ; $49
+
+ram_word zAIOffset  ; $4b
+
+ram_byte zAtkElement  ; $4d
+ram_byte zHitPercent  ; $4e
+ram_byte zEvadePercent  ; $4f
+
+; Attack Damage during calcuations
+ram_word zAttack  ; $50
+
+; Attack Multiplier
+ram_word zM  ; $52
+
+; Defense value used during calculations
+; could be physical or magical depending on attack type
+ram_word zDefense  ; $54
+
+;Greater than 0 means attack has missed
+;80h is something specific (physical miss?)
+ram_byte zAtkMissed  ; $56
+
 
 ;These are used for different things depending on attack type
-ram_byte Param1; = $57
-ram_byte Param2; = $58
-ram_byte Param3; = $59
-      ;Battle Params      $57    $58    $59
+ram_byte zParam1  ; $57
+ram_byte zParam2  ; $58
+ram_byte zParam3  ; $59
 
-      ;Weapons:
+; Battle Params                 Param1          Param2          Param3
 
-      ;30 Fists      Crit%    -    -
-      ;31 Swords:       Element   Proc%     Proc
-      ;32 Knives:       Element   Proc%     Proc
-      ;33 Spears:       Element   Proc%     Proc
-      ;34 Axes:       Hit%    Proc%     Proc
-      ;35 Bows(Status):    Hit%    Type+Status%  Status 1/2
-      ;36 Bows(Element):    Hit%    Crit%    Element
-      ;37 Katanas:      Crit%    Proc%    Proc
-      ;38 Whips:      Hit%    Proc%    Proc
-      ;39 Bells:      -    -    -
-      ;3A Long Axes:      Hit%    Proc%    Proc
-      ;3B Rods:      Hit%    -    Element
-      ;3C Rune:      Hit%    Dmg Boost  MP Cost
-      ;64 Chicken Knife    -    Proc%    Proc
-      ;6E Brave Blade      -    -    -
-      ;72 Bows(Creature):    Creature Type  -    -
-      ;73 Spears(Creature):    Creature Type  -    -
+; Weapons:
+;30 Fists:                      Crit%           -               -
+;31 Swords:                     Element         Proc%           Proc
+;32 Knives:                     Element         Proc%           Proc
+;33 Spears:                     Element         Proc%           Proc
+;34 Axes:                       Hit%            Proc%           Proc
+;35 Bows(Status):               Hit%            Type+Status%    Status 1/2
+;36 Bows(Element):              Hit%            Crit%           Element
+;37 Katanas:                    Crit%           Proc%           Proc
+;38 Whips:                      Hit%            Proc%           Proc
+;39 Bells:                      -               -               -
+;3A Long Axes:                  Hit%            Proc%           Proc
+;3B Rods:                       Hit%            -               Element
+;3C Rune:                       Hit%            Dmg Boost       MP Cost
+;64 Chicken Knife               -               Proc%           Proc
+;6E Brave Blade                 -               -               -
+;72 Bows(Creature):             Creature Type   -               -
+;73 Spears(Creature):           Creature Type   -               -
 
-      ;Other:
+; Other:
+;01 Monster Fight               -               -               -
+;02 Monster Specialty           -               -               Status (special format)
+;03-05 Magic Sword              Animation       Element         Status
+;06 Magic                       -               Spell Power     Element
+;07 Gravity                     Hit%            *Fraction/16    Status 2
+;08 Flare                       -               Spell Power     Element
+;09 Random                      -               M               Element
+;0A Physical Magic              Hit%            Spell Power     Element
+;0B Level Based                 Element         Type+Status%    Status 1/2
+;0C Flare w/HP Leak             Element         Spell Power     Duration
+;0D Drain                       Hit%            *Spell Power    -
+;0E Psych                       Hit%            *Spell Power    -
+;0F HP Critical                 Hit%            *               -
+;10 Heal                        -               Spell Power     -
+;11 Full Heal                   -               Spell Power     -
+;12 Status 1                    Hit%            Duration        Status 1
+;13 Status 2                    Hit%            Duration        Status 2
+;14 Status 3                    Hit%            Duration        Status 3
+;15 Toggle Status 1             Hit%            *               Status 1
+;16 Status 3 Exclusive          Hit%            Allowed         Status3  Applied Status 3
+;17 Status 1 or Heal Undead     Hit%            *               Status1
+;18 Kill non-Heavy              Hit%            *               -
+;19 Remove Status               Status 1        Status 2        Status 3
+;1A Revive                      Hit% (undead)   *Max MP         Fraction/4
+;1B Sylph                       -               Spell Power     -
+;1C Elemental Defenses          Absorb          Immune          Weak
+;1D Scan                        Scan Type       -               -
+;1E Drag                        -               -               -
+;1F Void                        Success%        -               -
+;20 Exit                        Success%        -               -
+;21 Reset                       -               -               -
+;22 Quick                       -               -               -
+;23 Earth Wall                  -               Spell Power     -
+;24 Potions                     Base Heal       M               -
+;25 Ethers                      Base Heal       M               -
+;26 Full Restore                HP/MP Bitmask   -               -
+;27 Status ignoring immunity    Status 1        Status 2        Status 3
+;28 Direct Magic Damage         Hit%            Damage          Damage (high byte)
+;29 Status 4                    Hit%            Duration        Status 4
+;2A Damage by % Target Max HP   Element         Fraction/16     HP Leak Duration
+;2B Damage by % Attacker HP     Element         Fraction/16     Status 1 (to attacker)
+;2C 50/50 Status1/2             Status 1        S2 Duration     Status 2
+;2D Ground Magic                -               Spell Power     Element
+;2E Phys Magic w/ Status 1      Hit%            Spell Power     Status 1
+;2F Status1 to Type (unused)    Creature Type   -               Status 1
+;30-3C Weapons, see above table
+;3D Death Claw                  Hit%            Duration        Status 2
+;3E Failure (Mix)               Effect%         Duration        Status 4
+;3F Zombie Breath               -               M               -
+;40 Change Row                  Hit%            Row Effect      -
+;41 Physical Attack (?)         -               Attack Power    -
+;42 Heal and Remove Status      Status Type     Spell Power     Status 1/2
+;43 Steal                       Hit%            -               -
+;44 Escape                      -               -               -
+;45 Throw                       Hit%            -               -
+;46 Gil Toss                    Cost per Level  M               -
+;47 Tame/Calm                   -               Duration        Status 3
+;48 Catch                       -               -               -
+;49 Flirt                       Hit%            -               -
+;4A L5 Doom (unused)            Level Mult      -               Status 1
+;4B L5 Doom                     Level Mult      -               Status 1
+;4C L2 Old                      Level Mult      Duration        Status 2
+;4D L4 Quarter                  Level Mult      Fraction/16     Status 2
+;4E L3 Flare                    Level Mult      -               Element
+;4F Spirit                      Zombie%         -               Fraction/4 HP
+;50 Goblin Punch                Hit%            -               Status 1
+;51 Modify Level or Defense     Hit%            Operation Bits  Amount
+;52 Mucus                       Hit%            Allowed Status3 Applied Status 3
+;53 Damage % MP                 Hit%            Fraction/16     -
+;54 MaxHP - CurHP Damage        Hit%            -               -
+;55 Fusion                      -               -               Status 1 (to attacker)
+;56 Toggle Status 4 (unused)    Hit%            -               Status 4
+;57 HP Leak + Status            Status 1        Duration        Status 2
+;58 Mind Blast                  Hit%            Spell Power     Paralyze Duration
+;59 Giant Drink                 -               -               -
+;5A White Wind                  -               -               -
+;5B Set Unused Byte (unused)    Hit%            -               Bits to set
+;5C Hug                         Hit%            -               Status 1
+;5D Zombie Powder               Hit%            Fraction/16 HP  -
+;5E Persistent Songs            -               -               Song
+;5F Requiem                     Creature Type   Spell Power     HP Leak Duration
+;60 Hide and/or Show Monsters   -               -               -
+;61 Stalker and Sandworm        -               -               -
+;62 Library Book Monster Swap   -               -               -
+;63 Grand Cross                 -               -               -
+;64 Chicken Knife               -               Proc%           Proc
+;65 Interceptor Rocket          -               -               -
+;66 Targetting                  -               -               -
+;67 Pull?                       -               -               -
+;68 Terminate Battle            -               -               -
+;69 Control                     -               -               -
+;6A Win Battle                  -               -               -
+;6B Add Type/Immunity/ElementUp Creature Type   Status 1        Element
+;6C Magic Strong vs Type        -               Spell Power     Creature Type
+;6D Vampire                     Hit%            -               -
+;6E Brave Blade                 -               -               -
+;6F Strong Fight                -               -               -
+;70 Wormhole                    -               -               Status 4
+;71 Next Monster Form           -               -               -
+;72-73 Creature Bows/Spears, see above table
+;74 Miss                        -               -               -
+;75 Do Nothing                  -               -               -
+;7E Maps to 74                  -               -               -
+;7F Maps to 75                  -               -               -
 
-      ;01 Monster Fight    -    -    -
-      ;02 Monster Specialty    -    -    Status (special format)
-      ;03-05 Magic Sword    Animation  Element    Status
-      ;06 Magic      -    Spell Power  Element
-      ;07 Gravity      Hit%    *Fraction/16  Status 2
-      ;08 Flare      -    Spell Power  Element
-      ;09 Random      -    M    Element
-      ;0A Physical Magic    Hit%    Spell Power  Element
-      ;0B Level Based      Element    Type+Status%  Status 1/2
-      ;0C Flare w/HP Leak    Element    Spell Power  Duration
-      ;0D Drain      Hit%    *Spell Power  -
-      ;0E Psych      Hit%    *Spell Power  -
-      ;0F HP Critical      Hit%    *    -
-      ;10 Heal      -    Spell Power  -
-      ;11 Full Heal      -    Spell Power  -
-      ;12 Status 1      Hit%    Duration  Status 1
-      ;13 Status 2      Hit%    Duration  Status 2
-      ;14 Status 3      Hit%    Duration  Status 3
-      ;15 Toggle Status 1    Hit%    *    Status 1
-      ;16 Status 3 Exclusive    Hit%    Allowed Status3  Applied Status 3
-      ;17 Status 1 or Heal Undead  Hit%    *    Status1
-      ;18 Kill non-Heavy    Hit%    *    -
-      ;19 Remove Status    Status 1  Status 2  Status 3
-      ;1A Revive      Hit% (undead)  *Max MP    Fraction/4
-      ;1B Sylph      -    Spell Power  -
-      ;1C Elemental Defenses    Absorb    Immune    Weak
-      ;1D Scan      Scan Type  -    -
-      ;1E Drag      -    -    -
-      ;1F Void      Success%  -    -
-      ;20 Exit      Success%  -    -
-      ;21 Reset      -    -    -
-      ;22 Quick      -    -    -
-      ;23 Earth Wall      -    Spell Power  -
-      ;24 Potions      Base Heal  M    -
-      ;25 Ethers      Base Heal  M    -
-      ;26 Full Restore    HP/MP Bitmask  -    -
-      ;27 Status ignoring immunity  Status 1  Status 2  Status 3
-      ;28 Direct Magic Damage    Hit%    Damage    Damage (high byte)
-      ;29 Status 4      Hit%    Duration  Status 4
-      ;2A Damage by % Target Max HP   Element    Fraction/16  HP Leak Duration
-      ;2B Damage by % Attacker HP  Element    Fraction/16  Status 1 (to attacker)
-      ;2C 50/50 Status1/2    Status 1  S2 Duration  Status 2
-      ;2D Ground Magic    -    Spell Power  Element
-      ;2E Phys Magic w/ Status 1  Hit%    Spell Power  Status 1
-      ;2F Status1 to Type (unused)  Creature Type  -    Status 1
-      ;30-3C Weapons, see above table
-      ;3D Death Claw      Hit%    Duration  Status 2
-      ;3E Failure (Mix)    Effect%    Duration  Status 4
-      ;3F Zombie Breath    -    M    -
-      ;40 Change Row      Hit%    Row Effect  -
-      ;41 Physical Attack (?)    -    Attack Power  -
-      ;42 Heal and Remove Status  Status Type  Spell Power  Status 1/2
-      ;43 Steal      Hit%    -    -
-      ;44 Escape      -    -    -
-      ;45 Throw      Hit%    -    -
-      ;46 Gil Toss      Cost per Level  M    -
-      ;47 Tame/Calm      -    Duration  Status 3
-      ;48 Catch      -    -    -
-      ;49 Flirt      Hit%    -    -
-      ;4A L5 Doom (unused)    Level Mult  -    Status 1
-      ;4B L5 Doom      Level Mult  -    Status 1
-      ;4C L2 Old      Level Mult  Duration  Status 2
-      ;4D L4 Quarter      Level Mult  Fraction/16  Status 2
-      ;4E L3 Flare      Level Mult  -    Element
-      ;4F Spirit      Zombie%    -    Fraction/4 HP
-      ;50 Goblin Punch    Hit%    -    Status 1
-      ;51 Modify Level or Defense  Hit%    Operation Bits  Amount
-      ;52 Mucus      Hit%    Allowed Status3 Applied Status 3
-      ;53 Damage % MP      Hit%    Fraction/16  -
-      ;54 MaxHP - CurHP Damage  Hit%    -    -
-      ;55 Fusion      -    -    Status 1 (to attacker)
-      ;56 Toggle Status 4 (unused)  Hit%    -    Status 4
-      ;57 HP Leak + Status    Status 1  Duration  Status 2
-      ;58 Mind Blast      Hit%    Spell Power  Paralyze Duration
-      ;59 Giant Drink      -    -    -
-      ;5A White Wind      -    -    -
-      ;5B Set Unused Byte (unused)  Hit%    -    Bits to set
-      ;5C Hug        Hit%    -    Status 1
-      ;5D Zombie Powder    Hit%    Fraction/16 HP  -
-      ;5E Persistent Songs    -    -    Song
-      ;5F Requiem      Creature Type  Spell Power  HP Leak Duration
-      ;60 Hide and/or Show Monsters  -    -    -
-      ;61 Stalker and Sandworm  -    -    -
-      ;62 Library Book Monster Swap  -    -    -
-      ;63 Grand Cross      -    -    -
-      ;64 Chicken Knife    -    Proc%    Proc
-      ;65 Interceptor Rocket    -    -    -
-      ;66 Targetting      -    -    -
-      ;67 Pull?       -    -    -
-      ;68 Terminate Battle    -    -    -
-      ;69 Control      -    -    -
-      ;6A Win Battle      -    -    -
-      ;6B Add Type/Immunity/ElementUp Creature Type  Status 1  Element
-      ;6C Magic Strong vs Type  -    Spell Power  Creature Type
-      ;6D Vampire      Hit%    -    -
-      ;6E Brave Blade      -    -    -
-      ;6F Strong Fight    -    -    -
-      ;70 Wormhole      -    -    Status 4
-      ;71 Next Monster Form    -    -    -
-      ;72-73 Creature Bows/Spears, see above table
-      ;74 Miss      -    -    -
-      ;75 Do Nothing      -    -    -
-      ;7E Maps to 74      -    -    -
-      ;7F Maps to 75      -    -    -
+;  *  high bit here causes autohit except when it's monster vs party
+;   likely unintended in some cases
 
+; It's odd that these are separate bytes when they're also set to specific values
+; these are likely used to determine what animation to play
 
-      ;  *  high bit here causes autohit except when it's monster vs party
-      ;   likely unintended in some cases
+; Set to 1 when attack is evaded by Hardened/Defender
+ram_byte zSwordBlock  ; $5A
 
-;It's odd that these are separate bytes when they're also set to specific values
-;these are likely used to determine what animation to play
-ram_byte SwordBlock;  = $5A  ;Set to 1 when attack is evaded by Hardened/Defender
-ram_byte KnifeBlock;  = $5B  ;Set to 2 when attack is evaded by Guardian
-ram_byte ElfCape; = $5C    ;Set to 3 when attack is evaded by Elf Cape
-ram_byte ShieldBlock; = $5D    ;Set to 6 when attack is evaded by Shield
-      ;Set to 7 when attack is evaded by Aegis Shield vs Magic
-ram_byte BladeGrasp; = $5E  ;Set to 5 when attack is evaded by Blade Grasp passive skill
+; Set to 2 when attack is evaded by Guardian
+ram_byte zKnifeBlock  ; $5B
 
-ram_byte Crit; = $5F    ;Set to 1 when an attack crits (screen flash?)
+; Set to 3 when attack is evaded by Elf Cape
+ram_byte zElfCape  ; $5C
 
-ram_byte MagicSword; = $60   ;set when Magic Sword is applied
-      ;bypasses element calculations, some other effects
+; Set to 6 when attack is evaded by Shield
+; Set to 7 when attack is evaded by Aegis Shield vs Magic
+ram_byte zShieldBlock  ; $5D
 
-ram_byte TargetDead; = $61  ;Set to 1 when Target is instantly killed (by MSword)
+; Set to 5 when attack is evaded by Blade Grasp passive skill
+ram_byte zBladeGrasp  ; $5E
 
-ram_byte AtkHealed; = $62
+; Set to 1 when an attack crits (screen flash?)
+ram_byte zCrit  ; $5F
 
-ram_byte AttackerDamaged; = $63  ;makes attacker take damage from attack instead of target
-      ;no target healing though so isn't undead reversing drain
-      ;not sure where this is used?
+; set when Magic Sword is applied
+; bypasses element calculations, some other effects
+ram_byte zMagicSword  ; $60
+
+; Set to 1 when Target is instantly killed (by MSword)
+ram_byte zTargetDead  ; $61
+
+ram_byte zAtkHealed  ; $62
+
+; makes attacker take damage from attack instead of target
+; no target healing though so isn't undead reversing drain
+; not sure where this is used?
+ram_byte zAttackerDamaged  ; $63
 
 ram_byte
 
-ram_byte zMonsterTargets; = $65  ;1 bit per monster
+; 1 bit per monster
+ram_byte zMonsterTargets  ; $65
 
-ram_byte zPartyTargets; = $66  ;1 bit per party member then 0000
+; 1 bit per party member then 0000
+ram_byte zPartyTargets  ; $66
 
 ; ------------------------------------------------------------------------------
 
 ram_org $70
 
-;$70 seems to be a temp var, used for passing data to/from C1 bank
+; $70 seems to be a temp var, used for passing data to/from C1 bank
 ram_byte z70
 
 zMonsterDead := z70
 zMenuCurrentChar := z70
-
-;$00A2      ;written to in C1 code, checked in AICondition0C
 
 ; ------------------------------------------------------------------------------
 
 ram_org $013b
 ram_addr_size NEAR
 
-ram_res FieldItemsWon, 8; = $013B  ;8 bytes, BattleItemsWon copied here at end
+; 8 bytes, BattleItemsWon copied here at end
+ram_res wFieldItemsWon, 8  ; $013B
 
 ; ------------------------------------------------------------------------------
 
 ram_org $04f0
 
-ram_word EncounterIndex; = $04F0  ;16 bit, index into $D03000 ROM combat tables
-ram_word TerrainType; = $04F2
+;16 bit, index into $D03000 ROM combat tables
+ram_word wEncounterIndex  ; $04F0
+ram_word wTerrainType  ; $04F2
 
 ; ------------------------------------------------------------------------------
 
-ram_org $7e0500
+ram_org $0500
 
-ram_array FieldChar, 4, 80
-  ram_byte CharRow;      .res 1       ;00
-  ram_byte Job;       .res 1    ;01
-  ram_byte Level;       .res 1    ;02
-  ram_faraddr Exp;      .res 3    ;03-5
-  ram_word CurHP;      .res 2    ;06-7
-  ram_word MaxHP;      .res 2    ;08-9
-  ram_word CurMP;      .res 2    ;0A-B
-  ram_word MaxMP;      .res 2    ;0C-D
-  ram_byte Headgear;    .res 1    ;0E
-  ram_byte Bodywear;              .res 1    ;0F
-  ram_byte Accessory;             .res 1    ;10
-  ram_byte RHShield;              .res 1    ;11
-  ram_byte LHShield;              .res 1    ;12
-  ram_byte RHWeapon;              .res 1    ;13
-  ram_byte LHWeapon;              .res 1    ;14
-  ram_byte CaughtMonster;         .res 1    ;15
-  ram_res BattleCommands, 4;        .res 4    ;16-19
-  ram_byte Status1;    .res 1    ;1A
-  ram_byte Status2;          .res 1    ;1B
-  ram_byte Status3;         .res 1    ;1C
-  ram_byte Status4;    .res 1    ;1D
-  ram_byte CmdStatus;    .res 1    ;1E
-  ram_byte DamageMod;    .res 1    ;1F
-  ram_byte Passives1;             .res 1    ;20
-  ram_byte Passives2;             .res 1    ;21
-  ram_byte ElementUp;             .res 1    ;22
-  ram_byte EqWeight;              .res 1    ;23
-  ram_byte BaseStr;               .res 1    ;24
-  ram_byte BaseAgi;               .res 1    ;25
-  ram_byte BaseVit;               .res 1    ;26
-  ram_byte BaseMag;               .res 1    ;27
-  ram_byte EquippedStr;    .res 1    ;28
-  ram_byte EquippedAgi;           .res 1    ;29
-  ram_byte EquippedVit;           .res 1    ;2A
-  ram_byte EquippedMag;           .res 1    ;2B
-  ram_byte Evade;                 .res 1    ;2C
-  ram_byte Defense;               .res 1    ;2D
-  ram_byte MEvade;                .res 1    ;2E
-  ram_byte MDefense;              .res 1    ;2F
-  ram_byte EAbsorb;               .res 1    ;30
-  ram_byte EBlock;                .res 1    ;31
-  ram_byte EImmune;               .res 1    ;32
-  ram_byte EHalf;                 .res 1    ;33
-  ram_byte EWeak;                 .res 1    ;34
-  ram_byte StatusImmune1;         .res 1    ;35
-  ram_byte StatusImmune2;    .res 1    ;36
-  ram_byte StatusImmune3;         .res 1    ;37
-  ram_byte WeaponProperties;      .res 1    ;38
-  ram_byte ArmorProperties;       .res 1    ;39
-  ram_byte JobLevel;              .res 1    ;3A
-  ram_word AP;                    .res 2    ;3B-C
-  ram_faraddr EnableSpells;       .res 3    ;3D       Sword/White  4 bits high/low unpacked into separate bytes later
-            ;3E    Black/Time
-            ;3F    Summon/Misc  (Misc would be Songs/Blue but seems unused)
-  ram_word EquipWeapons;    .res 2    ;40    bitmask for equippable weapons
-  ram_word EquipArmor;    .res 2    ;42    bitmask for equippable armor
-  ram_byte MonsterAttack;    .res 1    ;44    Only used for Goblin Punch and Monsters
-  ram_byte MonsterAttackLH;       .res 1    ;45    Only used for Goblin Punch
-  ;rest differs from the battle CharStruct
-  ;could use Asar struct extensions but syntax would be annoying for the often-used CharStruct
-  ram_res Unused, 4;      .res 4    ;46-2049
-  ram_byte MasteryStr;    .res 1    ;4A    ;mastery entries are for freelancer
-  ram_byte MasteryAgi;             .res 1          ;4B
-  ram_byte MasteryVit;             .res 1          ;4C
-  ram_byte MasteryMag;             .res 1          ;4D
-  ram_byte MasteryPassives1;       .res 1          ;4E
-  ram_byte MasteryPassives2;       .res 1          ;4F
+ram_array wFieldChar, 4, 80
+        ram_byte CharRow
+        ram_byte Job
+        ram_byte Level
+        ram_faraddr Exp
+        ram_word CurHP
+        ram_word MaxHP
+        ram_word CurMP
+        ram_word MaxMP
+        ram_byte Headgear
+        ram_byte Bodywear
+        ram_byte Accessory
+        ram_byte RHShield
+        ram_byte LHShield
+        ram_byte RHWeapon
+        ram_byte LHWeapon
+        ram_byte CaughtMonster
+        ram_res BattleCommands, 4
+        ram_byte Status1
+        ram_byte Status2
+        ram_byte Status3
+        ram_byte Status4
+        ram_byte CmdStatus
+        ram_byte DamageMod
+        ram_byte Passives1
+        ram_byte Passives2
+        ram_byte ElementUp
+        ram_byte EqWeight
+        ram_byte BaseStr
+        ram_byte BaseAgi
+        ram_byte BaseVit
+        ram_byte BaseMag
+        ram_byte EquippedStr
+        ram_byte EquippedAgi
+        ram_byte EquippedVit
+        ram_byte EquippedMag
+        ram_byte Evade
+        ram_byte Defense
+        ram_byte MEvade
+        ram_byte MDefense
+        ram_byte EAbsorb
+        ram_byte EBlock
+        ram_byte EImmune
+        ram_byte EHalf
+        ram_byte EWeak
+        ram_byte StatusImmune1
+        ram_byte StatusImmune2
+        ram_byte StatusImmune3
+        ram_byte WeaponProperties
+        ram_byte ArmorProperties
+        ram_byte JobLevel
+        ram_word AP
+        ram_faraddr EnableSpells
+        ram_word EquipWeapons
+        ram_word EquipArmor
+        ram_byte MonsterAttack
+        ram_byte MonsterAttackLH
+; rest differs from the battle CharStruct
+        ram_res Unused, 4
+        ram_byte MasteryStr
+        ram_byte MasteryAgi
+        ram_byte MasteryVit
+        ram_byte MasteryMag
+        ram_byte MasteryPassives1
+        ram_byte MasteryPassives2
 end_ram_array
 
-ram_res FieldItems, 256; = $0640  ;256 item ids
-ram_res FieldItemsQty, 256; = $0740  ;256 item qtys
+; 256 item ids
+ram_res wFieldItems, 256  ; $0640
+
+; 256 item qtys
+ram_res wFieldItemsQty, 256  ; $0740
 
 ; ------------------------------------------------------------------------------
 
 ram_org $08f3
 
-ram_res FieldAbilityCount, 4; = $08F3  ;1 byte per character
-ram_res FieldAbilityList, 4 * 20; = $08F7  ;20 bytes per character in order butz,lenna,galuf,faris
+; 1 byte per character
+ram_res FieldAbilityCount, 4  ; $08F3
 
-ram_faraddr Gil; = $000947    ;3 bytes, also accessed via 3 byte address for some reason
+; 20 bytes per character in order butz, lenna, galuf, faris
+ram_res FieldAbilityList, 4 * 20  ; $08F7
 
-ram_dword FieldFrameCount; = $094A  ;4 bytes, time played (in frames)
+; 3 bytes, also accessed via 3 byte address for some reason
+ram_faraddr Gil; = $000947
 
-ram_word MonsterKillCount; = $094E  ;2 bytes
+; 4 bytes, time played (in frames)
+ram_dword FieldFrameCount; = $094A
 
-ram_res MagicBits, 16; = $0950  ;Learned magic
-      ;12 bytes, 1 bit per spell
-      ;4 bytes unused before blue magic (hardcoded to .res them though)
+; 2 bytes
+ram_word MonsterKillCount; = $094E
 
-ram_res BlueMagicBits, 16; = $0960  ;4 bytes (hardcoded to .res first 2 bits of first byte)
-      ;may be 12 more bytes free?
+; Learned magic
+; 12 bytes, 1 bit per spell
+; 4 bytes unused before blue magic (hardcoded to .res them though)
+ram_res MagicBits, 16; = $0950
 
-ram_byte wConfig1; = $0970    ;80h:     command style
-      ;10h-40h:   message speed
-      ;08h:     battle mode
-      ;01h-04h:   battle speed
+; 4 bytes (hardcoded to .res first 2 bits of first byte)
+; may be 12 more bytes free?
+ram_res BlueMagicBits, 16; = $0960
+
+ram_byte wConfig1; = $0970
+; 80h:       command style
+; 10h-40h:   message speed
+; 08h:       battle mode
+; 01h-04h:   battle speed
 
 ram_word wWindowColor
-
 
 .macro CreateBattleDataStruct name, addr
 .struct name
@@ -437,6 +533,8 @@ FieldTimer = $0AFC    ;frame count, 16 bit
 FieldTimerEnd = $0AFE    ;16 bit
 
 MusicData = $1D00
+
+; ------------------------------------------------------------------------------
 
 ram_org $7e2000
 ram_addr_size NEAR
@@ -911,11 +1009,11 @@ ram_array CharVitals, 4, 8
 end_ram_array
 
 ram_scope GFXQueue
-	ram_byte Flag  	;$384C  ;00 for valid actions, $FF for empty    				$4367
-	ram_byte Cmd 		;$384D  ;Command Value, usually $FC for graphics        $4368
-	ram_byte Type  	;$384E  ;Command Type (for Command $FC)                 $4369
-	ram_byte Data1  ;$384F  ;use varies by command type                     $436A
-	ram_byte Data2  ;$3850  ;use varies by command type                     $436B
+        ram_byte Flag          ;$384C  ;00 for valid actions, $FF for empty                                    $4367
+        ram_byte Cmd                 ;$384D  ;Command Value, usually $FC for graphics        $4368
+        ram_byte Type          ;$384E  ;Command Type (for Command $FC)                 $4369
+        ram_byte Data1  ;$384F  ;use varies by command type                     $436A
+        ram_byte Data2  ;$3850  ;use varies by command type                     $436B
 end_ram_scope
 
 ;gonna dump some command stuff here to try to figure out what's going on with GFXQueue commands
@@ -1044,10 +1142,10 @@ ram_res MessageBoxes, 4 * 24; = $3C5F  ;24 bytes of messages to display, uses si
       ;might be four?
 
 ram_array MessageBoxData, 4, 12; = $3CBF    ;12 bytes of numbers to use in message boxes, 4x 3 byte numbers
-	ram_faraddr Var1
-	ram_faraddr Var2
-	ram_faraddr Var3
-	ram_faraddr Var4
+        ram_faraddr Var1
+        ram_faraddr Var2
+        ram_faraddr Var3
+        ram_faraddr Var4
 end_ram_array
 
 
@@ -1061,18 +1159,18 @@ ram_byte MessageBoxDataOffset; = $3CF0
   .else
     ram_array label, num_items, 11
   .endif
-          									;Enable   ;Current  ;Initial  EndedChar  ;Global    ;Process
-  ram_byte Stop;  					;$3CF1    ;$3D75    ;$3DF9     ;3EB7    ;$3ED9     ;$3EE4
-  ram_byte Poison;  			  ;$3CF2    ;$3D76    ;$3DFA     ;3EB8
-  ram_byte Reflect;     	  ;$3CF3    ;$3D77    ;$3DFB     ;3EB9
+                                                                                  ;Enable   ;Current  ;Initial  EndedChar  ;Global    ;Process
+  ram_byte Stop;                                          ;$3CF1    ;$3D75    ;$3DF9     ;3EB7    ;$3ED9     ;$3EE4
+  ram_byte Poison;                            ;$3CF2    ;$3D76    ;$3DFA     ;3EB8
+  ram_byte Reflect;               ;$3CF3    ;$3D77    ;$3DFB     ;3EB9
   ram_byte Countdown;       ;$3CF4    ;$3D78    ;$3DFC     ;3EBA
   ram_byte Mute;            ;$3CF5    ;$3D79    ;$3DFD     ;3EBB
   ram_byte HPLeak;          ;$3CF6    ;$3D7A    ;$3DFE     ;3EBC
   ram_byte Old;             ;$3CF7    ;$3D7B    ;$3DFF     ;3EBD
   ram_byte Regen;           ;$3CF8    ;$3D7C    ;$3E00     ;3EBE
-  ram_byte Sing;  					;$3CF9    ;$3D7D    ;$3E01     ;3EBF
+  ram_byte Sing;                                          ;$3CF9    ;$3D7D    ;$3E01     ;3EBF
   ram_byte Paralyze;        ;$3CFA    ;$3D7E    ;$3E02     ;3EC0
-  ram_byte ATB;    					;$3CFB    ;$3D7F    ;$3E03  ;tends to be used differently than status timers
+  ram_byte ATB;                                            ;$3CFB    ;$3D7F    ;$3E03  ;tends to be used differently than status timers
   .ifblank num_items
     end_ram_scope
   .else
@@ -1297,11 +1395,11 @@ AIVars = $4363      ;variables used by AI condition checks
 ram_org $4367
 
 ram_scope MonsterAIScript
-	ram_byte Flag  	;$384C  ;00 for valid actions, $FF for empty    				$4367
-	ram_byte Cmd 		;$384D  ;Command Value, usually $FC for graphics        $4368
-	ram_byte Type  	;$384E  ;Command Type (for Command $FC)                 $4369
-	ram_byte Data1  ;$384F  ;use varies by command type                     $436A
-	ram_byte Data2  ;$3850  ;use varies by command type                     $436B
+        ram_byte Flag          ;$384C  ;00 for valid actions, $FF for empty                                    $4367
+        ram_byte Cmd                 ;$384D  ;Command Value, usually $FC for graphics        $4368
+        ram_byte Type          ;$384E  ;Command Type (for Command $FC)                 $4369
+        ram_byte Data1  ;$384F  ;use varies by command type                     $436A
+        ram_byte Data2  ;$3850  ;use varies by command type                     $436B
 end_ram_scope
 
 ; CreateGFXAIQueue MonsterAIScript, $4367
@@ -1824,7 +1922,7 @@ BattleTimer = $7C95      ;frame count, 16 bit
 
 
 MagicNull = $7C97      ;Set when magic attacks are nullified (element immunity)
-          ;generally used to properly set AtkMissed
+          ;generally used to properly set zAtkMissed
 
 ;flags that make the CastSpell hit the target even if they are inactive, if they have this status
 SpellCheckStone = $7C98

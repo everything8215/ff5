@@ -404,6 +404,7 @@ PSW_C = %00000001
 .endenum
 
 ::_ram_offset .set 0
+::_ram_offset_stack .set -1
 ::_ram_verbose .set 0
 ::_ram_addr_size .set RAM_ADDR_SIZE::FAR
 ::_ram_scope_start .set 0
@@ -411,6 +412,17 @@ PSW_C = %00000001
 .define ram_org(offset) ::_ram_offset .set offset
 .define ram_verbose(value) ::_ram_verbose .set value
 .define ram_addr_size(size) ::_ram_addr_size .set RAM_ADDR_SIZE::size
+
+.mac push_ram_offset
+        .assert ::_ram_offset_stack = -1, error, "Can't push RAM offset"
+        ::_ram_offset_stack .set ::_ram_offset
+.endmac
+
+.mac pop_ram_offset
+        .assert ::_ram_offset_stack <> -1, error, "Can't pop RAM offset"
+        ::_ram_offset .set ::_ram_offset_stack
+        ::_ram_offset_stack .set -1
+.endmac
 
 .mac ram_label label, namespace
         .ifblank namespace
