@@ -192,7 +192,7 @@ _016b:  jsr     _c0073e
         lda     $58
         beq     _0177
         stz     $58
-        jmp     $00ad
+        jmp     _00ad
 _0177:  lda     $61
         and     #$1f
         bne     _01fb
@@ -250,7 +250,7 @@ _01ef:  jsr     ExecTriggerScript
         lda     $58
         beq     _01fb
         stz     $58
-        jmp     $00ad
+        jmp     _00ad
 _01fb:  jsr     $cb11
         lda     $55
         beq     _0220
@@ -283,7 +283,7 @@ _0220:  stz     $55
 _0246:  jsr     _c00f8c
         jsr     _c01a1d
         jsr     $4c95                   ; clear sprite data
-        jsr     $2137
+        jsr     _c02137
         jsr     $612b
         jsr     _c01ec5
         jsr     _c01e64
@@ -313,7 +313,7 @@ _0281:  jsr     $ca69       ;
         jsr     $5476       ; reload map
         jmp     _00ad
 _029a:  stz     $55
-        jsr     $32ab       ; update objects
+        jsr     _c032ab       ; update objects
         jsr     c0_11c2
         lda     $6e
         beq     _02ac
@@ -324,12 +324,12 @@ _02ac:  lda     $58
         stz     $58
         jmp     _00ad
 _02b5:  jsr     _c01ae4
-        jsr     $3bac
+        jsr     _c03bac
         jsr     $4c95       ; clear sprite data
         jsr     $4834
         jsr     UpdatePlayerSprite
-        jsr     $39b3       ; update object sprites
-        jsr     $2842
+        jsr     _c039b3       ; update object sprites
+        jsr     _c02842
         jsr     $420a
         jmp     _00ad
         rts                 ; unused rts
@@ -1053,7 +1053,7 @@ _08c5:  jsr     $4e41       ; wait for vblank
         lda     f:_c00c4f,x
         ora     #$80
         sta     $0ade,y     ; vehicle height
-        jsr     $2137
+        jsr     _c02137
         jsr     $612b
         jsr     _c01ec5
         jsr     _c01e64
@@ -1078,7 +1078,7 @@ _08f3:  jsr     $4e41       ; wait for vblank
         lda     f:_c00c4f,x
         ora     #$80
         sta     $0ade,y
-        jsr     $2137
+        jsr     _c02137
         jsr     $612b
         jsr     _c01ec5
         jsr     _c01e64
@@ -1105,7 +1105,7 @@ _0926:  jsr     $4e41       ; wait for vblank
         lda     f:_c00c4f,x
         ora     #$80
         sta     $0ade,y
-        jsr     $2137
+        jsr     _c02137
         jsr     $612b
         jsr     _c01ec5
         jsr     _c01e64
@@ -1133,7 +1133,7 @@ _095e:  jsr     $4e41       ; wait for vblank
         lda     f:_c00c4f,x
         ora     #$80
         sta     $0ade,y
-        jsr     $2137
+        jsr     _c02137
         jsr     $612b
         jsr     _c01ec5
         jsr     _c01e64
@@ -1240,7 +1240,7 @@ _09f7:  lda     #$01
 _0a11:  lda     #$08
         sta     $43
         stz     $45
-        jsr     $2137
+        jsr     _c02137
         stz     $0289
         stz     $028d
         lda     #$08
@@ -1312,7 +1312,7 @@ _0a5e:  jsr     $4e41       ; wait for vblank
         lda     #$7b
         sta     $187a
         jsr     $4741
-_0a8e:  jsr     $2137
+_0a8e:  jsr     _c02137
         jsr     $612b
         jsr     _c01e64
         jsr     $47f7
@@ -1378,7 +1378,7 @@ _0afb:  lda     $57
         stz     $da
         stz     $db
 _0b1a:  jsr     $4e41       ; wait for vblank
-        jsr     $2137
+        jsr     _c02137
         lda     $da
         clc
         adc     $3d
@@ -1420,7 +1420,7 @@ _0b60:  jsr     $4e41       ; wait for vblank
         asl
         ora     #$80
         sta     $0ade,y
-        jsr     $2137
+        jsr     _c02137
         jsr     $612b
         jsr     _c01e64
         jsr     $5bf8
@@ -1446,7 +1446,7 @@ _0b60:  jsr     $4e41       ; wait for vblank
         sta     $0ade,y
         lda     #$04
         sta     $c0
-        jsr     $2137
+        jsr     _c02137
         jsr     $4e41       ; wait for vblank
         jsr     $4583
         jsr     $4e41       ; wait for vblank
@@ -1525,7 +1525,7 @@ _c00c4f:
 _0c9f:  stz     $1697
 _0ca2:  jsr     $4e41
         jsr     $4c95       ; clear sprite data
-        jsr     $2137
+        jsr     _c02137
         jsr     $612b
         jsr     _c01e64
         lda     $03
@@ -1588,7 +1588,7 @@ _0d18:  ldy     $169c
         sta     $0206
         lda     #$b6
         sta     $0207
-_0d39:  jmp     $0ca2
+_0d39:  jmp     _0ca2
 _0d3c:  rts
 
 .endproc
@@ -1614,7 +1614,7 @@ _0d3d:  lda     $61
         lda     $10b8
         bne     _0d73       ;
         inc     $10b8
-_0d63:  jsr     $317b       ; check npc events
+_0d63:  jsr     CheckNPCEvents
         lda     $58
         bne     _0d73       ; branch if an event is running
         lda     $02
@@ -1796,7 +1796,7 @@ _0ee4:  jsr     $5476                   ; reload map
         and     #$40
         bne     _0efa
         jmp     _0e7e                   ; item
-_0efa:  jmp     $0e67                   ; spell
+_0efa:  jmp     _0e67                   ; spell
 _0efd:  rts
 
 .endproc
@@ -2395,7 +2395,7 @@ _1354:  jsr     _c01538       ; update party sprite priority (destination tile)
         jsr     $c796       ;
         jsr     _c0155b
         jsr     _c015ac
-_1367:  jsr     $2973
+_1367:  jsr     _c02973
         lda     $58
         bne     _1371
         jsr     _c016da
@@ -2918,7 +2918,7 @@ _16c4:  lda     $0ad8
         lda     $0ad9
         sta     $76
         phx
-        jsr     $3cbb       ; get pointer to object layout
+        jsr     _c03cbb       ; get pointer to object layout
         lda     #$00
         sta     $7f3000,x
         plx
@@ -2953,7 +2953,7 @@ _16ef:  lda     $ba
         adc     f:_c01717,x
         sta     $76
         phx
-        jsr     $3cbb       ; get pointer to object layout
+        jsr     _c03cbb       ; get pointer to object layout
         lda     #$ff
         sta     $7f3000,x
         plx
@@ -3999,7 +3999,7 @@ _1eea:  lda     $0adf,y
         sbc     $0ad8
         cmp     f:_c0205f+1
         bcs     _1f48
-        jsr     $201f
+        jsr     _c0201f
         lda     $14
         lsr
         bcs     _1f48
@@ -4160,6 +4160,7 @@ _1fff:  lda     $13
 
 ; [  ]
 
+_c0201f:
 _201f:  longa
         asl4
         clc
@@ -4262,6 +4263,7 @@ _2127:  .byte   $f8,$f5,$14,$30
 
  ; [  ]
 
+_c02137:
 _2137:  lda     $bd
         bne     _213c       ; branch if party sprite is visible
         rts
@@ -4274,16 +4276,12 @@ _2143:  tax
         sta     $0d
         lda     $0adc
         dec
-        asl
-        asl
+        asl2
         tay
         lda     $61
         clc
         adc     $63
-        lsr
-        lsr
-        lsr
-        lsr
+        lsr4
         and     #$01
         sta     $08
         lda     $0adb
@@ -4931,6 +4929,7 @@ _2817:  lda     $1114       ; tileset
 
 ; [  ]
 
+_c02842:
 @2842:  lda     $bd
         bne     @2847
         rts
@@ -5034,6 +5033,7 @@ _c02933:
 
 ; [  ]
 
+_c02973:
 @2973:  stz     $108c
         stz     $108d
         stz     $108e
@@ -5081,7 +5081,7 @@ _c02933:
 @29d8:  lda     #$80
         sta     $10
         lda     #$02
-        jmp     $2a1c
+        jmp     @2a1c
 @29e1:  lda     $10fa       ; map tile properties byte 1
         and     #$07
         cmp     #$05
@@ -5103,7 +5103,7 @@ _c02933:
         cmp     #$01
         bne     @2a11
 @2a0c:  lda     #$00
-        jmp     $2a1c
+        jmp     @2a1c
 @2a11:  lda     #$80
         sta     $10
 @2a15:  lda     $10be,y
@@ -5130,7 +5130,7 @@ _c02933:
         iny4
         cpy     #$0010
         beq     @2a54
-        jmp     $298a
+        jmp     @298a
 @2a54:  rts
 
 ; ---------------------------------------------------------------------------
@@ -5294,7 +5294,7 @@ _c02a95:
 ; command $ff: execute event
 @2fed:  cmp     #$ff
         bne     @2ff4
-        jmp     $314d
+        jmp     @314d
 
 ; command $fe: if event flag $00xx set
 @2ff4:  cmp     #$fe
@@ -5303,7 +5303,7 @@ _c02a95:
         jsr     $ca2f       ; get event flag $00xx
         cmp     #$00
         bne     @303c
-        jmp     $3136
+        jmp     @3136
 
 ; command $fd: if event flag $00xx clear
 @3006:  cmp     #$fd
@@ -5312,7 +5312,7 @@ _c02a95:
         jsr     $ca2f       ; get event flag $00xx
         cmp     #$00
         beq     @303c
-        jmp     $3136
+        jmp     @3136
 
 ; command $fc: if event flag $01xx set
 @3018:  cmp     #$fc
@@ -5321,7 +5321,7 @@ _c02a95:
         jsr     $ca3c       ; get event flag $01xx
         cmp     #$00
         bne     @303c
-        jmp     $3136
+        jmp     @3136
 
 ; command $fb: if event flag $01xx clear
 @302a:  cmp     #$fb
@@ -5330,11 +5330,11 @@ _c02a95:
         jsr     $ca3c       ; get event flag $01xx
         cmp     #$00
         beq     @303c
-        jmp     $3136
+        jmp     @3136
 @303c:  ldx     $29         ; skip 2 bytes
         inx2
         stx     $29
-        jmp     $2fe7
+        jmp     @2fe7
 
 ; command $fa: if character data xxxx <=> yy
 @3045:  cmp     #$fa
@@ -5353,7 +5353,7 @@ _c02a95:
 @305f:  lda     $0500,y     ; character data
         cmp     $ce0003,x
         beq     @3087
-        jmp     $3136
+        jmp     @3136
 
 ; 1 (if greater)
 @306b:  cmp     #$40
@@ -5361,18 +5361,18 @@ _c02a95:
         lda     $0500,y
         cmp     $ce0003,x
         bcs     @3087
-        jmp     $3136
+        jmp     @3136
 
 ; 2 (if less)
 @307b:  lda     $0500,y
         cmp     $ce0003,x
         bcc     @3087
-        jmp     $3136
+        jmp     @3136
 
 @3087:  ldx     $29         ; skip 4 bytes
         inx4
         stx     $29
-        jmp     $2fe7
+        jmp     @2fe7
 
 ; command $f9: if character data xxxx <=> yyyy
 @3092:  cmp     #$f9
@@ -5389,7 +5389,7 @@ _c02a95:
         beq     @3087
         lda     $06
         shorta
-        jmp     $3136
+        jmp     @3136
 
 @30b9:  .a16
         cmp     #$4000
@@ -5399,13 +5399,13 @@ _c02a95:
         bcs     @30fc
         lda     $06
         shorta
-        jmp     $3136
+        jmp     @3136
 @30ce:  lda     $0500,y
         cmp     $ce0003,x
         bcc     @30fc
         lda     $06
         shorta
-        jmp     $3136
+        jmp     @3136
 
 ; command $f8: if character data xxxx & yy
 @30de:  cmp     #$f8
@@ -5419,14 +5419,14 @@ _c02a95:
         lda     $0500,y     ; character data
         and     $ce0003,x   ; mask
         bne     @3087
-        jmp     $3136
+        jmp     @3136
 
 @30fc:  lda     $06         ; skip 5 bytes
         shorta
         ldx     $29
         inx5
         stx     $29
-        jmp     $2fe7
+        jmp     @2fe7
 
 ; command $f7: if party is facing xx
 @310c:  cmp     #$f7
@@ -5434,7 +5434,7 @@ _c02a95:
         lda     $ce0001,x
         cmp     $0adb       ; facing direction
         bne     @3136
-        jmp     $303c
+        jmp     @303c
 
 ; command $f5: if character data xxxx & yyyy
 @311c:  longa
@@ -5446,7 +5446,7 @@ _c02a95:
         lda     $0500,y
         and     $ce0003,x
         bne     @3136
-        jmp     $3087
+        jmp     @3087
 
 ; condition not met, check next condition
 @3136:  ldx     $29
@@ -5460,7 +5460,7 @@ _c02a95:
         stx     $29
         cpx     $d0
         beq     @314d
-        jmp     $2fe7
+        jmp     @2fe7
 @314d:  lda     #$01
         sta     $57
         stz     $ba
@@ -5486,6 +5486,7 @@ NPCCmdNumBytes:
 
 ; [ check npc events ]
 
+CheckNPCEvents:
 @317b:  lda     $0adb       ; facing direction
         asl2
         tax
@@ -5496,23 +5497,23 @@ NPCCmdNumBytes:
         bne     @31a0       ; branch if not a through-tile
         lda     $c0329e,x   ; forward x2 (interact through tile)
         tay
-        jsr     $324b       ; get object at tile
+        jsr     _c0324b       ; get object at tile
         cmp     #$ff
         bne     @319a       ; return if no object
         rts
-@319a:  jsr     $3289       ; get pointer to object
-        jmp     $3230
-@31a0:  jsr     $324b       ; get object at tile
+@319a:  jsr     _c03289       ; get pointer to object
+        jmp     @3230
+@31a0:  jsr     _c0324b       ; get object at tile
         cmp     #$ff
         beq     @31ad       ; branch if no object
-        jsr     $3289       ; get pointer to object
-        jmp     $3230
+        jsr     _c03289       ; get pointer to object
+        jmp     @3230
 @31ad:  lda     $c0329c,x
         tay
-        jsr     $324b
+        jsr     _c0324b
         cmp     #$ff
         beq     @31d6
-        jsr     $3289
+        jsr     _c03289
         lda     $147b,x
         bmi     @31d6
         lda     $0adb
@@ -5524,16 +5525,16 @@ NPCCmdNumBytes:
         and     #$03
         cmp     $08
         bne     @31d6
-        jmp     $3230
+        jmp     @3230
 @31d6:  lda     $0adb
         asl2
         tax
         lda     $c0329d,x
         tay
-        jsr     $324b
+        jsr     _c0324b
         cmp     #$ff
         beq     @3205
-        jsr     $3289
+        jsr     _c03289
         lda     $147b,x
         bmi     @3205
         lda     $0adb
@@ -5545,16 +5546,16 @@ NPCCmdNumBytes:
         and     #$03
         cmp     $08
         bne     @3205
-        jmp     $3230
+        jmp     @3230
 @3205:  lda     $0adb
         asl2
         tax
         lda     $c0329e,x
         tay
-        jsr     $324b
+        jsr     _c0324b
         cmp     #$ff
         beq     @322d
-        jsr     $3289
+        jsr     _c03289
         lda     $147b,x
         bmi     @322d
         lda     $147c,x
@@ -5562,8 +5563,8 @@ NPCCmdNumBytes:
         and     #$03
         cmp     $0adb
         bne     @322d
-        jmp     $3230
-@322d:  jmp     $324a
+        jmp     @3230
+@322d:  jmp     @324a
 @3230:  lda     $147e,x     ; check if object faces party when active
         bmi     @3240
         lda     $0adb       ; party facing direction
@@ -5572,9 +5573,9 @@ NPCCmdNumBytes:
         asl
         sta     $147c,x     ; set graphic frame
 @3240:  phx
-        jsr     $39b3       ; update object sprites
+        jsr     _c039b3       ; update object sprites
         plx
-        jsr     $2f95       ; execute npc script
+        jsr     ExecNPCScript
         stz     $e4         ;
 @324a:  rts
 
@@ -5584,6 +5585,7 @@ NPCCmdNumBytes:
 
 ; y: pointer to tile properties
 
+_c0324b:
 @324b:  lda     $10fa       ; map tile properties byte 1
         and     #$04
         beq     @3261       ; branch if not a bridge tile
@@ -5604,7 +5606,7 @@ NPCCmdNumBytes:
         lda     $c2
         and     #$01
         beq     @3286
-        jmp     $327c
+        jmp     @327c
 @3271:  lda     $10f2,y     ; map tile properties byte 1
         and     #$03
         beq     @327c
@@ -5622,6 +5624,7 @@ NPCCmdNumBytes:
 
 ; [ get pointer to object data ]
 
+_c03289:
 @3289:  and     #$7f
         sta     $4202
         lda     #$14
@@ -5642,6 +5645,7 @@ NPCCmdNumBytes:
 
 ; [ update objects ]
 
+_c032ab:
 @32ab:  lda     $e6         ; number of objects
         bne     @32b0       ; return if there are no objects
         rts
@@ -5655,17 +5659,17 @@ NPCCmdNumBytes:
         lda     $147b,y
         ora     #$80
         sta     $147b,y     ; object does not move
-        jmp     $348a
+        jmp     @348a
 @32ca:  lda     $147e,y     ;
         and     #$08
         bne     @32d9
         lda     $147d,y
         bpl     @32d9
-        jmp     $34b9
+        jmp     @34b9
 @32d9:  lda     $147d,y
         and     #$7f
         beq     @32e3
-        jmp     $34b9
+        jmp     @34b9
 @32e3:  lda     $1485,y
         and     #$fd
         sta     $1485,y
@@ -5768,10 +5772,10 @@ NPCCmdNumBytes:
         bpl     @33c2       ; branch if random movement does not depend on party position
         and     #$40
         bne     @33bc
-        jsr     $351c       ; move toward party
-        jmp     $342c
-@33bc:  jsr     $3555       ; move away from party
-        jmp     $342c
+        jsr     _c0351c       ; move toward party
+        jmp     @342c
+@33bc:  jsr     _c03555       ; move away from party
+        jmp     @342c
 @33c2:  lda     $1485,y     ; movement type
         and     #$30
         bne     @342c       ; branch if object has custom movement
@@ -5793,32 +5797,32 @@ NPCCmdNumBytes:
         lsr
         bcs     @33fc
         ldx     #$0004
-        jsr     $34eb       ; check if npc can move to tile
+        jsr     _c034eb       ; check if npc can move to tile
         beq     @342c
         sta     $147b,y
-        jmp     $348a
+        jmp     @348a
 @33fc:  ldx     #$0008
-        jsr     $34eb       ; check if npc can move to tile
+        jsr     _c034eb       ; check if npc can move to tile
         beq     @342c
         sta     $147b,y
-        jmp     $348a
+        jmp     @348a
 @340a:  jsr     $4f2b       ; generate random number
         lsr
         bcs     @341e
         ldx     #$0002
-        jsr     $34eb       ; check if npc can move to tile
+        jsr     _c034eb       ; check if npc can move to tile
         beq     @342c
         sta     $147b,y
-        jmp     $348a
+        jmp     @348a
 @341e:  ldx     #$0006
-        jsr     $34eb       ; check if npc can move to tile
+        jsr     _c034eb       ; check if npc can move to tile
         beq     @342c
         sta     $147b,y
-        jmp     $348a
+        jmp     @348a
 @342c:  lda     $147b,y     ; facing direction
         asl
         tax
-        jsr     $34eb       ; check if npc can move to tile
+        jsr     _c034eb       ; check if npc can move to tile
         bne     @348a
         lda     $1485,y     ; movement type
         and     #$30
@@ -5836,7 +5840,7 @@ NPCCmdNumBytes:
         inc
         asl
         tax
-        jsr     $34eb       ; check if npc can move to tile
+        jsr     _c034eb       ; check if npc can move to tile
         beq     @347f
         sta     $147b,y
         bra     @348a
@@ -5847,33 +5851,32 @@ NPCCmdNumBytes:
         inc
         asl
         tax
-        jsr     $34eb       ; check if npc can move to tile
+        jsr     _c034eb       ; check if npc can move to tile
         beq     @347f
         sta     $147b,y
         bra     @348a
 
 ; move in a circle
 @346b:  lda     $147b,y     ; facing direction
-        dec
-        dec
+        dec2
         and     #$03
         inc
         asl
         tax
-        jsr     $34eb       ; check if npc can move to tile
+        jsr     _c034eb       ; check if npc can move to tile
         beq     @347f
         sta     $147b,y
         bra     @348a
 @347f:  lda     $147b,y
         ora     #$80
         sta     $147b,y
-        jmp     $34b9
+        jmp     @34b9
 @348a:  lda     $1485,y
         lsr
         bcs     @3493
-        jmp     $34b9
+        jmp     @34b9
 @3493:  ldy     $e9
-        jsr     $3cf8       ; remove object from object layout
+        jsr     _c03cf8       ; remove object from object layout
         lda     $147b,y
         bpl     @349f
         lda     #$00
@@ -5887,7 +5890,7 @@ NPCCmdNumBytes:
         clc
         adc     $c034e6,x
         sta     $76
-        jsr     $3ce0       ; add object to object layout
+        jsr     _c03ce0       ; add object to object layout
 @34b9:  ldy     $e9
         lda     $147b,y
         and     #$7f
@@ -5906,7 +5909,7 @@ NPCCmdNumBytes:
         lda     $e5
         cmp     $e6
         beq     @34e0
-        jmp     $32b6
+        jmp     @32b6
 @34e0:  rts
 
 @34e1:  .byte   $00,$00,$01,$00,$ff
@@ -5919,6 +5922,7 @@ NPCCmdNumBytes:
 ; x: direction
 ; a: movement direction (out, zero if can't move)
 
+_c034eb:
 @34eb:  lda     $eb,x       ; bg1 tile
         phx
         longa
@@ -5951,6 +5955,7 @@ NPCCmdNumBytes:
 
 ; [ move toward party ]
 
+_c0351c:
 @351c:  ldy     $e9
         lda     $1478,y
         cmp     $0ad8
@@ -5982,6 +5987,7 @@ NPCCmdNumBytes:
 
 ; [ move away from party ]
 
+_c03555:
 @3555:  ldy     $e9
         lda     $1478,y     ; object x position
         cmp     $0ad8
@@ -6055,7 +6061,7 @@ NPCCmdNumBytes:
         lsr3
         and     #$03
         tax
-        lda     $c037bd,x
+        lda     f:_c037bd,x
         bra     @35f5
 @35f0:  lda     $147c       ; body frame
         and     #$07
@@ -6114,15 +6120,15 @@ NPCCmdNumBytes:
         phx
         asl
         tax
-        lda     $c037c9,x
+        lda     f:_c037c9,x
         plx
-        ora     $c037d5,x
+        ora     f:_c037d3+2,x
         bra     @3675
-@3671:  lda     $c037d5,x
+@3671:  lda     f:_c037d3+2,x
 @3675:  sta     $0202,y
         and     #$01ff
         beq     @36b6
-        lda     $c037d3,x
+        lda     f:_c037d3,x
         and     #$00ff
         cmp     #$0080
         bcc     @368c
@@ -6135,7 +6141,7 @@ NPCCmdNumBytes:
         sec
         sbc     #$0008
         sta     $0d
-        lda     $c037d4,x
+        lda     f:_c037d3+1,x
         and     #$00ff
         cmp     #$0080
         bcc     @36ac
@@ -6174,7 +6180,7 @@ NPCCmdNumBytes:
         lsr4
         tay
         lda     $0400,y
-        ora     $c037b9,x
+        ora     f:_c037b9,x
         sta     $0400,y
         ply
         plx
@@ -6186,7 +6192,7 @@ NPCCmdNumBytes:
         iny4
         cpy     #$0030
         beq     @3713
-        jmp     $3657
+        jmp     @3657
 @3713:  longa
         lda     $148b
         lsr3
@@ -6209,7 +6215,7 @@ NPCCmdNumBytes:
 @373b:  longa
         lda     $c037c3,x
         sta     $03fa,y
-        lda     $c037c1,x
+        lda     f:_c037c1,x
         and     #$00ff
         cmp     #$0080
         bcc     @3753
@@ -6254,11 +6260,1490 @@ NPCCmdNumBytes:
         sta     $03f9,y
         iny4
         inx4
-        cpy     #$0008
+        cpy     #8
         bne     @373b
         rts
 
 .endproc
+
+_c037b9:
+        .byte   $01,$04,$10,$40
+
+_c037bd:
+        .byte   $05,$04,$06,$06
+
+_c037c1:
+        .word   $0af0,$34be,$0a10,$74be
+
+_c037c9:
+        .word   $34b6,$34ba,$34bc,$74ba,$34b8
+
+; hiryuu sprite data (8 frames, 12 sprites per frame, 4 bytes per sprite)
+_c037d3:
+        .byte   $00,$e8,$00,$00
+        .byte   $f0,$e0,$50,$34
+        .byte   $10,$e0,$50,$74
+        .byte   $f0,$00,$52,$34
+        .byte   $10,$00,$52,$74
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+
+        .byte   $00,$e8,$00,$00
+        .byte   $d0,$e0,$54,$34
+        .byte   $f0,$e0,$58,$34
+        .byte   $10,$e0,$58,$74
+        .byte   $30,$e0,$54,$74
+        .byte   $d0,$00,$56,$34
+        .byte   $f0,$00,$5a,$34
+        .byte   $10,$00,$5a,$74
+        .byte   $30,$00,$56,$74
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+
+        .byte   $00,$e8,$00,$00
+        .byte   $f0,$c0,$70,$34
+        .byte   $10,$c0,$70,$74
+        .byte   $d0,$d0,$5c,$34
+        .byte   $30,$d0,$5c,$74
+        .byte   $f0,$e0,$72,$34
+        .byte   $10,$e0,$72,$74
+        .byte   $d0,$f0,$5e,$34
+        .byte   $30,$f0,$5e,$74
+        .byte   $f0,$00,$74,$34
+        .byte   $10,$00,$74,$74
+        .byte   $00,$00,$00,$34
+
+        .byte   $00,$e0,$00,$00
+        .byte   $f0,$d0,$7c,$34
+        .byte   $10,$d0,$7c,$74
+        .byte   $d0,$e0,$7a,$34
+        .byte   $30,$e0,$7a,$74
+        .byte   $f0,$f0,$7e,$34
+        .byte   $10,$f0,$7e,$74
+        .byte   $03,$00,$96,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+
+        .byte   $00,$d0,$00,$00
+        .byte   $f0,$bc,$92,$34
+        .byte   $10,$bc,$92,$74
+        .byte   $d0,$dc,$90,$34
+        .byte   $f0,$dc,$94,$34
+        .byte   $10,$dc,$94,$74
+        .byte   $30,$dc,$90,$74
+        .byte   $00,$fc,$96,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+
+        .byte   $00,$cc,$00,$00
+        .byte   $f0,$b8,$9a,$34
+        .byte   $10,$b8,$9a,$74
+        .byte   $d0,$d8,$98,$34
+        .byte   $f0,$d8,$9c,$34
+        .byte   $10,$d8,$9c,$74
+        .byte   $30,$d8,$98,$74
+        .byte   $00,$f8,$96,$74
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+
+        .byte   $00,$d4,$00,$00
+        .byte   $f0,$c0,$b0,$34
+        .byte   $10,$c0,$b0,$74
+        .byte   $d0,$d0,$9e,$34
+        .byte   $30,$d0,$9e,$74
+        .byte   $f0,$e0,$b2,$34
+        .byte   $10,$e0,$b2,$74
+        .byte   $00,$00,$96,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+
+        .byte   $00,$00,$00,$00
+        .byte   $00,$e0,$b4,$34
+        .byte   $00,$00,$76,$34
+        .byte   $f0,$e0,$50,$34
+        .byte   $10,$e0,$50,$74
+        .byte   $f0,$00,$52,$34
+        .byte   $10,$00,$52,$74
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+
+        .byte   $00,$e8,$00,$00
+        .byte   $f0,$e0,$50,$34
+        .byte   $10,$e0,$50,$74
+        .byte   $f0,$00,$52,$34
+        .byte   $10,$00,$78,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+
+        .byte   $00,$e8,$00,$00
+        .byte   $f0,$e0,$50,$34
+        .byte   $10,$e0,$50,$74
+        .byte   $f0,$00,$78,$74
+        .byte   $10,$00,$52,$74
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+        .byte   $00,$00,$00,$34
+
+; ---------------------------------------------------------------------------
+
+; [ update object sprites ]
+
+_c039b3:
+@39b3:  lda     $e6
+        bne     @39b8
+        rts
+@39b8:  ldy     $06
+        sty     $e9
+        sty     $23
+        stz     $e5
+        lda     $e6
+@39c2:  pha
+        ldy     $e9
+        lda     $169f
+        beq     @39d2       ; branch if no hiryuu
+        cpy     #$0028
+        bcs     @39d2       ; skip 10 sprites
+        jmp     @3b67
+@39d2:  lda     $1485,y
+        and     #$01
+        bne     @39dc
+        jmp     @3b67
+@39dc:  lda     $147e,y     ; animation type
+        and     #$70
+        beq     @3a0b
+        cmp     #$50
+        beq     @3a0b
+
+; special animation
+        lsr2
+        sta     $08
+        lda     $147e,y     ; animation speed
+        and     #$03
+        tax
+        lda     f:_c03b88,x
+        tax
+        lda     $3e
+@39f8:  lsr
+        dex
+        bne     @39f8
+        and     #$03
+        ora     $08
+        tax
+        lda     f:_c03b8c,x
+        clc
+        adc     $1487,y     ; frame offset
+        bra     @3a60
+
+; walking animation
+@3a0b:  lda     $147c,y
+        and     #$7f
+        cmp     #$10
+        bcc     @3a18
+        cmp     #$40
+        bcc     @3a60
+@3a18:  lda     $1488,y
+        bne     @3a47
+        lda     $1485,y
+        and     #$08
+        beq     @3a47
+        stz     $08
+        lda     $147e,y
+        and     #$08
+        bne     @3a32
+        lda     $147d,y
+        bmi     @3a3e
+@3a32:  lda     $147d,y
+        and     #$20
+        clc
+        rol4
+        sta     $08
+@3a3e:  lda     $147c,y
+        and     #$7f
+        ora     $08
+        bra     @3a60
+@3a47:  lda     $147c,y
+        bmi     @3a50
+        and     #$7f
+        bra     @3a60
+@3a50:  lda     $147d,y
+        and     #$20
+        lsr5
+        clc
+        adc     $147c,y
+        and     #$7f
+@3a60:  sta     $08
+        cmp     #$08
+        bcs     @3a76
+        lda     $147e,y
+        and     #$70
+        cmp     #$50
+        bne     @3a76
+        lda     $08
+        clc
+        adc     #$40
+        sta     $08
+@3a76:  lda     $08
+        longa
+        asl4
+        tax
+        ldy     $e9
+        lda     $1477,y
+        lsr3
+        clc
+        adc     #$0010
+        sec
+        sbc     $61
+        and     #$07ff
+        cmp     #$0200
+        bcc     @3a99
+        jmp     @3b67
+@3a99:  lsr
+        sta     $0d
+        phx
+        lda     $1485,y
+        and     #$0004
+        bne     @3aae
+        lda     $1488,y
+        and     #$00ff
+        lsr
+        bra     @3ab6
+@3aae:  lda     $1488,y
+        and     #$00ff
+        lsr2
+@3ab6:  tax
+        lda     $c022db,x
+        and     #$00ff
+        asl
+        sta     $0f
+        plx
+        lda     $1479,y
+        lsr3
+        clc
+        adc     #$0010
+        sec
+        sbc     $63
+        sec
+        sbc     $0f
+        and     #$07ff
+        cmp     #$07f0
+        bcs     @3ae2
+        cmp     #$01e0
+        bcc     @3ae2
+        jmp     @3b67
+@3ae2:  lsr
+        sta     $0f
+        lda     $1477,y
+        lsr6
+        and     #$0001
+        clc
+        adc     $0f
+        sta     $0f
+        lda     $06
+        shorta
+        ldy     $23
+        lda     $0d
+        sec
+        sbc     $10a0
+        sta     $0244,y     ; x position
+        sta     $031c,y
+        sec
+        sbc     #$08
+        sta     $0240,y
+        sta     $0318,y
+        lda     $0f
+        sec
+        sbc     $10a2
+        sec
+        sbc     #$03
+        sta     $0319,y     ; y position
+        sta     $031d,y
+        sec
+        sbc     #$08
+        sta     $0241,y
+        sta     $0245,y
+        longa
+        ldy     $e9
+        lda     $c02a97,x
+        clc
+        adc     $1481,y
+        ldy     $23
+        sta     $0242,y
+        ldy     $e9
+        lda     $c02a9b,x
+        clc
+        adc     $1481,y
+        ldy     $23
+        sta     $0246,y
+        ldy     $e9
+        lda     $c02a9f,x
+        clc
+        adc     $1483,y
+        ldy     $23
+        sta     $031a,y
+        ldy     $e9
+        lda     $c02aa3,x
+        clc
+        adc     $1483,y
+        ldy     $23
+        sta     $031e,y
+@3b67:  longa
+        lda     $23
+        clc
+        adc     #$0008
+        sta     $23
+        lda     $e9
+        clc
+        adc     #$0014
+        sta     $e9
+        lda     $06
+        shorta
+        pla
+        dec
+        beq     @3b84
+        jmp     @39c2
+@3b84:  jsr     DrawHiryuu
+        rts
+
+; animation speeds
+_c03b88:
+        .byte   3,4,5,2
+
+
+_c03b8c:
+        .byte   0,0,0,0                 ; 0: animation frames (unused)
+        .byte   0,0,0,0                 ; 1: animation frames (1 frame)
+        .byte   0,1,0,1                 ; 2: animation frames (2 frames)
+        .byte   0,1,2,3                 ; 3: animation frames (4 frames)
+        .byte   0,4,0,4                 ; 4: animation frames (h-flip)
+        .byte   0,0,0,0                 ; 5: animation frames (unused)
+        .byte   0,0,0,0                 ; 6: animation frames (unused)
+        .byte   0,0,0,0                 ; 7: animation frames (unused)
+
+; ---------------------------------------------------------------------------
+
+; [ update object positions ]
+
+_c03bac:
+@3bac:  lda     $e6
+        bne     @3bb1       ; return if there are no objects
+        rts
+@3bb1:  stz     $e5         ; current object
+        ldy     $06
+        sty     $e9         ; pointer to current object
+@3bb7:  ldy     $e9
+        lda     $57
+        beq     @3bc5       ; branch if dialog window is not open
+        lda     $1486,y
+        bne     @3bde       ; branch if object is moving
+        jmp     @3c74
+@3bc5:  lda     $147b,y
+        bpl     @3bcd
+        jmp     @3c48
+@3bcd:  lda     $147e,y
+        and     #$08
+        bne     @3bde
+        lda     $147d,y
+        and     #$80
+        beq     @3bde
+        jmp     @3c48
+@3bde:  lda     $147b,y
+        and     #$7f
+        bne     @3be8       ; branch if object is moving
+        jmp     @3c48
+@3be8:  ldy     $e9
+        lda     $1485,y
+        and     #$02
+        bne     @3bf8
+        lda     $147e,y     ; animation speed
+        and     #$03
+        bra     @3bfa
+@3bf8:  lda     #$00
+@3bfa:  asl
+        tax
+        lda     $147b,y
+        dec
+        beq     @3c0a
+        dec
+        beq     @3c19
+        dec
+        beq     @3c28
+        bra     @3c37
+
+; moving up
+@3c0a:  longa
+        lda     $1479,y
+        sec
+        sbc     f:_c03cab,x
+        sta     $1479,y
+        bra     @3c44
+
+; moving right
+@3c19:  longa
+        lda     $1477,y
+        clc
+        adc     f:_c03cab,x
+        sta     $1477,y
+        bra     @3c44
+
+; moving down
+@3c28:  longa
+        lda     $1479,y
+        clc
+        adc     f:_c03cab,x
+        sta     $1479,y
+        bra     @3c44
+
+; moving left
+@3c37:  longa
+        lda     $1477,y
+        sec
+        sbc     f:_c03cab,x
+        sta     $1477,y
+@3c44:  lda     $06
+        shorta
+@3c48:  lda     $1485,y
+        and     #$02
+        bne     @3c56
+        lda     $147e,y     ; animation speed
+        and     #$03
+        bra     @3c58
+@3c56:  lda     #$00
+@3c58:  tax
+        lda     $147d,y     ;
+        clc
+        adc     f:_c03cb3,x
+        sta     $147d,y
+        lda     $1488,y
+        beq     @3c74
+        lda     $1488,y     ;
+        sec
+        sbc     f:_c03cb7,x
+        sta     $1488,y
+@3c74:  lda     $57
+        beq     @3c91
+        lda     $1486,y
+        beq     @3c91
+        lda     $147d,y
+        and     #$7f
+        bne     @3c91
+        lda     $1488,y
+        bne     @3c91
+        lda     #$00        ; movement complete ???
+        sta     $1486,y
+        sta     $147b,y
+@3c91:  longa                   ; next object
+        lda     $e9
+        clc
+        adc     #$0014
+        sta     $e9
+        lda     $06
+        shorta
+        inc     $e5
+        lda     $e5
+        cmp     $e6
+        jne     @3bb7
+        rts
+
+; movement speeds (normal, slowest, slow, fast)
+_c03cab:
+        .word   16,4,8,32
+
+_c03cb3:
+        .byte   $08,$02,$04,$10
+
+_c03cb7:
+        .byte   $04,$01,$02,$08
+
+; ---------------------------------------------------------------------------
+
+; [ get pointer to object layout ]
+
+_c03cbb:
+@3cbb:  lda     $76
+        and     #$3f
+        xba
+        longa
+        lsr
+        lsr
+        sta     $0d
+        lda     $75
+        and     #$003f
+        ora     $0d
+        tax
+        lda     $06
+        shorta
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ clear object layout ]
+
+_c03cd3:
+@3cd3:  ldx     #$1000
+        lda     #$00
+@3cd8:  sta     $7f2fff,x
+        dex
+        bne     @3cd8
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ add object to object layout ]
+
+_c03ce0:
+@3ce0:  phx
+        jsr     _c03cbb       ; get pointer to object layout
+        longa
+        txa
+        sta     $1489,y
+        lda     $06
+        shorta
+        lda     $e5
+        ora     #$80
+        sta     $7f3000,x
+        plx
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ remove object from object layout ]
+
+_c03cf8:
+        phx
+        longa
+        lda     $1489,y     ; pointer to object layout
+        tax
+        lda     $06
+        shorta
+        lda     #$00
+        sta     $7f3000,x   ; clear location in object layout
+        plx
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ get object in object layout ]
+
+_c03d0b:
+        phx
+        jsr     _c03cbb       ; get pointer to object layout
+        lda     $7f3000,x
+        plx
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ get tile z-level (unused) ]
+
+; a: tile index, z-level (out)
+
+_c03d15:
+        phx
+        longa
+        and     #$00ff
+        asl
+        tax
+        lda     $06
+        shorta
+        lda     $1186,x     ; tile properties
+        and     #$83
+        plx
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ load npc graphics ]
+
+_c03d28:
+@3d28:  lda     $e6
+        bne     @3d2d
+        rts
+@3d2d:  jsr     _c03e98       ; get pointer to npc properties
+        ldx     #$6500
+        stx     $2e
+        ldx     $06
+        stx     $e9
+        ldx     $e7
+        stx     $29
+        lda     #$00
+@3d3f:  pha
+        lda     #$da        ; graphics start in bank $da
+        sta     $25
+        ldx     $29
+        pla
+        pha
+        beq     @3d6f
+        lda     $ce59c2,x   ; npc graphics
+        cmp     $ce59bb,x
+        bne     @3d6f       ; branch if not the same as previous npc
+        lda     $55
+        bne     @3d6c
+        longa
+        ldx     $e9
+        lda     $146d,x
+        sta     $1481,x
+        lda     $146f,x
+        sta     $1483,x
+        lda     $06
+        shorta
+@3d6c:  jmp     @3e78
+@3d6f:  lda     $ce59c2,x
+        cmp     #$ff
+        beq     @3d95       ; branch if no graphics
+        lda     $55
+        bne     @3daa
+        longa
+        lda     $2e
+        sec
+        sbc     #$6000
+        lsr4
+        ldx     $e9
+        sta     $1481,x
+        sta     $1483,x
+        lda     $06
+        shorta
+        bra     @3daa
+@3d95:  lda     $55
+        bne     @3da7
+        ldx     $e9
+        stz     $1481,x
+        stz     $1482,x
+        stz     $1483,x
+        stz     $1484,x
+@3da7:  jmp     @3e78
+@3daa:  ldx     $29
+        lda     $ce59c2,x
+
+; $67-$68: hiryuu, 64 tiles each ($0800 bytes)
+        cmp     #$67
+        bcc     @3dd4       ; branch if not hiryuu
+        sec
+        sbc     #$67
+        longa
+        xba
+        asl3
+        clc
+        adc     #$2a00
+        sta     $23
+        lda     $06
+        shorta
+        lda     #$04
+        sta     $09
+        inc     $25
+        lda     #$01
+        sta     $169f       ; set hiryuu flag
+        bra     @3e50
+
+; $52-$66: 16 tiles each ($0200 bytes)
+@3dd4:  cmp     #$52
+        bcc     @3ded
+        sec
+        sbc     #$52
+        longa
+        xba
+        asl
+        sta     $23
+        lda     $06
+        shorta
+        lda     #$01
+        sta     $09
+        inc     $25
+        bra     @3e50
+
+; $4b-$51: main characters, 64 tiles each ($0800 bytes)
+@3ded:  cmp     #$4b
+        bcc     @3e18
+        sec
+        sbc     #$4b
+        longa
+        xba
+        asl3
+        clc
+        adc     #$c800
+        sta     $23
+        lda     $06
+        shorta
+        ldx     $29
+        lda     $ce59c1,x
+        lsr6
+        bne     @3e14
+        lda     #$04
+@3e14:  sta     $09
+        bra     @3e50
+
+; $32-$4a: 32 tiles each ($0400 bytes)
+@3e18:  cmp     #$32
+        bcc     @3e42
+        sec
+        sbc     #$32
+        longa
+        xba
+        asl2
+        clc
+        adc     #$6400
+        sta     $23
+        lda     $06
+        shorta
+        ldx     $29
+        lda     $ce59c1,x
+        lsr6
+        bne     @3e3e
+        lda     #$02
+@3e3e:  sta     $09
+        bra     @3e50
+
+; $00-$31: 16 tiles each ($0200 bytes)
+@3e42:  longa
+        xba
+        asl
+        sta     $23
+        lda     $06
+        shorta
+        lda     #$01
+        sta     $09
+@3e50:  ldx     #$0200
+        stx     $2c
+@3e55:  jsr     $4cbc       ; copy data to vram
+        longa
+        lda     $2e
+        clc
+        adc     #$0100
+        sta     $2e
+        lda     $23
+        clc
+        adc     #$0200
+        sta     $23
+        shorta
+        xba
+        bne     @3e71
+        inc     $25
+@3e71:  lda     #$00
+        xba
+        dec     $09
+        bne     @3e55
+@3e78:  longa
+        lda     $e9
+        clc
+        adc     #$0014
+        sta     $e9
+        lda     $29
+        clc
+        adc     #$0007
+        sta     $29
+        lda     $06
+        shorta
+        pla
+        inc
+        cmp     $e6
+        beq     @3e97
+        jmp     @3d3f
+@3e97:  rts
+
+; ---------------------------------------------------------------------------
+
+; [ get pointer to npc properties ]
+
+_c03e98:
+@3e98:  longa
+        lda     $110c       ; map index
+        asl
+        tax
+        lda     $ce59c0,x   ; pointer to npc properties
+        sta     $e7
+        lda     $06
+        shorta
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ load npcs ]
+
+_c03eaa:
+        jsr     _c03cd3       ; clear object layout
+        longa
+        lda     $110c
+        asl
+        tax
+        lda     $ce59c0,x   ; npc data
+        sta     $e7
+        lda     $ce59c2,x
+        sec
+        sbc     $ce59c0,x
+        sta     $4204
+        lda     $06
+        shorta
+        lda     #$07
+        sta     $4206
+        pha
+        pla
+        pha
+        pla
+        nop
+        lda     $4214
+        sta     $e6         ; number of objects
+        bne     @3edc
+        rts
+@3edc:  jsr     _c03d28       ; load npc graphics
+        ldy     $06
+        sty     $e9
+        stz     $e5
+@3ee5:  ldy     $e9
+        ldx     $e7
+        lda     $ce59c6,x   ; palette
+        and     #$07
+        asl
+        sta     $0f
+        lda     $ce59c6,x   ; layer priority (top)
+        and     #$08
+        ora     #$10
+        asl
+        ora     $0f
+        longa
+        xba
+        ora     $1481,y
+        sta     $1481,y
+        lda     $06
+        shorta
+        lda     $ce59c6,x   ; layer priority (bottom)
+        and     #$10
+        ora     #$20
+        ora     $0f
+        longa
+        xba
+        ora     $1483,y
+        sta     $1483,y
+        lda     $06
+        shorta
+        lda     $ce59c5,x   ; misc. flags
+        sta     $147e,y
+        and     #$70
+        beq     @3f47       ; branch if walking animation
+        cmp     #$50
+        beq     @3f47       ; branch if animal animation
+        phx
+        lda     $ce59c6,x   ; action frame
+        and     #$e0
+        lsr5
+        tax
+        lda     f:_c04000,x
+        sta     $1487,y
+        plx
+        bra     @3f63
+@3f47:  lda     $ce59c6,x   ; action frame
+        and     #$e0
+        lsr5
+        asl
+        sta     $147c,y
+        cmp     #$08
+        bcc     @3f5e
+        lda     #$00
+        bra     @3f60
+@3f5e:  lsr
+        inc
+@3f60:  sta     $147b,y     ; facing direction
+@3f63:  longa
+        lda     $ce59c0,x   ; npc script
+        and     #$3fff
+        sta     $147f,y
+        lda     $06
+        shorta
+        lda     $ce59c3,x   ; x position
+        and     #$3f
+        longa
+        xba
+        sta     $1477,y
+        lda     $06
+        shorta
+        lda     $ce59c4,x   ; y position
+        and     #$3f
+        longa
+        xba
+        sta     $1479,y
+        lda     $06
+        shorta
+        lda     #$00
+        sta     $147d,y     ; movement animation counter
+        sta     $1486,y     ;
+        sta     $1488,y     ; jump counter
+        lda     $ce59c3,x
+        and     #$c0
+        sta     $1485,y
+        lda     $ce59c4,x
+        and     #$c0
+        lsr2
+        ora     $1485,y
+        ora     #$08
+        sta     $1485,y
+        longa
+        lda     $147f,y
+        shorta
+        phy
+        jsr     $c9c1       ; get npc flag
+        ply
+        cmp     #$00
+        beq     @3fde
+        lda     $1478,y
+        sta     $75
+        lda     $147a,y
+        sta     $76
+        jsr     _c03ce0       ; add object to object layout
+        ldy     $e9
+        lda     $1485,y     ; make object visible
+        ora     #$01
+        sta     $1485,y
+@3fde:  longa
+        lda     $e9         ; next object
+        clc
+        adc     #$0014
+        sta     $e9
+        lda     $e7
+        clc
+        adc     #$0007
+        sta     $e7
+        lda     $06
+        shorta
+        inc     $e5
+        lda     $e5
+        cmp     $e6
+        jne     @3ee5
+        rts
+
+; ---------------------------------------------------------------------------
+
+_c04000:
+        .byte   $08, $09, $0A, $0B, $0C, $22, $21, $0F
+
+; ---------------------------------------------------------------------------
+
+; [ convert color palettes to grayscale ]
+
+_c04008:
+        ldy     #$0008
+@400b:  longa
+        lda     $0c00,y
+        and     #$001f
+        sta     $0d
+        lda     $0c00,y
+        lsr5
+        sta     $0f
+        and     #$001f
+        clc
+        adc     $0d
+        sta     $0d
+        lda     $0f
+        lsr5
+        and     #$001f
+        clc
+        adc     $0d
+        sta     $4204
+        lda     $06
+        shorta
+        lda     #$03
+        sta     $4206
+        longa
+        nop7
+        lda     $4214
+        asl5
+        ora     $4214
+        asl5
+        ora     $4214
+        sta     $0c00,y
+        lda     $06
+        shorta
+        iny2
+        cpy     #$0200
+        bne     @400b
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [  ]
+
+_c0406b:
+        sta     $4202
+        ldy     $06
+@4070:  longa
+        lda     [$23],y
+        sta     $0d
+        lsr4
+        and     #$003e
+        sta     $0f
+        lda     $0d
+        xba
+        lsr
+        and     #$003e
+        sta     $11
+        lda     $0d
+        and     #$001f
+        asl
+        sta     $0d
+        lda     $06
+        shorta
+        lda     $0d
+        sta     $4203
+        nop4
+        lda     $4217
+        sta     $13
+        lda     $11
+        sta     $4203
+        nop4
+        lda     $4217
+        asl
+        asl
+        and     #$7c
+        sta     $14
+        lda     $0f
+        sta     $4203
+        nop4
+        lda     $4217
+        longa
+        xba
+        lsr3
+        ora     $13
+        sta     $0c00,x
+        lda     $06
+        shorta
+        inx2
+        iny2
+        cpy     $2c
+        bne     @4070
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ copy data to vram ]
+
+_c040d8:
+        lda     #$80
+        sta     $2115
+        stz     $420b
+        lda     #$01
+        sta     $4300
+        lda     #$18
+        sta     $4301
+        ldx     $16ad       ; vram destination
+        stx     $2116
+        ldx     #$0800      ; size = $0800
+        stx     $4305
+        ldx     #$7622      ; source = 7f/7622
+        stx     $4302
+        lda     #$7f
+        sta     $4304
+        lda     #$01
+        sta     $420b
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [  ]
+
+_c04017:
+@4017:  asl2
+        tax
+        lda     f:_c04171,x
+        sta     $0d
+        lda     f:_c04171+1,x
+        sta     $0e
+        lda     f:_c04171+2,x
+        sta     $0f
+        lda     f:_c04171+3,x
+        sta     $10
+        lda     #$7f
+        pha
+        plb
+        ldy     $06
+@4128:  lda     [$23],y
+        and     $0d
+        sta     $7622,y
+        iny
+        lda     [$23],y
+        and     $0d
+        sta     $7622,y
+        iny
+        lda     [$23],y
+        and     $0e
+        sta     $7622,y
+        iny
+        lda     [$23],y
+        and     $0e
+        sta     $7622,y
+        iny
+        lda     [$23],y
+        and     $0f
+        sta     $7622,y
+        iny
+        lda     [$23],y
+        and     $0f
+        sta     $7622,y
+        iny
+        lda     [$23],y
+        and     $10
+        sta     $7622,y
+        iny
+        lda     [$23],y
+        and     $10
+        sta     $7622,y
+        iny
+        cpy     $26
+        bne     @4128
+        lda     #$00
+        pha
+        plb
+        rts
+
+; ---------------------------------------------------------------------------
+
+_c04171:
+        .byte   $80,$00,$00,$00,$80,$00,$08,$00,$88,$00,$80,$00,$88,$00,$88,$00
+        .byte   $a8,$00,$88,$00,$a8,$00,$8a,$00,$aa,$00,$8a,$00,$aa,$00,$aa,$00
+        .byte   $aa,$40,$aa,$00,$aa,$44,$aa,$00,$aa,$44,$aa,$40,$aa,$44,$aa,$44
+        .byte   $aa,$54,$aa,$44,$aa,$55,$aa,$44,$aa,$55,$aa,$54,$aa,$55,$aa,$55
+        .byte   $ea,$55,$aa,$55,$ea,$55,$ae,$55,$ee,$55,$ae,$55,$ee,$55,$ee,$55
+        .byte   $ee,$75,$ee,$55,$ee,$77,$ee,$55,$ee,$77,$ee,$57,$ee,$77,$ee,$77
+        .byte   $fe,$77,$ee,$77,$ff,$77,$ee,$77,$ff,$77,$fe,$77,$ff,$77,$ff,$77
+        .byte   $ff,$f7,$ff,$77,$ff,$ff,$ff,$77,$ff,$ff,$ff,$7f,$ff,$ff,$ff,$ff
+
+; ---------------------------------------------------------------------------
+
+; [  ]
+
+_c041f1:
+@41f1:  ldx     $06
+@41f3:  lda     #$00
+        sta     $1a58,x
+        longa
+        txa
+        clc
+        adc     #$0008
+        tax
+        lda     $06
+        shorta
+        cpx     #$0080
+        bne     @41f3
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [  ]
+
+_c0420a:
+        ldx     $06
+        stx     $1a56
+        lda     $3f
+        lsr
+        bcs     @4218
+        ldy     $06
+        bra     @421b
+@4218:  ldy     #$0008
+@421b:  sty     $23
+@421d:  ldy     $23
+        lda     $1a58,y
+        bne     @4227
+@4224:  jmp     @4440
+@4227:  cmp     #$10
+        bcs     @4224
+        longa
+        lda     $1a56
+        lsr4
+        tax
+        lda     #$aaaa
+        sta     $0400,x
+        sta     $0402,x
+        sta     $0408,x
+        sta     $040a,x
+        lda     $1a5a,y
+        sta     $13
+        lda     $1a5c,y
+        sta     $15
+        lda     $1a58,y
+        and     #$000e
+        asl2
+        tax
+        cpy     #$0040
+        bcs     @4262
+        tya
+        and     #$0030
+        bra     @4269
+@4262:  tya
+        and     #$0030
+        ora     #$0080
+@4269:  clc
+        adc     $1a56
+        tay
+        lda     $06
+        shorta
+        lda     $53
+        bne     @4279
+        jmp     @43a8
+@4279:  longa
+        lda     $13
+        sec
+        sbc     #$0010
+        sec
+        sbc     $61
+        and     #$07ff
+        cmp     #$0200
+        bcs     @42c6
+        lsr
+        sta     $0d
+        lda     $15
+        sec
+        sbc     #$0010
+        sec
+        sbc     $63
+        and     #$07ff
+        cmp     #$07e0
+        bcs     @42a5
+        cmp     #$01e0
+        bcs     @42c6
+@42a5:  lsr
+        sta     $0f
+        lda     $06
+        shorta
+        lda     $0d
+        sta     $0200,y
+        lda     $0f
+        sta     $0201,y
+        lda     f:_c04488,x
+        sta     $0202,y
+        lda     f:_c04488+1,x
+        sta     $0203,y
+        longa
+@42c6:  lda     $13
+        clc
+        adc     #$0010
+        sec
+        sbc     $61
+        and     #$07ff
+        cmp     #$0200
+        bcs     @4311
+        lsr
+        sta     $0d
+        lda     $15
+        sec
+        sbc     #$0010
+        sec
+        sbc     $63
+        and     #$07ff
+        cmp     #$07e0
+        bcs     @42f0
+        cmp     #$01e0
+        bcs     @4311
+@42f0:  lsr
+        sta     $0f
+        lda     $06
+        shorta
+        lda     $0d
+        sta     $0204,y
+        lda     $0f
+        sta     $0205,y
+        lda     f:_c04488+2,x
+        sta     $0206,y
+        lda     f:_c04488+3,x
+        sta     $0207,y
+        longa
+@4311:  lda     $13
+        sec
+        sbc     #$0010
+        sec
+        sbc     $61
+        and     #$07ff
+        cmp     #$0200
+        bcs     @435c
+        lsr
+        sta     $0d
+        lda     $15
+        clc
+        adc     #$0010
+        sec
+        sbc     $63
+        and     #$07ff
+        cmp     #$07e0
+        bcs     @433b
+        cmp     #$01e0
+        bcs     @435c
+@433b:  lsr
+        sta     $0f
+        lda     $06
+        shorta
+        lda     $0d
+        sta     $0208,y
+        lda     $0f
+        sta     $0209,y
+        lda     f:_c04488+4,x
+        sta     $020a,y
+        lda     f:_c04488+5,x
+        sta     $020b,y
+        longa
+@435c:  lda     $13
+        clc
+        adc     #$0010
+        sec
+        sbc     $61
+        and     #$07ff
+        cmp     #$0200
+        bcs     @43a5
+        lsr
+        sta     $0d
+        lda     $15
+        clc
+        adc     #$0010
+        sec
+        sbc     $63
+        and     #$07ff
+        cmp     #$07e0
+        bcs     @4386
+        cmp     #$01e0
+        bcs     @43a5
+@4386:  lsr
+        sta     $0f
+        lda     $06
+        shorta
+        lda     $0d
+        sta     $020c,y
+        lda     $0f
+        sta     $020d,y
+        lda     f:_c04488+6,x
+        sta     $020e,y
+        lda     f:_c04488+7,x
+        sta     $020f,y
+@43a5:  jmp     @443c
+@43a8:  lsr     $14
+        ror     $13
+        lsr     $16
+        ror     $15
+        lda     $13
+        sec
+        sbc     #$08
+        sta     $0200,y
+        lda     $15
+        sec
+        sbc     #$08
+        sta     $0201,y
+        lda     f:_c04488,x
+        clc
+        adc     #$20
+        sta     $0202,y
+        lda     f:_c04488+1,x
+        ora     #$01
+        sta     $0203,y
+        lda     $13
+        clc
+        adc     #$08
+        sta     $0204,y
+        lda     $15
+        sec
+        sbc     #$08
+        sta     $0205,y
+        lda     f:_c04488+2,x
+        clc
+        adc     #$20
+        sta     $0206,y
+        lda     f:_c04488+3,x
+        ora     #$01
+        sta     $0207,y
+        lda     $13
+        sec
+        sbc     #$08
+        sta     $0208,y
+        lda     $15
+        clc
+        adc     #$08
+        sta     $0209,y
+        lda     f:_c04488+4,x
+        clc
+        adc     #$20
+        sta     $020a,y
+        lda     f:_c04488+5,x
+        ora     #$01
+        sta     $020b,y
+        lda     $13
+        clc
+        adc     #$08
+        sta     $020c,y
+        lda     $15
+        clc
+        adc     #$08
+        sta     $020d,y
+        lda     f:_c04488+6,x
+        clc
+        adc     #$20
+        sta     $020e,y
+        lda     f:_c04488+7,x
+        ora     #$01
+        sta     $020f,y
+@443c:  lda     $06
+        shorta
+@4440:  ldy     $23
+        lda     $1a58,y
+        beq     @444b
+        dec
+        sta     $1a58,y
+@444b:  longa
+        lda     $23
+        clc
+        adc     #$0010
+        sta     $23
+        tay
+        lda     $06
+        shorta
+        cpy     #$0088
+        beq     @4467
+        cpy     #$0080
+        jne     @421d
+@4467:  rts
+
+; ---------------------------------------------------------------------------
+
+_c04468:
+        .addr   0,+1,+2,+3,+4,+5,+6,+7
+        .addr   0,-7,-6,-5,-4,-3,-2,-1
+
+; ---------------------------------------------------------------------------
+
+_c04488:
+        .word   $341e,$f43e
+        .word   $343e,$f41e
+        .word   $341c,$f43c
+        .word   $343c,$f41c
+        .word   $341a,$f43a
+        .word   $343a,$f41a
+        .word   $3418,$f438
+        .word   $3438,$f418
+        .word   $3416,$f436
+        .word   $3436,$f416
+        .word   $3414,$f434
+        .word   $3434,$f414
+        .word   $3412,$f432
+        .word   $3432,$f412
+        .word   $3410,$f430
+        .word   $3430,$f410
 
 ; ---------------------------------------------------------------------------
 
@@ -6282,6 +7767,169 @@ _44c8:  pha
         rts
 
 .endproc
+
+; ---------------------------------------------------------------------------
+
+; [ init map bank ]
+
+_c044e3:
+@44e3:  longi
+        shorta
+        lda     #$00
+        pha
+        plb
+        ldx     #$0b00
+        phx
+        pld
+        stz     $420b
+        stz     $420c
+        lda     #$8f
+        sta     $2100
+        lda     #$00
+        sta     $4200
+        lda     #$00
+        xba
+        jsr     $4e4a       ; init interrupt jump code
+        jsr     $4e69       ; init hardware registers
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ init vehicles ]
+
+_c0450a:
+        stz     $0adc
+        ldx     #$8000
+        stx     $0add
+        stx     $0ae1
+        stx     $0ae5
+        stx     $0ae9
+        stx     $0aed
+        stx     $0af1
+        lda     #$02
+        sta     $0ada
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ init character names ]
+
+_c04528:
+        lda     #$ff
+        ldy     $06
+@452c:  sta     $0990,y
+        iny
+        cpy     #$001e
+        bne     @452c
+        lda     #$cb
+        sta     $0990
+        lda     #$ff
+        sta     $0991
+        sta     $0992
+        sta     $0993
+        sta     $0994
+        sta     $0995
+        rts
+
+; ---------------------------------------------------------------------------
+
+; [ open menu ]
+
+_c0454c:
+        jsr     $6081       ; fade out
+        stz     $420b
+        stz     $420c
+        lda     #$00
+        sta     $4200
+        lda     #$80
+        sta     $2100
+        sei
+        jsl     $c2a000     ; execute menu command
+        jsr     $44e3       ; init map bank
+        jsr     UpdateTopChar
+        rts
+
+; ---------------------------------------------------------------------------
+
+_c0456b:
+        ldy     $06
+@456d:  lda     $0500,y
+        and     #$40
+        beq     @4582
+        longa
+        tya
+        clc
+        adc     #$0050
+        tay
+        lda     $06
+        shorta
+        bra     @456d
+@4582:  rts
+
+; ---------------------------------------------------------------------------
+
+; [  ]
+
+_c04583:
+        lda     #$fe
+        jsr     $ca3c       ; get event flag $01xx
+        cmp     #$00
+        bne     @45e3
+        jsr     $4635       ; stop sound
+        lda     $0adc       ; vehicles
+        beq     @45cc
+        cmp     #$06
+        bne     @45b4
+        lda     $0ad6       ; map index
+        cmp     #$02
+        bne     @45b4
+        lda     $0af1
+        and     #$03
+        bne     @45ab
+        lda     #$69
+        jsr     $463c       ; play sound effect
+@45ab:  lda     #$79
+        jsr     $ca2f       ; get event flag $00xx
+        cmp     #$00
+        bne     @45cc
+@45b4:  lda     $0adc       ; current vehicle
+        asl2
+        sta     $08
+        tay
+        lda     $0ad9,y
+        and     #$03
+        ora     $08
+        tax
+        lda     f:_c045ee,x
+        beq     @45cc
+        bra     @45e0
+@45cc:  lda     #$7f
+        jsr     $ca3c       ; get event flag $01xx
+        cmp     #$00
+        beq     @45d7
+        lda     #$05
+@45d7:  clc
+        adc     $0ad6       ; map index
+        tax
+        lda     f:_c045e4,x
+@45e0:  jsr     PlaySong
+@45e3:  rts
+
+; ---------------------------------------------------------------------------
+
+; default song for each vehicle
+_c045e4:
+        .byte   $23,$46,$23,$1e,$1e,$23,$27,$3f,$1e,$1e
+
+; alt. songs for each vehicle (4 bytes each)
+_c045ee:
+        .byte   $00,$00,$00,$00
+        .byte   $03,$00,$00,$00
+        .byte   $1a,$00,$00,$00
+        .byte   $1d,$00,$00,$00
+        .byte   $1e,$1e,$1e,$1e
+        .byte   $00,$18,$00,$00
+        .byte   $28,$00,$1e,$00
 
 ; ---------------------------------------------------------------------------
 
