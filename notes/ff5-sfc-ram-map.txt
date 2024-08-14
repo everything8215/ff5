@@ -467,7 +467,7 @@
 |             |         $0ADD mmmvvvgg                                      |
 |             |                 m: map                                      |
 |             |                 v: vehicle index                            |
-|             |                 e: vehicle graphic                          |
+|             |                 g: vehicle graphic                          |
 |             |         $0ADE height (msb = hide vehicle)                   |
 |             |         $0ADF x position                                    |
 |             |         $0AE0 y position                                    |
