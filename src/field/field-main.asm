@@ -16,10 +16,22 @@
 .include "hardware.inc"
 .include "const.inc"
 
+.include "text/dlg_jp.inc"
+.include "text/item_name_jp.inc"
+.include "text/magic_name_jp.inc"
+.include "text/map_title_jp.inc"
+
+.include "field/event_script.inc"
+.include "field/event_trigger.inc"
+.include "field/entrance.inc"
+
+.import _c10003, _c10006
 .import ExecBattle_ext
-.import ExecMenu_ext
+.import ExecMenu_ext, _c2a008
 .import ShowCutscene_ext, Decomp_ext
 .import InitSound_ext, ExecSound_ext
+
+.import BigFontGfx, KanjiGfx
 
 ; ===========================================================================
 
@@ -61,12 +73,12 @@ _0000:  sei
         lda     #3
         sta     $0134
         jsl     ExecMenu_ext
-        jsr     $44e3
+        jsr     _c044e3
         jsr     InitHardware
         jsr     InitInterrupts
         lda     $0139
         beq     _007d                   ; branch if there are no saved games
-        jsr     $491d                   ; reset ram $0b00-$1d00
+        jsr     _c0491d                   ; reset ram $0b00-$1d00
         lda     $0af9
         sta     $0b60
         lsr
@@ -80,13 +92,13 @@ _0000:  sei
         sta     $1088
         lda     $0ad9                   ; y position
         sta     $1089
-        jsr     $545d                   ; load map
+        jsr     LoadMapNoFade
         jmp     Main
-_007d:  jsr     $48fa                   ; init character data (new game)
-        jsr     $48ed                   ; init event flags
-        jsr     $48dd                   ; init npc flags
-        jsr     $4528                   ; init character names
-        jsr     $450a                   ; init vehicles
+_007d:  jsr     _c048fa                 ; init character data (new game)
+        jsr     _c048ed                 ; init event flags
+        jsr     _c048dd                 ; init npc flags
+        jsr     _c04528                 ; init character names
+        jsr     _c0450a                 ; init vehicles
         lda     #1
         sta     $bd                     ; show party sprite
         sta     $bc                     ; enable walking animation
@@ -150,7 +162,7 @@ _00fc:  lda     $0135
         sta     $0135
         lda     #$00                    ; menu command $00 (main menu)
         sta     $0134
-        jsr     $454c                   ; open menu
+        jsr     _c0454c                   ; open menu
         lda     #$02
         sta     $55
         lda     $0ad8
@@ -742,18 +754,18 @@ _0640:  stz     $5a
         lda     $0ad6                   ; map index
         asl
         tax
-        lda     $ce2402,x               ; event triggers
+        lda     f:EventTriggerPtrs+2,x               ; event triggers
         sta     $23
-        lda     $ce2400,x
+        lda     f:EventTriggerPtrs,x
         tax
 _0654:  cpx     $23
         beq     _0681
         lda     $0ad8
-        cmp     $ce2400,x
+        cmp     f:EventTrigger::SrcPos,x
         beq     _066a
         txa
         clc
-        adc     #$0004
+        adc     #EventTrigger::ITEM_SIZE
         tax
         jmp     _0654
 _066a:  lda     $06
@@ -761,7 +773,7 @@ _066a:  lda     $06
         lda     #$01
         sta     $5a
         longa
-        lda     $ce2402,x
+        lda     f:EventTrigger::Event,x
         asl
         tax
         lda     $06
@@ -774,18 +786,18 @@ _0681:  longa
         lda     $0ad4
 _068e:  asl
         tax
-        lda     $ce36c2,x               ; entrance triggers
+        lda     f:EntrancePtrs+2,x               ; entrance triggers
         sta     $23
-        lda     $ce36c0,x
+        lda     f:EntrancePtrs,x
         tax
 _069b:  cpx     $23
         jeq     _0739
         lda     $0ad8
-        cmp     $ce36c0,x
+        cmp     f:Entrance::SrcPos,x
         beq     _06b4
         txa
         clc
-        adc     #$0006
+        adc     #Entrance::ITEM_SIZE
         tax
         jmp     _069b
 _06b4:  lda     $59
@@ -798,7 +810,7 @@ _06b4:  lda     $59
         sta     $0af5                   ; set parent map
         lda     $0ad8
         sta     $0af7                   ; set parent map xy position
-_06d2:  lda     $ce36c2,x
+_06d2:  lda     f:Entrance::Map,x
         and     #$03ff
         sta     $0ad4
         sta     $0ad6                   ; map index
@@ -806,31 +818,31 @@ _06d2:  lda     $ce36c2,x
         bcs     _06f8
         lda     $06
         shorta
-        lda     $ce36c4,x
+        lda     f:Entrance::DestX,x
         sta     $1088
-        lda     $ce36c5,x
+        lda     f:Entrance::DestY,x
         sta     $1089
         bra     _0737
 _06f8:  lda     $06
         shorta
-        lda     $ce36c3,x
+        lda     f:Entrance::Flags,x
         and     #$08
         beq     _0707
         inc     $16a0                   ; enable map title
-_0707:  lda     $ce36c3,x
+_0707:  lda     f:Entrance::Flags,x
         lsr4
         sta     $169e
-        lda     $ce36c4,x
+        lda     f:Entrance::Dir,x
         and     #$c0
         lsr6
         sta     $b9
         inc
         sta     $ba
         sta     $bf
-        lda     $ce36c4,x
+        lda     f:Entrance::DestX,x
         and     #$3f
         sta     $1088
-        lda     $ce36c5,x
+        lda     f:Entrance::DestY,x
         and     #$3f
         sta     $1089
 _0737:  inc     $6e
@@ -1719,7 +1731,7 @@ _0e33:  plx
         jsr     $4dd7
         ldx     #$0003
         stx     $af
-        jsr     $83ae                   ; show dialog
+        jsr     ShowDlg
         lda     $16a1
         jsr     $ca21
         rts
@@ -1730,7 +1742,7 @@ _0e67:  lda     $12
         jsr     $c9a5                   ; give magic
         ldx     #$0004
         stx     $af
-        jsr     $83ae                   ; show dialog
+        jsr     ShowDlg
         lda     $16a1
         jsr     $ca21
         rts
@@ -1756,13 +1768,13 @@ _0ea2:  lda     $16a2
         sta     $0740,y
 _0ead:  ldx     #$0002
         stx     $af
-        jsr     $83ae                   ; show dialog
+        jsr     ShowDlg
         lda     $16a1
         jsr     $ca21
         rts
 _0ebc:  ldx     #$0005                  ; monster-in-a-box
         stx     $af
-        jsr     $83ae                   ; show dialog
+        jsr     ShowDlg
         lda     #$ff
         sta     $0be0
         lda     $11
@@ -5460,12 +5472,12 @@ CheckNPCEvents:
 @317b:  lda     $0adb       ; facing direction
         asl2
         tax
-        lda     $c0329b,x   ; pointer to forward tile
+        lda     f:_c0329b,x   ; pointer to forward tile
         tay
         lda     $10f3,y     ; tile properties byte 2
         cmp     #$ff
         bne     @31a0       ; branch if not a through-tile
-        lda     $c0329e,x   ; forward x2 (interact through tile)
+        lda     f:_c0329b+3,x   ; forward x2 (interact through tile)
         tay
         jsr     _c0324b       ; get object at tile
         cmp     #$ff
@@ -5478,7 +5490,7 @@ CheckNPCEvents:
         beq     @31ad       ; branch if no object
         jsr     _c03289       ; get pointer to object
         jmp     @3230
-@31ad:  lda     $c0329c,x
+@31ad:  lda     f:_c0329b+1,x
         tay
         jsr     _c0324b
         cmp     #$ff
@@ -5498,7 +5510,7 @@ CheckNPCEvents:
 @31d6:  lda     $0adb
         asl2
         tax
-        lda     $c0329d,x
+        lda     f:_c0329b+2,x
         tay
         jsr     _c0324b
         cmp     #$ff
@@ -5518,7 +5530,7 @@ CheckNPCEvents:
 @3205:  lda     $0adb
         asl2
         tax
-        lda     $c0329e,x
+        lda     f:_c0329b+3,x
         tay
         jsr     _c0324b
         cmp     #$ff
@@ -5603,6 +5615,7 @@ _c03289:
 ; ---------------------------------------------------------------------------
 
 ; pointers to tiles in direction (forward, forward/left, forward/right, forward x2 )
+_c0329b:
 @329b:  .byte   $02,$00,$04,$12
 @329f:  .byte   $0a,$04,$10,$16
 @32a3:  .byte   $0e,$10,$0c,$18
@@ -5848,11 +5861,11 @@ _c032ab:
         tax
         lda     $1478,y
         clc
-        adc     $c034e1,x
+        adc     f:_c034e1,x
         sta     $75
         lda     $147a,y
         clc
-        adc     $c034e6,x
+        adc     f:_c034e6,x
         sta     $76
         jsr     _c03ce0       ; add object to object layout
 @34b9:  ldy     $e9
@@ -5875,8 +5888,11 @@ _c032ab:
         jne     @32b6
         rts
 
-@34e1:  .byte   $00,$00,$01,$00,$ff
-@34e6:  .byte   $00,$ff,$00,$01,$00
+_c034e1:
+@34e1:  .lobytes   0,0,+1,0,-1
+
+_c034e6:
+@34e6:  .lobytes   0,-1,0,+1,0
 
 ; ---------------------------------------------------------------------------
 
@@ -5905,13 +5921,14 @@ _c034eb:
         lsr
         tax
         lda     $0b         ; check direction passability
-        and     $c03517,x
+        and     f:_c03517,x
         beq     @3514
         txa                 ; can move (return movement direction)
         rts
-@3514:  lda     #$00        ; can't move
+@3514:  lda     #0              ; can't move
         rts
 
+_c03517:
 @3517:  .byte   $00,$08,$01,$04,$02
 
 ; ---------------------------------------------------------------------------
@@ -6063,7 +6080,7 @@ _c03555:
         lsr2
 @363e:  phx
         tax
-        lda     $c022db,x
+        lda     f:_c022db,x
         plx
         and     #$00ff
         asl
@@ -6175,7 +6192,7 @@ _c03555:
         ldx     $06
         ldy     $06
 @373b:  longa
-        lda     $c037c3,x
+        lda     f:_c037c1+2,x
         sta     $03fa,y
         lda     f:_c037c1,x
         and     #$00ff
@@ -6190,7 +6207,7 @@ _c03555:
         sec
         sbc     #$0008
         sta     $0d
-        lda     $c037c2,x
+        lda     f:_c037c1+1,x
         and     #$00ff
         adc     $15
         and     #$07ff
@@ -6496,7 +6513,7 @@ _c039b3:
         and     #$00ff
         lsr2
 @3ab6:  tax
-        lda     $c022db,x
+        lda     f:_c022db,x
         and     #$00ff
         asl
         sta     $0f
@@ -6547,25 +6564,25 @@ _c039b3:
         sta     $0245,y
         longa
         ldy     $e9
-        lda     $c02a97,x
+        lda     f:_c02a95+2,x
         clc
         adc     $1481,y
         ldy     $23
         sta     $0242,y
         ldy     $e9
-        lda     $c02a9b,x
+        lda     f:_c02a95+6,x
         clc
         adc     $1481,y
         ldy     $23
         sta     $0246,y
         ldy     $e9
-        lda     $c02a9f,x
+        lda     f:_c02a95+10,x
         clc
         adc     $1483,y
         ldy     $23
         sta     $031a,y
         ldy     $e9
-        lda     $c02aa3,x
+        lda     f:_c02a95+14,x
         clc
         adc     $1483,y
         ldy     $23
@@ -7715,7 +7732,7 @@ _44c8:  pha
         sei
         pla
         jsl     ShowCutscene_ext
-        jsr     $44e3                       ; init map bank
+        jsr     _c044e3                       ; init map bank
         rts
 
 .endproc
@@ -7797,7 +7814,7 @@ _c0454c:
         sta     $2100
         sei
         jsl     ExecMenu_ext
-        jsr     $44e3       ; init map bank
+        jsr     _c044e3       ; init map bank
         jsr     UpdateTopChar
         rts
 
@@ -8335,11 +8352,11 @@ _c04931:
         lda     $d3
         and     #$03
         tax
-        lda     $c049d3,x
+        lda     f:_c049d3,x
         sta     $17
         lda     $3f
         tax
-        lda     $c0fec0,x   ; random number table
+        lda     f:RNGTbl,x
         and     $17
         sta     $10a0
         sta     $10a4
@@ -8348,7 +8365,7 @@ _c04931:
         lsr2
         and     #$03
         tax
-        lda     $c049d3,x
+        lda     f:_c049d3,x
         sta     $17
         lda     $3f
         tax
@@ -8480,7 +8497,7 @@ _c04a44:
         and     #$18        ; speed
         lsr3
         tax
-        lda     $c04a64,x
+        lda     f:_c04a64,x
         sta     $44         ; fixed color rate
         rts
 
@@ -8646,7 +8663,7 @@ _c04b56:
         stx     $2116
         lda     $0ad6       ; map index
         tax
-        lda     $c04bbb,x
+        lda     f:_c04bbb,x
         sta     $24
         stz     $23
         ldx     $23
@@ -8659,7 +8676,7 @@ _c04b56:
         bne     @4b70
         lda     $0ad6       ; map index
         tax
-        lda     $c04bbb,x
+        lda     f:_c04bbb,x
         asl5
         sta     $24
         stz     $23
@@ -8798,7 +8815,7 @@ _c04bc0:
 ; [  ]
 
 _c04c90:
-        jsl     $c2a008     ; update joypad input
+        jsl     _c2a008     ; update joypad input
         rts
 
 ; ---------------------------------------------------------------------------
@@ -9026,10 +9043,10 @@ _c04dd7:
         jmp     @4de0
 @4df9:  lda     $37
         clc
-        adc     $c04e21,x
+        adc     f:_c04e21,x
         sta     $37
         lda     $39
-        adc     $c04e31,x
+        adc     f:_c04e31,x
         sta     $39
         lda     $06
         shorta
@@ -9196,7 +9213,7 @@ _4e69:  lda     #$80
         sta     $0af9
 :       lda     $16a7
         tax
-        lda     $c0fec0,x   ; random number table
+        lda     f:RNGTbl,x
         sec
         sbc     $0af9
         plx
@@ -9414,7 +9431,9 @@ _c0505a:
 
 LoadMap:
 @545a:  jsr     $6081       ; fade out
-        ldx     $0ad6       ; map index
+
+LoadMapNoFade:
+@545d:  ldx     $0ad6       ; map index
         cpx     #$0005
         bcs     @546c
         jsr     LoadWorldMap
@@ -9798,7 +9817,7 @@ LoadSubMap:
         jsr     $5b2d       ; init map color math
         jsr     $6b44       ; load tile properties and tileset
         jsr     $6d0c
-        jsr     $6c6a
+        jsr     _c06c6a
         jsr     _c08c92
         jsr     _c08c2e       ; init hdma #1 (window 2 position)
         jsr     _c08d0e
@@ -10280,17 +10299,17 @@ _c05b2d:
         bne     @5b7c
         lda     $48
         sta     $47
-@5b7c:  lda     $c05bba,x
+@5b7c:  lda     f:_c05bb8+2,x
         sta     $4a
         sta     $212d       ; sub-screen designation
-        lda     $c05bb9,x
+        lda     f:_c05bb8+1,x
         and     #$01
         beq     @5b91
         lda     #$bf
         bra     @5b93
 @5b91:  lda     #$bc
 @5b93:  sta     $2123       ; window mask settings bg1/bg2
-        lda     $c05bb9,x
+        lda     f:_c05bb8+1,x
         ora     #$01        ; bg1 always on
         sta     $212c       ; main screen designation
         lda     $44
@@ -11239,7 +11258,7 @@ _c063d4:
         lda     $1120
         and     #$03
         tax
-        lda     $c06461,x
+        lda     f:_c06461,x
         tay
         lda     $0ad8
 @63e2:  cpy     #$0000
@@ -11256,7 +11275,7 @@ _c063d4:
         lsr2
         and     #$03
         tax
-        lda     $c06461,x
+        lda     f:_c06461,x
         tay
         lda     $0ad9
 @6404:  cpy     #$0000
@@ -11273,7 +11292,7 @@ _c063d4:
         lsr4
         and     #$03
         tax
-        lda     $c06461,x
+        lda     f:_c06461,x
         tay
         lda     $0ad8
 @6428:  cpy     #$0000
@@ -11400,7 +11419,7 @@ _c06513:
         rts
 @6518:  and     #$01
         beq     @6520
-        jml     $c065a3
+        jml     _c065a3
 @6520:  lda     $ba
         and     #$02
         beq     @652f
@@ -11729,7 +11748,7 @@ _c06731:
         tya
         lsr2
         tax
-        lda     $c067e9,x
+        lda     f:_c067e9,x
         sta     $02f6,y
         lda     $3f
         and     #$10
@@ -11742,7 +11761,15 @@ _c06731:
         cpy     #$000c
         bne     @679e
         rts
-        asl     $1e0f
+
+; ---------------------------------------------------------------------------
+
+_c067e9:
+        .byte   $0e, $0f, $1e
+
+; ---------------------------------------------------------------------------
+
+_c067ec:
 @67ec:  lda     $0ad6       ; map index
         asl
         tax
@@ -11757,9 +11784,9 @@ _c06731:
         lda     $06
         shorta
         ldy     $06
-@680a:  lda     $c068f5,x
+@680a:  lda     f:_c068f5,x
         sta     $0300,y
-        lda     $c068f6,x
+        lda     f:_c068f5+1,x
         sta     $0301,y
         lda     #$4a
         sta     $0302,y
@@ -11872,6 +11899,21 @@ _c06961:
 
 ; [ load world map layout ]
 
+.scope WorldMod
+        Start = bank_start WorldMod
+        PosY = Start
+        PosX = Start + 1
+        Size = Start + 2
+        Switch = Start + 3
+        TilePtr = Start + 4
+
+        ARRAY_LENGTH = 5
+.endscope
+
+.scope WorldModTiles
+        ARRAY_LENGTH = 299
+.endscope
+
 _c069a1:
         lda     #$c7
         sta     $25
@@ -11963,42 +12005,42 @@ _c069a1:
         lda     $0ad6       ; map index
         asl
         tax
-        lda     $c06abf,x
+        lda     f:WorldModPtrs+2,x
         sta     $0d
-        lda     $c06abd,x
+        lda     f:WorldModPtrs,x
         tax
         lda     $06
         shorta
 @6a67:  cpx     $0d
         beq     @6abc
-        lda     $c00000,x   ; y
+        lda     f:WorldMod::PosY,x   ; y
         cmp     $0f
         beq     @6a7b
 @6a73:  inx6
         bra     @6a67
-@6a7b:  lda     $c00003,x   ; event bit index
+@6a7b:  lda     f:WorldMod::Switch,x
         clc
         adc     #$d0
         jsr     $ca3c       ; get event flag $01xx
         cmp     #$00
         beq     @6a73
         phx
-        lda     $c00002,x   ; width
+        lda     f:WorldMod::Size,x
         sta     $2c
-        lda     $c00001,x   ; x
+        lda     f:WorldMod::PosX,x
         longa
         clc
         adc     $26
         tay
-        lda     $c00004,x   ; pointer to modified tilemap data
+        lda     f:WorldMod::TilePtr,x
         tax
         lda     $06
         shorta
         lda     #$7f
         pha
         plb
-@6aa7:  lda     $c00000,x   ; copy row of tiles
-        sta     $0000,y
+@6aa7:  lda     f:WorldMod::Start,x
+        sta     0,y
         inx
         iny
         dec     $2c
@@ -12011,15 +12053,11 @@ _c069a1:
 @6abc:  rts
 
 ; pointers to world map modification data
-_c06abd:
-        .addr   WorldMod1
-        .addr   WorldMod2
-        .addr   WorldMod3
-        .addr   WorldMod4
-        .addr   WorldMod5
-        .addr   WorldModEnd
-        ; .addr   $726c,$73da,$7518,$7794,$779a,$79e6
+WorldModPtrs:
+        ptr_tbl WorldMod
+        end_ptr WorldMod
 
+; unused
 @6ac8:  rts
 
 ; ---------------------------------------------------------------------------
@@ -12270,13 +12308,13 @@ _c06c6a:
         lda     #$80
         sta     $2115
         ldy     #$2702
-        jsr     $6c9d
+        jsr     _c06c9d
         ldy     #$2d82
-        jsr     $6c9d
+        jsr     _c06c9d
         ldy     #$2342
-        jsr     $6cd4
+        jsr     _c06cd4
         ldy     #$29c2
-        jsr     $6cd4
+        jsr     _c06cd4
 @6c9c:  rts
 
 ; ---------------------------------------------------------------------------
@@ -13068,11 +13106,10 @@ _c0722f:
 ; [ show dialog ]
 
 ShowDlg:
-_c083ae:
-        jsr     $8401       ; get pointer to dialog
+@83ae:  jsr     GetDlgPtr
 @83b1:  jsr     _c08f54
         ldx     $b1
-        lda     $ca0000,x
+        lda     f:Dlg,x
         beq     @83fa
         jsr     LoadDlgText
         ldy     $06
@@ -13107,14 +13144,13 @@ _c083ae:
 ; [ get pointer to dialog ]
 
 GetDlgPtr:
-_c08401:
 @8401:  stz     $b3         ;
         longa
         lda     $af         ; dialog index
         and     #$7fff
         asl
         tax
-        lda     $c82220,x   ; pointer to dialog
+        lda     f:DlgPtrs,x   ; pointer to dialog
         sta     $b1
         lda     $06
         shorta
@@ -13124,7 +13160,7 @@ _c08401:
         jmp     @8421
 @841f:  lda     #$08        ; dialog window at bottom of screen
 @8421:  sta     $b4
-        jsr     $9440       ;
+        jsr     _c09440
         rts
 
 ; ---------------------------------------------------------------------------
@@ -13135,7 +13171,7 @@ LoadDlgText:
 @8427:  ldx     $06
         stx     $ab
 _842b:  ldx     $b1
-        lda     $ca0000,x
+        lda     f:Dlg,x
         cmp     #$ff
         beq     _c08451
         cmp     #$cd
@@ -13169,7 +13205,7 @@ _c08459:
 _c08466:
         ldx     $b1
         ldy     $ab
-        lda     $ca0000,x
+        lda     f:Dlg,x
         sta     $19d3,y
         iny
         sty     $ab
@@ -13178,11 +13214,11 @@ _c08466:
 _c08477:
         ldx     $b1
         ldy     $ab
-        lda     $ca0000,x
+        lda     f:Dlg,x
         sta     $19d3,y
         inx
         iny
-        lda     $ca0000,x
+        lda     f:Dlg,x
         sta     $19d3,y
         stx     $b1
         iny
@@ -13258,7 +13294,7 @@ _c0850d:
         txa
         lsr
         sec
-        sbc     #%11
+        sbc     #3
 
 _c08512:
 @8512:  tax
@@ -13470,7 +13506,7 @@ _c08a6a:
         ldy     $ab
         lda     #$02
         sta     $1a13,y
-_8a73:  lda     $ca0001,x
+_8a73:  lda     f:Dlg+1,x
         sta     $19d3,y
         iny
         sty     $ab
@@ -13492,7 +13528,7 @@ _c08a85:
         lda     $06
         shorta
         stz     $09
-@8a98:  lda     $d11c81,x
+@8a98:  lda     f:MagicName+1,x
         cmp     #$ff
         beq     @8ab2
         sta     $19d3,y
@@ -13502,7 +13538,7 @@ _c08a85:
         inx
         inc     $09
         lda     $09
-        cmp     #$06
+        cmp     #MagicName::ITEM_SIZE
         bne     @8a98
 @8ab2:  sty     $ab
         jmp     _c08459
@@ -13511,7 +13547,7 @@ _c08a85:
 _c08ab7:
         lda     $16a2
         longa
-        sta     $0f
+        sta     $0f                     ; multiply by 9
         asl3
         clc
         adc     $0f
@@ -13519,7 +13555,7 @@ _c08ab7:
         lda     $06
         shorta
         stz     $09
-@8acb:  lda     $d11381,x
+@8acb:  lda     f:ItemName+1,x
         cmp     #$ff
         beq     @8ae5
         sta     $19d3,y
@@ -13529,7 +13565,7 @@ _c08ab7:
         inx
         inc     $09
         lda     $09
-        cmp     #$08
+        cmp     #ItemName::ITEM_SIZE - 1
         bne     @8acb
 @8ae5:  sty     $ab
         jmp     _c08459
@@ -13551,7 +13587,7 @@ _c08aea:
         sta     $1a13,y
         iny
 @8b08:  inx
-        cpx     #$0007
+        cpx     #7
         bne     @8aee
         sty     $ab
         jmp     _c08459
@@ -13868,6 +13904,8 @@ _c08d3b:
         sta     $0baa
         bra     @8e07
         jmp     @8d3e
+
+; kanji
 @8de1:  lda     $1a13,y
         xba
         lda     $19d3,y
@@ -14015,12 +14053,14 @@ _c08ed3:
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ load font character graphics ]
 
 _c08f01:
 @8f01:  longa
         cmp     #$0100
         bcs     @8f2c
+
+; katakana or hiragana
         asl3
         sta     $0d
         asl
@@ -14030,13 +14070,13 @@ _c08f01:
         lda     $06
         shorta
         ldy     $06
-@8f18:  lda     $c3e800,x
+@8f18:  lda     f:BigFontGfx - (32 * 24),x
         sta     $1973,y
-        lda     #$00
+        lda     #0
         sta     $198b,y
         inx
         iny
-        cpy     #$0018
+        cpy     #24
         bne     @8f18
         rts
 @8f2c:  .a16
@@ -14051,13 +14091,13 @@ _c08f01:
         lda     $06
         shorta
         ldy     $06
-@8f40:  lda     $dbd000,x
+@8f40:  lda     f:KanjiGfx,x
         sta     $1973,y
-        lda     #$00
+        lda     #0
         sta     $198b,y
         inx
         iny
-        cpy     #$0018
+        cpy     #24
         bne     @8f40
         rts
 
@@ -14203,7 +14243,7 @@ _c08fed:
         sta     $16f3,y
         lda     #$03
         sta     $16f4,y
-        lda     $c09101,x
+        lda     f:_c090f7+10,x
         sta     $1733,y
         lda     #$03
         sta     $1734,y
@@ -14303,11 +14343,11 @@ _c09133:
         lda     $06
         shorta
         ldy     #$0024
-@9163:  lda     $c09237,x
+@9163:  lda     f:_c09237,x
         sta     $16f3,y
         lda     #$03
         sta     $16f4,y
-        lda     $c09243,x
+        lda     f:_c09237+12,x
         sta     $1733,y
         lda     #$03
         sta     $1734,y
@@ -14449,16 +14489,16 @@ _c0928c:
 @92a3:  longa
         asl
         tax
-        lda     $d07002,x
+        lda     f:MapTitlePtrs+2,x
         sec
-        sbc     $d07000,x
+        sbc     f:MapTitlePtrs,x
         sta     $2c
-        lda     $d07000,x   ; pointer to map title
+        lda     f:MapTitlePtrs,x
         tax
         lda     $06
         shorta
         ldy     $06
-@92bd:  lda     $d07200,x   ; map title
+@92bd:  lda     f:MapTitle,x
         cmp     #$1e
         bne     @92cc
         lda     #$01
@@ -14470,7 +14510,7 @@ _c0928c:
         sta     $1a13,y
 @92d5:  inx
         dec     $2c
-        lda     $d07200,x
+        lda     f:MapTitle,x
         sta     $19d3,y
         iny
         bra     @92e6
@@ -14506,8 +14546,8 @@ _c0928c:
         ldy     $06
         sty     $ab
 @9331:  pha
-        jsr     $8d3b
-        jsr     $8e23
+        jsr     _c08d3b
+        jsr     _c08e23
         pla
         dec
         bne     @9331
@@ -14540,11 +14580,11 @@ _c0933d:
         lda     $06
         shorta
         ldy     #$0004
-@936c:  lda     $c09399,x
+@936c:  lda     f:_c09399,x
         sta     $16f3,y
         lda     #$03
         sta     $16f4,y
-        lda     $c093b9,x
+        lda     f:_c093b9,x
         sta     $1733,y
         lda     #$03
         sta     $1734,y
@@ -14634,11 +14674,11 @@ _c09440:
         lda     $06
         shorta
         ldy     #$0004
-@9478:  lda     $c094d8,x
+@9478:  lda     f:_c094d8,x
         sta     $16f3,y
         lda     #$03
         sta     $16f4,y
-        lda     $c094f8,x
+        lda     f:_c094f8,x
         sta     $1733,y
         lda     #$03
         sta     $1734,y
@@ -14859,7 +14899,7 @@ _c09722:
         and     #$0e
         lsr
         tax
-        lda     $c09757,x
+        lda     f:_c09757,x
         and     #$07
         ora     #$70
         tax
@@ -15022,7 +15062,7 @@ _c09838:
         stx     $35
         lda     $1659,y
         tax
-        lda     $c098d2,x
+        lda     f:_c098d2,x
         pha
         lda     $165b,y
         asl
@@ -15254,13 +15294,13 @@ _c09a00:
         tax
         lda     $1418,y
         clc
-        adc     $c09a8e,x
+        adc     f:_c09a8e,x
         sta     $1418,y
         lda     $1417,y
         and     #$03
         tax
         lda     $1418,y
-        and     $c09a8a,x
+        and     f:_c09a8a,x
         sta     $1418,y
         tya
         clc
@@ -15284,13 +15324,13 @@ _c09a00:
         tax
         lda     $1418,y
         clc
-        adc     $c09a8e,x
+        adc     f:_c09a8e,x
         sta     $1418,y
         lda     $1417,y
         and     #$03
         tax
         lda     $1418,y
-        and     $c09a8a,x
+        and     f:_c09a8a,x
         sta     $1418,y
         tya
         clc
@@ -15329,7 +15369,7 @@ _c09a96:
         lda     $15
         asl3
         tay
-        lda     $c09da7,x   ; map animation properties
+        lda     f:MapAnimProp+12,x
         sta     $1419,y     ; graphics offset
         sta     $2e
         lda     $15
@@ -15344,7 +15384,7 @@ _c09a96:
         shorta
         lda     #$00
         sta     $1418,y     ; frame counter
-        lda     $c09d9b,x
+        lda     f:MapAnimProp,x
         sta     $1417,y     ; animation flags
         bpl     @9af8
         longa
@@ -15412,11 +15452,11 @@ _c09b01:
         cmp     #$0008
         bcs     @9bb5
         ldx     $0d
-        lda     $c09d2b,x
+        lda     f:_c09d1b+16,x
         clc
         adc     $11
         pha
-        lda     $c09d1b,x
+        lda     f:_c09d1b,x
         clc
         adc     $11
         tay
@@ -15442,11 +15482,11 @@ _c09b01:
 @9bb5:  lda     $0d
         asl
         tax
-        lda     $c09d2b,x
+        lda     f:_c09d1b+16,x
         clc
         adc     $11
         pha
-        lda     $c09d1b,x
+        lda     f:_c09d1b,x
         clc
         adc     $11
         tay
@@ -15620,7 +15660,8 @@ _c09d1b:
 
 ; map animation properties (28 * 36 bytes)
 
-        .res    28 * 36
+MapAnimProp:
+        .incbin "map_anim_prop.dat"
 
 ; ---------------------------------------------------------------------------
 
@@ -15711,10 +15752,10 @@ _c0a1c1:
         clc
         adc     $ce
         tax
-        lda     $c83320,x   ; pointer to event
+        lda     f:EventScriptPtrs,x   ; pointer to event
         sta     $1126,y
         sta     $d6
-        lda     $c83322,x
+        lda     f:EventScriptPtrs+2,x
         and     #$00ff
         sta     $1128,y
         sta     $d8
@@ -15934,10 +15975,10 @@ _c0a380:
         clc
         adc     $df
         tax
-        lda     $c83320,x   ; pointer to event script
+        lda     f:EventScriptPtrs,x   ; pointer to event script
         sta     $1126,y
         sta     $d6
-        lda     $c83322,x
+        lda     f:EventScriptPtrs+2,x
         and     #$00ff
         sta     $1128,y
         sta     $d8
@@ -16035,7 +16076,7 @@ _c0a449:
         longa
         asl
         tax
-        lda     $c0a508,x   ; event command jump table
+        lda     f:_c0a508,x   ; event command jump table
         sta     $23
         lda     $06
         shorta
@@ -16209,7 +16250,7 @@ EventCmd_bf:
         longa
         asl
         tax
-        lda     $c0a5e8,x   ; event command $bf jump table
+        lda     f:_c0a5e8,x   ; event command $bf jump table
         sta     $23
         lda     $06
         shorta
@@ -16246,7 +16287,7 @@ EventCmd_bf1a:
         cpx     #$00e0
         bne     @a6bb
         ldx     $06
-@a6c8:  lda     $c0a726,x
+@a6c8:  lda     f:_c0a726,x
         sta     $7f6c4c,x
         inx2
         cpx     #$0040
@@ -16650,7 +16691,7 @@ _c0aa0e:
         lda     $3f
         and     #$01
         tax
-@aa15:  lda     $c0aa89,x
+@aa15:  lda     f:_c0aa89,x
         beq     @aa74
         txa
         and     #$f0
@@ -16668,7 +16709,7 @@ _c0aa0e:
         adc     $3f
         phx
         tax
-        lda     $c0fec0,x   ; random number table
+        lda     f:RNGTbl,x
         and     #$07
         plx
         adc     $4216
@@ -16677,7 +16718,7 @@ _c0aa0e:
         and     #$f0
         lsr
         sta     $08
-        lda     $c0fec0,x   ; random number table
+        lda     f:RNGTbl,x
         and     #$07
         clc
         adc     #$90
@@ -16690,7 +16731,7 @@ _c0aa0e:
         and     #$08
         lsr2
         clc
-        adc     $c0aa89,x
+        adc     f:_c0aa89,x
         sta     $0202,y
         lda     #$35
         sta     $0203,y
@@ -16788,7 +16829,7 @@ _c0ab8e:
 @abb5:  stz     $49
         jsr     $4c95       ; clear sprite data
         ldx     $06
-@abbc:  lda     $c0abd5,x
+@abbc:  lda     f:_c0abd5,x
         sta     $0200,x
         inx
         cpx     #$002c
@@ -16826,8 +16867,8 @@ EventCmd_bf0f:
         lda     #$80
         sta     $2100
         sei
-        jsl     $c10003     ; epilogue cutscene
-        jsr     $44e3       ; init map bank
+        jsl     _c10003     ; epilogue cutscene
+        jsr     _c044e3       ; init map bank
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -16842,8 +16883,8 @@ EventCmd_bf10:
         lda     #$80
         sta     $2100
         sei
-        jsl     $c10006     ; show game stats (unknown cave psychic)
-        jsr     $44e3       ; init map bank
+        jsl     _c10006     ; show game stats (unknown cave psychic)
+        jsr     _c044e3       ; init map bank
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -17169,7 +17210,7 @@ _c0ae32:
 @ae72:  lda     $3d
         lsr
         bcs     @aec7
-        lda     $c0af44,x
+        lda     f:_c0af44,x
         cmp     #$80
         beq     @aec7
         lda     $dc
@@ -17177,29 +17218,29 @@ _c0ae32:
         bmi     @ae8d
         lda     $13
         clc
-        adc     $c0af44,x
+        adc     f:_c0af44,x
         bra     @ae94
 @ae8d:  lda     $13
         sec
-        sbc     $c0af44,x
+        sbc     f:_c0af44,x
 @ae94:  sta     $0300,y
         lda     $dc
         bmi     @aea4
         lda     $15
         clc
-        adc     $c0af45,x
+        adc     f:_c0af44+1,x
         bra     @aeab
 @aea4:  lda     $15
         sec
-        sbc     $c0af45,x
+        sbc     f:_c0af44+1,x
 @aeab:  sta     $0301,y
         lda     $3d
         asl2
         and     #$08
         clc
-        adc     $c0af46,x
+        adc     f:_c0af44+2,x
         sta     $0302,y
-        lda     $c0af47,x
+        lda     f:_c0af44+3,x
         eor     $dc
         sta     $0303,y
         bra     @aecc
@@ -17214,7 +17255,7 @@ _c0ae32:
 @aedc:  lda     $3d
         lsr
         bcs     @af31
-        lda     $c0af44,x
+        lda     f:_c0af44,x
         cmp     #$80
         beq     @af31
         lda     $dd
@@ -17222,29 +17263,29 @@ _c0ae32:
         bmi     @aef7
         lda     $13
         clc
-        adc     $c0af44,x
+        adc     f:_c0af44,x
         bra     @aefe
 @aef7:  lda     $13
         sec
-        sbc     $c0af44,x
+        sbc     f:_c0af44,x
 @aefe:  sta     $0300,y
         lda     $dd
         bmi     @af0e
-        lda     $c0af45,x
+        lda     f:_c0af44+1,x
         clc
         adc     $15
         bra     @af15
 @af0e:  lda     $15
         sec
-        sbc     $c0af45,x
+        sbc     f:_c0af44+1,x
 @af15:  sta     $0301,y
         lda     $3d
         asl2
         and     #$08
         clc
-        adc     $c0af46,x
+        adc     f:_c0af44+2,x
         sta     $0302,y
-        lda     $c0af47,x
+        lda     f:_c0af44+3,x
         eor     $dd
         sta     $0303,y
         bra     @af36
@@ -17356,7 +17397,7 @@ EventCmd_bf16:
         lda     $3d
         lsr4
         tax
-        lda     $c0b0fb,x
+        lda     f:_c0b0fb,x
         sta     $16af
         lda     #$34
         sta     $16b0
@@ -17395,7 +17436,7 @@ EventCmd_bf02:
         lda     $3d
         lsr3
         tax
-        lda     $c0b0fb,x
+        lda     f:_c0b0fb,x
         sta     $16af
         lda     #$34
         sta     $16b0
@@ -17579,7 +17620,7 @@ _c0b240:
         lsr3
         and     #$07
         tax
-        lda     $c0b250,x
+        lda     f:_c0b250,x
         jsr     $b3cd
         rts
 
@@ -17643,11 +17684,11 @@ _c0b2a5:
         clc
         adc     $13
         sta     $0300,y
-        lda     $c0b2ec,x
+        lda     f:_c0b2ec,x
         and     #$0f
         ora     #$80
         sta     $0302,y
-        lda     $c0b2ec,x
+        lda     f:_c0b2ec,x
         and     #$c0
         ora     #$31
         sta     $0303,y
@@ -17734,11 +17775,11 @@ _c0b371:
 _c0b3cd:
 @b3cd:  tax
         ldy     $06
-@b3d0:  lda     $c0b428,x
+@b3d0:  lda     f:_c0b428,x
         clc
         adc     #$2c
         sta     $0200,y
-        lda     $c0b429,x
+        lda     f:_c0b428+1,x
         longa
         cmp     #$00ff
         beq     @b3f7
@@ -17753,9 +17794,9 @@ _c0b3cd:
 @b3f7:  lda     #$00f0
 @b3fa:  shorta
         sta     $0201,y
-        lda     $c0b42a,x
+        lda     f:_c0b428+2,x
         sta     $0202,y
-        lda     $c0b42b,x
+        lda     f:_c0b428+3,x
         sta     $0203,y
         inx4
         iny4
@@ -18138,30 +18179,30 @@ _c0b75e:
 
 _c0b791:
 @b791:  ldx     $06
-@b793:  lda     $c0b804,x
+@b793:  lda     f:_c0b804,x
         sta     $0300,x
-        lda     $c0b805,x
+        lda     f:_c0b804+1,x
         sec
         sbc     $da
         sta     $0301,x
-        lda     $c0b806,x
+        lda     f:_c0b804+2,x
         sta     $0302,x
-        lda     $c0b807,x
+        lda     f:_c0b804+3,x
         ora     #$36
         sta     $0303,x
         inx4
         cpx     #$0030
         bne     @b793
         ldx     $06
-@b7bf:  lda     $c0b804,x
+@b7bf:  lda     f:_c0b804,x
         sta     $0330,x
-        lda     $c0b805,x
+        lda     f:_c0b804+1,x
         clc
         adc     #$04
         sta     $0331,x
-        lda     $c0b806,x
+        lda     f:_c0b804+2,x
         sta     $0332,x
-        lda     $c0b807,x
+        lda     f:_c0b804+3,x
         ora     #$0a
         sta     $0333,x
         inx4
@@ -18314,7 +18355,7 @@ EventCmd_e9:
         bne     @b8cc
         lda     $26
         tax
-        lda     $c0b98d,x   ; pointers to character abilities (+$08f7)
+        lda     f:_c0b98d,x   ; pointers to character abilities (+$08f7)
         tay
         ldx     $06
 @b8fb:  lda     $08f7,y
@@ -18407,7 +18448,7 @@ EventCmd_e7:
         and     #$07
         tax
         lda     $0d
-        ora     $c0b9ca,x
+        ora     f:_c0b9ca,x
         sta     $0d
 @b9b6:  jsr     $c19d
         cpy     #$0140
@@ -18501,7 +18542,7 @@ _c0b9f5:
         lsr4
         tax
         jsr     $4f2b       ; generate random number
-        and     $c0ba88,x
+        and     f:_c0ba86+2,x
         clc
         adc     #$10
         sta     $1a58,y
@@ -18510,18 +18551,18 @@ _c0b9f5:
         asl
         tax
         jsr     $4f2b       ; generate random number
-        and     $c0ba88,x
+        and     f:_c0ba86+2,x
         longa
         sec
-        sbc     $c0ba86,x
+        sbc     f:_c0ba86,x
         sta     $1a5a,y
         lda     $06
         shorta
         jsr     $4f2b       ; generate random number
-        and     $c0ba88,x
+        and     f:_c0ba86+2,x
         longa
         sec
-        sbc     $c0ba86,x
+        sbc     f:_c0ba86,x
         sta     $1a5c,y
         lda     $e0
         and     #$00ff
@@ -18701,15 +18742,15 @@ EventCmd_ad:
         jsr     $4dd7       ;
         ldx     #$000d      ; dialog message $000d "welcome!  it is \gp gp per night ..."
         stx     $af
-        jsr     $8401       ; get pointer to dialog
+        jsr     GetDlgPtr
 @bb5a:  jsr     $8f54       ;
         ldx     $b1
-        lda     $ca0000,x   ; dialog
+        lda     f:Dlg,x   ; dialog
         beq     @bb8a
         jsr     $8427
         ldy     $06
         sty     $ab
-@bb6c:  jsr     $8d3b
+@bb6c:  jsr     _c08d3b
         jsr     $4e41       ; wait for vblank
         ldy     $ab
         cpy     #$0040
@@ -18780,7 +18821,7 @@ EventCmd_ad:
         bcs     @bc1f
         ldx     #$000f      ; dialog message $000f "please come again!"
         stx     $af
-        jsr     $83ae       ; show dialog
+        jsr     ShowDlg
         bra     @bc3e
 @bc1f:  lda     $08
         sta     $0947
@@ -18790,7 +18831,7 @@ EventCmd_ad:
         sta     $0949
         ldx     #$000e      ; dialog message $000e "please rest well..."
         stx     $af
-        jsr     $83ae       ; show dialog
+        jsr     ShowDlg
         lda     #$02
         jsr     AddEventPtr
         jmp     NextEventCmd
@@ -18810,9 +18851,9 @@ CalcInnPrice:
 @bc51:  lda     $df
         asl
         tax
-        lda     $c0bc41,x
+        lda     f:_c0bc41,x
         sta     $37
-        lda     $c0bc42,x
+        lda     f:_c0bc41+1,x
         sta     $38
         stz     $39
         rts
@@ -18859,7 +18900,7 @@ EventCmd_c0:
 _c0bc9f:
         lda     $3f
         tax
-        lda     $c0fec0,x   ; random number table
+        lda     f:RNGTbl,x
         cmp     #$10
         bcs     @bcb3
         lda     #$1a        ; system sound effect $1a
@@ -18892,7 +18933,7 @@ EventCmd_70:
         sec
         sbc     #$70
         tax
-        lda     $c0bcef,x   ; wait duration
+        lda     f:_c0bcef,x   ; wait duration
         tax
 @bcd9:  phx
         ldy     #$000f
@@ -18924,7 +18965,7 @@ EventCmd_dc:
         sta     $0134
         lda     $df
         sta     $0135       ; tutorial index
-        jsr     $454c       ; open menu
+        jsr     _c0454c       ; open menu
         inc     $55
         jsr     $577c       ;
         jsr     $6100       ; fade in
@@ -18937,7 +18978,7 @@ EventCmd_dc:
 EventCmd_7a:
 @bd0d:  lda     #$05        ; menu command $05 (name change)
         sta     $0134
-        jsr     $454c       ; open menu
+        jsr     _c0454c       ; open menu
         jsr     $577c       ;
         jsr     $6100       ; fade in
         jmp     IncEventPtr1
@@ -18951,7 +18992,7 @@ EventCmd_a1:
         sta     $0135
         lda     #$02        ; menu command $02 (shop)
         sta     $0134
-        jsr     $454c       ; open menu
+        jsr     _c0454c       ; open menu
         inc     $55
         jsr     $577c
         jsr     $6100       ; fade in
@@ -18976,7 +19017,7 @@ EventCmd_e8:
         bcc     @bd51
         inx2
 @bd51:  longa
-        lda     $d07800,x
+        lda     f:EventBattleGrp,x
         sta     $04f0       ; battle index
         lda     $06
         shorta
@@ -18993,8 +19034,8 @@ EventCmd_e8:
         lda     #$80
         sta     $2100
         sei
-        jsl     $c20000     ; battle
-        jsr     $44e3       ; init map bank
+        jsl     ExecBattle_ext
+        jsr     _c044e3       ; init map bank
         lda     #$81
         sta     $4200
         cli
@@ -19071,7 +19112,7 @@ _c0bde6:
         bcc     @bdfd
         inx2
 @bdfd:  longa
-        lda     $d07800,x   ; event battle group
+        lda     f:EventBattleGrp,x   ; event battle group
         sta     $04f0
         lda     $06
         shorta
@@ -19091,8 +19132,8 @@ _c0bde6:
         lda     #$80
         sta     $2100
         sei
-        jsl     $c20000     ; battle
-        jsr     $44e3       ; init map bank
+        jsl     ExecBattle_ext
+        jsr     _c044e3       ; init map bank
         lda     $09c4
         and     #$01
         bne     @be61
@@ -19147,7 +19188,7 @@ EventCmd_b7:
         beq     @bea9
         lda     #$06
         sta     $09
-@be9c:  lda     $c0bec1,x
+@be9c:  lda     f:_c0bec1,x
         sta     $0990,y     ; character name
         inx
         iny
@@ -19193,7 +19234,7 @@ EventCmd_c6:
         and     #$07
         tax
         lda     $0840,y
-        ora     $c0ca59,x
+        ora     f:BitOrTbl,x
         sta     $0840,y
         jmp     IncEventPtr2
 
@@ -19428,7 +19469,7 @@ EventCmd_a8:
         longa
         lda     $0506,y
         clc
-        adc     $c0c0d0,x
+        adc     f:_c0c0d0,x
         cmp     $0508,y
         bcc     @c094
         lda     $0508,y
@@ -19450,7 +19491,7 @@ EventCmd_a8:
         longa
         lda     $0506,y
         sec
-        sbc     $c0c0d0,x
+        sbc     f:_c0c0d0,x
         beq     @c0c3
         cmp     #$270f
         bcc     @c0c6
@@ -19498,7 +19539,7 @@ EventCmd_a9:
         longa
         lda     $050a,y
         clc
-        adc     $c0c156,x
+        adc     f:_c0c156,x
         cmp     $050c,y
         bcc     @c129
         lda     $050c,y
@@ -19513,7 +19554,7 @@ EventCmd_a9:
         longa
         lda     $050a,y
         sec
-        sbc     $c0c156,x
+        sbc     f:_c0c156,x
         beq     @c149
         cmp     #$270f
         bcc     @c14c
@@ -19775,15 +19816,15 @@ EventCmd_f0:
         jsr     $237c       ; update party sprite
         jsr     $39b3       ; update object sprites
         jsr     $2842
-@c2cd:  jsr     $8401       ; get pointer to dialog
+@c2cd:  jsr     GetDlgPtr
 @c2d0:  jsr     $8f54
         ldx     $b1
-        lda     $ca0000,x   ; dialog
+        lda     f:Dlg,x   ; dialog
         beq     @c300       ; branch if end of string
         jsr     $8427
         ldy     $06
         sty     $ab
-@c2e2:  jsr     $8d3b
+@c2e2:  jsr     _c08d3b
         jsr     $4e41       ; wait for vblank
         ldy     $ab
         cpy     #$0040
@@ -20475,7 +20516,7 @@ EventCmd_a0:
         jsr     $237c       ; update party sprite
         jsr     $39b3       ; update object sprites
         jsr     $2842
-@c752:  jsr     $83ae       ; show dialog
+@c752:  jsr     ShowDlg
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -20488,7 +20529,7 @@ EventCmd_a2:
 @c758:  lda     $df
         jsr     $ca49       ; get flag index
         lda     $0a14,y     ; event flags
-        ora     $c0ca59,x
+        ora     f:BitOrTbl,x
         sta     $0a14,y
         jmp     IncEventPtr2
 
@@ -20502,7 +20543,7 @@ EventCmd_a4:
 @c76a:  lda     $df
         jsr     $ca49       ; get flag index
         lda     $0a34,y
-        ora     $c0ca59,x
+        ora     f:BitOrTbl,x
         sta     $0a34,y
         jmp     IncEventPtr2
 
@@ -20516,7 +20557,7 @@ EventCmd_a3:
 @c77c:  lda     $df
         jsr     $ca49       ; get flag index
         lda     $0a14,y
-        and     $c0ca61,x
+        and     f:BitAndTbl,x
         sta     $0a14,y
         jmp     IncEventPtr2
 
@@ -20532,7 +20573,7 @@ EventCmd_a5:
         jmp     IncEventPtr2
 @c796:  jsr     $ca49       ; get flag index
         lda     $0a34,y
-        and     $c0ca61,x
+        and     f:BitAndTbl,x
         sta     $0a34,y
         rts
 
@@ -20555,7 +20596,7 @@ EventCmd_c8:
         jsr     $237c       ; update party sprite
         jsr     $39b3       ; update object sprites
         jsr     $2842
-@c7c2:  jsr     $83ae       ; show dialog
+@c7c2:  jsr     ShowDlg
         jmp     IncEventPtr3
 
 ; ---------------------------------------------------------------------------
@@ -20850,7 +20891,7 @@ _c0c9a5:
         and     #$07
         tax
         lda     $0950,y
-        ora     $c0c9b9,x
+        ora     f:_c0c9b9,x
         sta     $0950,y
         rts
 
@@ -20866,7 +20907,7 @@ _c0c9c1:
         phx
         jsr     $ca49       ; get flag index
         lda     $0a54,y
-        and     $c0ca59,x
+        and     f:BitOrTbl,x
         plx
         rts
 
@@ -20880,7 +20921,7 @@ EventCmd_ca:
         shorta
         jsr     $ca49       ; get flag index
         lda     $0a54,y
-        ora     $c0ca59,x
+        ora     f:BitOrTbl,x
         sta     $0a54,y
         jmp     IncEventPtr3
 
@@ -20894,7 +20935,7 @@ EventCmd_cb:
         shorta
         jsr     $ca49       ; get flag index
         lda     $0a54,y
-        and     $c0ca61,x
+        and     f:BitAndTbl,x
         sta     $0a54,y
         jmp     IncEventPtr3
 
@@ -20905,7 +20946,7 @@ EventCmd_cb:
 _c0c9fa:
 @c9fa:  jsr     $ca49       ; get flag index
         lda     $09b4,y
-        ora     $c0ca59,x
+        ora     f:BitOrTbl,x
         sta     $09b4,y
         rts
 
@@ -20916,7 +20957,7 @@ _c0c9fa:
 _c0ca08:
 @ca08:  jsr     $ca49       ; get flag index
         lda     $09b4,y
-        and     $c0ca61,x
+        and     f:BitAndTbl,x
         sta     $09b4,y
         rts
 
@@ -20927,7 +20968,7 @@ _c0ca08:
 _c0ca16:
         jsr     $ca49       ; get flag index
         lda     $09d4,y
-        and     $c0ca59,x
+        and     f:BitOrTbl,x
         rts
 
 ; ---------------------------------------------------------------------------
@@ -20937,7 +20978,7 @@ _c0ca16:
 _c0ca21:
         jsr     $ca49       ; get flag index
         lda     $09d4,y
-        ora     $c0ca59,x
+        ora     f:BitOrTbl,x
         sta     $09d4,y
         rts
 
@@ -20949,7 +20990,7 @@ _c0ca2f:
         phx
         jsr     $ca49       ; get flag index
         lda     $0a14,y
-        and     $c0ca59,x
+        and     f:BitOrTbl,x
         plx
         rts
 
@@ -20961,7 +21002,7 @@ _c0ca3c:
         phx
         jsr     $ca49       ; get flag index
         lda     $0a34,y
-        and     $c0ca59,x
+        and     f:BitOrTbl,x
         plx
         rts
 
@@ -20986,11 +21027,9 @@ _c0ca49:
 
 ; flag masks
 BitOrTbl:
-_c0ca59:
         .byte   $01,$02,$04,$08,$10,$20,$40,$80
 
 BitAndTbl:
-_c0ca61:
         .byte   $fe,$fd,$fb,$f7,$ef,$df,$bf,$7f
 
 ; ---------------------------------------------------------------------------
@@ -21035,7 +21074,7 @@ _c0ca69:
         longa
         lda     $16a8       ; random battle counter
         clc
-        adc     $c0cb09,x   ; add probability value
+        adc     f:_c0cb09,x   ; add probability value
         bcc     @cabf
         lda     #$ff00      ; max $ff00
 @cabf:  sta     $16a8
@@ -21064,7 +21103,7 @@ _c0ca69:
         bcc     @caf6
         inx2
 @caf6:  longa
-        lda     $d06800,x   ; battle index
+        lda     f:RandBattleGrp,x
         sta     $04f0
         lda     $06
         shorta
@@ -21114,7 +21153,7 @@ _c0cb11:
         and     #$0f
         ora     $08
         tax
-        lda     $c0cc21,x   ; battle bg
+        lda     f:_c0cc21,x   ; battle bg
         sta     $04f2
         txa
         and     #$0f
@@ -21124,10 +21163,10 @@ _c0cb11:
         bcc     @cb67
         lda     #$15        ; battle bg $15 (ship exterior)
         sta     $04f2
-@cb67:  lda     $c0cc3a,x   ; probability offset
+@cb67:  lda     f:_c0cc3a,x   ; probability offset
         sta     $11
         stz     $12
-        lda     $c0cc42,x   ; battle group offset
+        lda     f:_c0cc42,x   ; battle group offset
         sta     $0f
         stz     $10
         lda     $0ad6       ; map index
@@ -21158,7 +21197,7 @@ _c0cb11:
         longa
         lda     $16a8
         clc
-        adc     $c0cc4a,x
+        adc     f:_c0cc4a,x
         bcc     @cbbe
         lda     #$ff00
 @cbbe:  sta     $16a8
@@ -21203,7 +21242,7 @@ _c0cb11:
         bcc     @cc11
         inx2
 @cc11:  longa
-        lda     $d06800,x   ; battle index
+        lda     f:RandBattleGrp,x
         sta     $04f0
         lda     $06
         shorta
@@ -21246,7 +21285,7 @@ _c0cc52:
         sta     $0b60
 @cc60:  lda     $4f
         tax
-        lda     $c0fec0,x   ; random number table
+        lda     f:RNGTbl,x
         clc
         adc     $0b60
         plx
@@ -21266,7 +21305,7 @@ _c0cc6d:
         sta     $0b5f
 @cc7b:  lda     $50
         tax
-        lda     $c0fec0,x   ; random number table
+        lda     f:RNGTbl,x
         clc
         adc     $0b5f
         plx
@@ -21351,7 +21390,7 @@ _ccf0:  ldx     $06
         sta     hINIDISP
         sei
         jsl     ExecBattle_ext
-        jsr     $44e3
+        jsr     _c044e3
         lda     $09c4
         and     #1
         beq     _cd24
@@ -21394,16 +21433,20 @@ _c0cd4a:
 
 .proc Reset
 
-_cec0:  sei
+_cec0:  fixed_block $20
+        sei
         clc
         xce
         jml     Start
+        end_fixed_block 0
 
 .endproc
 
 ; ===========================================================================
 
 .segment "nmi_irq"
+
+        fixed_block $20
 
 ; ---------------------------------------------------------------------------
 
@@ -21424,6 +21467,18 @@ _cee0:  jml     $001f00
 _cee4:  jml     $001f04
 
 .endproc
+
+        end_fixed_block 0
+
+; ===========================================================================
+
+.export RNGTbl
+
+.segment "rng_tbl"
+
+; c0/fec0
+RNGTbl:
+        .incbin "rng_tbl.dat"
 
 ; ===========================================================================
 
@@ -21453,5 +21508,57 @@ _cee4:  jml     $001f04
         .res    12
         .addr   Reset
         .res    2
+
+; ===========================================================================
+
+.segment "event_script"
+
+; c8/3320
+EventScriptPtrs:
+        ptr_tbl_far EventScript
+
+; c8/49dc
+EventScript:
+        .incbin "event_script.dat"
+
+; ===========================================================================
+
+.segment "event_trigger"
+
+; ce/2400
+EventTriggerPtrs:
+        ptr_tbl EventTrigger
+
+; ce/2800
+EventTrigger:
+        .incbin "trigger/event_trigger.dat"
+
+; ===========================================================================
+
+.segment "entrance"
+
+; ce/36c0
+EntrancePtrs:
+        ptr_tbl Entrance
+
+; ce/3ac0
+Entrance:
+        .incbin "trigger/entrance.dat"
+
+; ===========================================================================
+
+.segment "rand_battle_grp"
+
+; d0/6800
+RandBattleGrp:
+        .incbin "rand_battle_grp.dat"
+
+; ===========================================================================
+
+.segment "event_battle_grp"
+
+; d0/7800
+EventBattleGrp:
+        .incbin "event_battle_grp.dat"
 
 ; ===========================================================================

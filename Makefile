@@ -20,7 +20,7 @@ ROMS = $(foreach V, $(VERSIONS), $(ROM_DIR)/$(V).sfc)
 # the SPC program
 # SPC_PRG = src/sound/ff5-spc.dat
 
-.PHONY: all clean distclean \
+.PHONY: all rip clean distclean \
 	$(VERSIONS) $(MODULES)
 
 # disable default suffix rules
@@ -29,10 +29,15 @@ ROMS = $(foreach V, $(VERSIONS), $(ROM_DIR)/$(V).sfc)
 # make all versions
 all: $(VERSIONS)
 
+# rip data from ROMs
+rip:
+	python3 tools/extract_assets.py
+
 clean:
 	$(RM) -rf $(ROM_DIR) $(OBJ_DIR)
 
 distclean: clean
+	python3 tools/clean_assets.py
 
 # ROM filenames
 FF5_JP_PATH = $(ROM_DIR)/ff5-jp.sfc
@@ -56,7 +61,7 @@ OBJ_FILES_JP = $(foreach M,$(MODULES),$(OBJ_DIR)/$(M)-jp.o)
 OBJ_FILES_EN = $(foreach M,$(MODULES),$(OBJ_DIR)/$(M)-en.o)
 
 # list of modules
-MODULES = field btlgfx battle menu cutscene sound
+MODULES = field btlgfx battle menu cutscene sound text gfx
 
 # generate rules for making each module
 define MAKE_MODULE

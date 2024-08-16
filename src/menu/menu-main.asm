@@ -14,7 +14,7 @@
 .include "hardware.inc"
 .include "const.inc"
 
-.export ExecMenu_ext, UpdateJoypad_ext
+.export ExecMenu_ext, UpdateJoypad_ext, _c2a006, _c2a008
 
 .segment "menu_code"
 
@@ -63,8 +63,7 @@ CommonReturn:
 
 ; ---------------------------------------------------------------------------
 
-; C2/A11B
-
+; c2/a11b
 InitMenu:
 @a11b:  longai
         lda     #$0100

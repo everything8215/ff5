@@ -1,0 +1,85 @@
+{
+  "text": [
+    {
+      "json_path": "src/text/dlg_jp.json",
+      "asset_range": "0xCA0000-0xCAFFF4",
+      "ptr_range": "0xC82220-0xC832FF",
+      "ptr_offset": "0xCA0000"
+    },
+    {
+      "json_path": "src/text/item_name_jp.json",
+      "asset_range": "0xD11380-0xD11C7F"
+    },
+    {
+      "json_path": "src/text/magic_name_jp.json",
+      "asset_range": "0xD11C80-0xD11E89"
+    },
+    {
+      "json_path": "src/text/map_title_jp.json",
+      "asset_range": "0xD07200-0xD07667",
+      "ptr_range": "0xD07000-0xD07147",
+      "ptr_offset": "0xD07200"
+    }
+  ],
+  "data": [
+    {
+      "file_path": "src/field/map_anim_prop.dat",
+      "asset_range": "0xC09D9B-0xC0A18A"
+    },
+    {
+      "file_path": "src/field/rng_tbl.dat",
+      "asset_range": "0xC0FEC0-0xC0FFBF"
+    },
+    {
+      "file_path": "src/gfx/big_font.1bpp",
+      "asset_range": "0xC3EB00-0xC3FDFF"
+    },
+    {
+      "file_path": "src/field/event_battle_grp.dat",
+      "asset_range": "0xD07800-0xD079FF"
+    },
+    {
+      "file_path": "src/field/rand_battle_grp.dat",
+      "asset_range": "0xD06800-0xD06FFF"
+    },
+    {
+      "file_path": "src/field/char_prop.dat",
+      "asset_range": "0xD17000-0xD1713F"
+    },
+    {
+      "file_path": "src/gfx/small_font.2bpp",
+      "asset_range": "0xD1F000-0xD1FFFF"
+    },
+    {
+      "file_path": "src/gfx/kanji.1bpp",
+      "asset_range": "0xDBD000-0xDBF7FF"
+    }
+  ],
+  "array": [
+    {
+      "file_path": "src/field/trigger/event_trigger.dat",
+      "inc_path": "include/field/event_trigger.inc",
+      "asset_range": "0xCE2800-0xCE365F",
+      "asset_label": "EventTrigger",
+      "ptr_range": "0xCE2400-0xCE27FF",
+      "ptr_offset": "0xCE2400"
+    },
+    {
+      "file_path": "src/field/trigger/entrance.dat",
+      "inc_path": "include/field/entrance.inc",
+      "asset_range": "0xCE3AC0-0xCE58D1",
+      "asset_label": "Entrance",
+      "ptr_range": "0xCE36C0-0xCE3ABF",
+      "ptr_offset": "0xCE36C0"
+    },
+    {
+      "file_path": "src/field/event_script.dat",
+      "inc_path": "include/field/event_script.inc",
+      "asset_range": "0xC849DC-0xC9FF9B",
+      "asset_label": "EventScript",
+      "ptr_range": "0xC83320-0xC849DB",
+      "ptr_size": 3,
+      "is_mapped": true
+    }
+  ]
+}

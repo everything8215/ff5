@@ -1,0 +1,20 @@
+{
+  "0xE3": "{sword}",
+  "0xE4": "{white}",
+  "0xE5": "{black}",
+  "0xE6": "{time}",
+  "0xE7": "{dagger}",
+  "0xE8": "{spear}",
+  "0xE9": "{axe}",
+  "0xEA": "{katana}",
+  "0xEB": "{rod}",
+  "0xEC": "{staff}",
+  "0xED": "{bow}",
+  "0xEE": "{harp}",
+  "0xEF": "{whip}",
+  "0xF0": "{bell}",
+  "0xF1": "{shield}",
+  "0xF2": "{helm}",
+  "0xF3": "{armor}",
+  "0xF4": "{relic}"
+}

@@ -1,0 +1,10 @@
+{
+  "asset_label": "Dlg",
+  "inc_path": "include/text/map_title_jp.inc",
+  "char_tables": [
+    "big_symbols_jp",
+    "kana",
+    "kanji"
+  ],
+  "text": []
+}

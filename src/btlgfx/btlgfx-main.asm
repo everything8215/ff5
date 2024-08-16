@@ -14,7 +14,7 @@
 .include "hardware.inc"
 .include "const.inc"
 
-.export ExecBtlGfx_ext
+.export ExecBtlGfx_ext, _c10003, _c10006, _c10009
 
 ; ---------------------------------------------------------------------------
 
