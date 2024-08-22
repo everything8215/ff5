@@ -1,0 +1,10 @@
+{
+  "asset_label": "ItemName",
+  "item_size": 9,
+  "char_tables": [
+    "small_symbols_jp",
+    "kana",
+    "fixed_length_jp"
+  ],
+  "text": []
+}

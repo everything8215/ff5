@@ -3,7 +3,7 @@
 import binascii
 import sys
 import numpy as np
-from hex_string import hex_string
+import romtools as rt
 
 
 # from snes9x and NSRT
@@ -45,8 +45,8 @@ if __name__ == "__main__":
     rom_bytes[checksum_offset:checksum_offset+4] = checksum.tobytes()
 
     # print the result
-    print('SNES Checksum:', hex_string(checksum[1], 4))
-    print('ROM CRC32:', hex_string(binascii.crc32(rom_bytes) & 0xFFFFFFFF, 8))
+    print('SNES Checksum:', rt.hex_string(checksum[1], 4))
+    print('ROM CRC32:', rt.hex_string(binascii.crc32(rom_bytes) & 0xFFFFFFFF, 8))
 
     # write the calculated checksum in the SNES header
     rom_file.seek(checksum_offset)

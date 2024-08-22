@@ -1,0 +1,13 @@
+{
+  "asset_label": "Dlg",
+  "inc_path": "include/text/dlg_jp.inc",
+  "char_tables": [
+    "big_symbols_jp",
+    "kana",
+    "kanji",
+    "null_terminated_jp",
+    "mte",
+    "dlg_escape"
+  ],
+  "text": []
+}

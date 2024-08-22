@@ -1,0 +1,253 @@
+{
+  "text": [
+    {
+      "json_path": "src/text/dlg_jp.json",
+      "asset_range": "0xCA0000-0xCAFFF4",
+      "ptr_range": "0xC82220-0xC832FF",
+      "ptr_offset": "0xCA0000"
+    },
+    {
+      "json_path": "src/text/item_name_jp.json",
+      "asset_range": "0xD11380-0xD11C7F"
+    },
+    {
+      "json_path": "src/text/magic_name_jp.json",
+      "asset_range": "0xD11C80-0xD11E89"
+    },
+    {
+      "json_path": "src/text/map_title_jp.json",
+      "asset_range": "0xD07200-0xD07667",
+      "ptr_range": "0xD07000-0xD07147",
+      "ptr_offset": "0xD07200"
+    }
+  ],
+  "data": [
+    {
+      "file_path": "src/field/unknown_c0d980/unknown_c0d980_%s.dat.lz",
+      "asset_range": "0xC0D9B8-0xC0DEFB",
+      "ptr_range": "0xC0D980-0xC0D9B7",
+      "ptr_offset": "0xC0D980"
+    },
+    {
+      "file_path": "src/field/map_anim_prop.dat",
+      "asset_range": "0xC09D9B-0xC0A18A"
+    },
+    {
+      "file_path": "src/gfx/window.pal",
+      "asset_range": "0xC0D340-0xC0D37F"
+    },
+    {
+      "file_path": "src/gfx/window.4bpp",
+      "asset_range": "0xC0D380-0xC0D97F"
+    },
+    {
+      "file_path": "src/gfx/map_overlay.1bpp",
+      "asset_range": "0xC0DF00-0xC0E5FF"
+    },
+    {
+      "file_path": "src/field/rng_tbl.dat",
+      "asset_range": "0xC0FEC0-0xC0FFBF"
+    },
+    {
+      "file_path": "src/gfx/map_pal/map_pal_%s.pal",
+      "asset_range": "0xC3BB00-0xC3E6FF",
+      "item_size": 256
+    },
+    {
+      "file_path": "src/gfx/big_font.1bpp",
+      "asset_range": "0xC3EB00-0xC3FDFF"
+    },
+    {
+      "file_path": "src/field/sub_tilemap/sub_tilemap_%s.dat.lz",
+      "asset_range": "0xCB0290-0xCDF9FE",
+      "ptr_range": "0xCB0000-0xCB0285",
+      "ptr_offset": "0xCB0000",
+      "auto_bank": true
+    },
+    {
+      "file_path": "src/field/map_pal_anim.dat",
+      "asset_range": "0xCDFA40-0xCDFBA7"
+    },
+    {
+      "file_path": "src/field/map_prop/map_prop_%s.dat",
+      "asset_range": "0xCE9C00-0xCECFFF",
+      "item_size": 26
+    },
+    {
+      "file_path": "src/field/map_tileset/map_tileset_%s.dat.lz",
+      "asset_range": "0xCF0038-0xCFC501",
+      "ptr_range": "0xCF0000-0xCF0037",
+      "ptr_offset": "0xCF0000"
+    },
+    {
+      "file_path": "src/field/map_tile_prop/map_tile_prop_%s.dat.lz",
+      "asset_range": "0xCFC56E-0xCFD7CA",
+      "ptr_range": "0xCFC540-0xCFC56B",
+      "ptr_offset": "0xCFC540"
+    },
+    {
+      "file_path": "src/field/world_tile_prop/%s.dat",
+      "asset_range": "0xCFEA00-0xCFF0BF",
+      "item_size": 576,
+      "file_list": [
+        "bartz_world",
+        "galuf_world",
+        "underwater"
+      ]
+    },
+    {
+      "file_path": "src/field/world_tileset/%s.dat",
+      "asset_range": "0xCFF0C0-0xCFF9BF",
+      "item_size": 768,
+      "file_list": [
+        "bartz_world",
+        "galuf_world",
+        "underwater"
+      ]
+    },
+    {
+      "file_path": "src/gfx/world_tile_attr/%s.dat",
+      "asset_range": "0xCFF9C0-0xCFFCBF",
+      "item_size": 256,
+      "file_list": [
+        "bartz_world",
+        "galuf_world",
+        "underwater"
+      ]
+    },
+    {
+      "file_path": "src/gfx/world_pal/%s.pal",
+      "asset_range": "0xCFFCC0-0xCFFFBF",
+      "item_size": 256,
+      "file_list": [
+        "bartz_world",
+        "galuf_world",
+        "underwater"
+      ]
+    },
+    {
+      "file_path": "src/field/event_battle_grp.dat",
+      "asset_range": "0xD07800-0xD079FF"
+    },
+    {
+      "file_path": "src/field/rand_battle_grp.dat",
+      "asset_range": "0xD06800-0xD06FFF"
+    },
+    {
+      "file_path": "src/field/char_prop.dat",
+      "asset_range": "0xD17000-0xD1713F"
+    },
+    {
+      "file_path": "src/gfx/small_font.2bpp",
+      "asset_range": "0xD1F000-0xD1FFFF"
+    },
+    {
+      "file_path": "src/field/init_npc_switch.dat",
+      "asset_range": "0xD8E000-0xD8E07F"
+    },
+    {
+      "file_path": "src/gfx/map_sprite.4bpp",
+      "asset_range": "0xDA0000-0xDB7FFF"
+    },
+    {
+      "file_path": "src/gfx/world_gfx/%s.4bpp",
+      "asset_range": "0xDB8000-0xDBCFFF",
+      "item_offsets": [
+        "0xDB8000",
+        "0xDBA000",
+        "0xDBC000"
+      ],
+      "file_list": [
+        "bartz_world",
+        "galuf_world",
+        "underwater"
+      ]
+    },
+    {
+      "file_path": "src/gfx/kanji.1bpp",
+      "asset_range": "0xDBD000-0xDBF7FF"
+    },
+    {
+      "file_path": "src/gfx/map_bg3_gfx/map_bg3_gfx_%s.2bpp",
+      "asset_range": "0xDC0024-0xDC2D83",
+      "ptr_range": "0xDC0000-0xDC0021",
+      "ptr_offset": "0xDC0024"
+    },
+    {
+      "file_path": "src/gfx/map_gfx/map_gfx_%s.4bpp",
+      "asset_range": "0xDC2E24-0xDF99E3",
+      "ptr_range": "0xDC2D84-0xDC2E1F",
+      "ptr_offset": "0xDC2E24",
+      "ptr_size": 4
+    },
+    {
+      "file_path": "src/gfx/map_anim.4bpp",
+      "asset_range": "0xDF9B00-0xDFFBFF"
+    },
+    {
+      "file_path": "src/gfx/map_sprite_pal/map_sprite_%s.pal",
+      "asset_range": "0xDFFC00-0xDFFFFF",
+      "item_size": 32
+    }
+  ],
+  "array": [
+    {
+      "file_path": "src/field/trigger/event_trigger.dat",
+      "inc_path": "include/field/event_trigger.inc",
+      "asset_range": "0xCE2800-0xCE365F",
+      "asset_label": "EventTrigger",
+      "ptr_range": "0xCE2400-0xCE27FF",
+      "ptr_offset": "0xCE2400"
+    },
+    {
+      "file_path": "src/field/trigger/entrance_trigger.dat",
+      "inc_path": "include/field/entrance_trigger.inc",
+      "asset_range": "0xCE3AC0-0xCE58D1",
+      "asset_label": "EntranceTrigger",
+      "ptr_range": "0xCE36C0-0xCE3ABF",
+      "ptr_offset": "0xCE36C0"
+    },
+    {
+      "file_path": "src/field/trigger/npc_prop.dat",
+      "inc_path": "include/field/npc_prop.inc",
+      "asset_range": "0xCE5DC2-0xCE9BFD",
+      "asset_label": "NPCProp",
+      "ptr_range": "0xCE59C0-0xCE5DBF",
+      "ptr_offset": "0xCE59C0"
+    },
+    {
+      "file_path": "src/field/event_cond.dat",
+      "inc_path": "include/field/event_cond.inc",
+      "asset_range": "0xD8E600-0xD8FFA7",
+      "asset_label": "EventCond",
+      "ptr_range": "0xD8E080-0xD8E5FF",
+      "ptr_offset": "0xD8E080"
+    },
+    {
+      "file_path": "src/field/npc_script.dat",
+      "inc_path": "include/field/npc_script.inc",
+      "asset_range": "0xCE0740-0xCE2293",
+      "asset_label": "NPCScript",
+      "ptr_range": "0xCE0000-0xCE073F",
+      "ptr_offset": "0xCE0000"
+    },
+    {
+      "file_path": "src/field/event_script.dat",
+      "inc_path": "include/field/event_script.inc",
+      "asset_range": "0xC849DC-0xC9FF9B",
+      "asset_label": "EventScript",
+      "ptr_range": "0xC83320-0xC849DB",
+      "ptr_size": 3,
+      "is_mapped": true
+    },
+    {
+      "file_path": "src/field/world_tilemap.dat",
+      "inc_path": "include/field/world_tilemap.inc",
+      "asset_range": "0xC70000-0xC8220F",
+      "asset_label": "WorldTilemap",
+      "ptr_range": "0xCFE000-0xCFE9FF",
+      "ptr_offset": "0xC70000",
+      "auto_bank": true
+    }
+  ]
+}

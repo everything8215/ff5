@@ -1,0 +1,10 @@
+{
+  "asset_label": "MagicName",
+  "item_size": 6,
+  "char_tables": [
+    "small_symbols_jp",
+    "kana",
+    "fixed_length_jp"
+  ],
+  "text": []
+}

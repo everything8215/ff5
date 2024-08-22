@@ -395,53 +395,136 @@ PSW_C = %00000001
 
 ; ------------------------------------------------------------------------------
 
-; [ make pointer table (relative) ]
+; [ define bank start address ]
 
-.macro make_ptr_tbl_rel label, length, offset
-.repeat length, i
-        .ifblank offset
-                .addr .ident(.sprintf("%s_%02X", .string(label), i)) - label
+.define bank_start(label) .bankbyte(label) << 16
+
+; ------------------------------------------------------------------------------
+
+; [ make pointer table (near) ]
+
+.macro ptr_tbl label
+        .local offset
+        .ifdef label::Start
+                offset = label::Start
         .else
-                .addr .ident(.sprintf("%s_%02X", .string(label), i)) - offset
+                offset = 0
         .endif
-.endrep
+        .repeat label::ARRAY_LENGTH, i
+                .addr label::.ident(.sprintf("_%d", i)) - offset
+        .endrep
 .endmacro
 
 ; ------------------------------------------------------------------------------
 
-; [ make pointer table (absolute) ]
+; [ make pointer table (far) ]
 
-.macro make_ptr_tbl_abs label, length
-.repeat length, i
-        .addr .ident(.sprintf("%s_%02X", .string(label), i))
-.endrep
+.macro ptr_tbl_far label
+        .local offset
+        .ifdef label::Start
+                offset = label::Start
+        .else
+                offset = 0
+        .endif
+        .repeat label::ARRAY_LENGTH, i
+                .faraddr label::.ident(.sprintf("_%d", i)) - offset
+        .endrep
 .endmacro
+
+; ------------------------------------------------------------------------------
+
+; [ make pointer table (dword) ]
+
+.macro ptr_tbl_dword label
+        .local offset
+        .ifdef label::Start
+                offset = label::Start
+        .else
+                offset = 0
+        .endif
+        .repeat label::ARRAY_LENGTH, i
+                .dword label::.ident(.sprintf("_%d", i)) - offset
+        .endrep
+.endmacro
+
+; ------------------------------------------------------------------------------
+
+; [ make end pointer ]
+
+.mac end_ptr label
+        .ifdef label::Start
+                .addr label::End - label::Start
+        .else
+                .addr label::End
+        .endif
+.endmac
+
+.mac end_ptr_far label
+        .ifdef label::Start
+                .faraddr label::End - label::Start
+        .else
+                .faraddr label::End
+        .endif
+.endmac
+
+.mac end_ptr_dword label
+        .ifdef label::Start
+                .dword label::End - label::Start
+        .else
+                .dword label::End
+        .endif
+.endmac
 
 ; ------------------------------------------------------------------------------
 
 ; [ begin/end fixed length block ]
 
-.macro begin_fixed_block _label, _size
-        _label := *
-        .ident(.concat(.string(_label), "BlockSize")) = _size
+::_fixed_block_size .set 0
+::_fixed_block_seq .set 0
+
+.mac fixed_block size
+        .assert ::_fixed_block_size = 0, error, "Fixed blocks can't be nested"
+        .assert size > 0, error, "Invalid fixed block size"
+        ::_fixed_block_size .set size
+        .ident(.sprintf("_fixed_block_%d", ::_fixed_block_seq)) := *
 .endmac
 
-.macro end_fixed_block _label, _pad_val
-.local pad_size
-        .ifndef .ident(.concat(.string(_label), "BlockSize"))
-                .error .sprintf("Fixed block %s doesn't exist", _label)
-        .endif
-        pad_size = (_label - *) + .ident(.concat(.string(_label), "BlockSize"))
+.mac end_fixed_block pad_val
+        .assert ::_fixed_block_size <> 0, error, "Invalid fixed block"
+        .local pad_size, start
+        start := .ident(.sprintf("_fixed_block_%d", ::_fixed_block_seq))
+        pad_size = (start - *) + ::_fixed_block_size
         .if pad_size < 0
-                .error .sprintf("Fixed block %s too large by %d bytes", .string(_label), -pad_size)
+                .error .sprintf("Fixed block too large by %d bytes", -pad_size)
         .elseif pad_size > 0
-                .ifnblank _pad_val
-                        .res pad_size, _pad_val
+                .ifnblank pad_val
+                        .res pad_size, pad_val
                 .else
                         .res pad_size
                 .endif
         .endif
-.endmacro
+        ::_fixed_block_size .set 0
+        ::_fixed_block_seq .set ::_fixed_block_seq + 1
+.endmac
+
+; ------------------------------------------------------------------------------
+
+; [ calculate the size of assembled bytecode ]
+
+; place this macro at the end of a block to define a symbol "sizeof_<labal>"
+; equal to the size of the block (i.e. the distance from the label to the
+; label to the current program counter).
+
+.mac calc_size label
+        .ident(.concat("sizeof_", .string(label))) = * - label
+.endmac
+
+; ------------------------------------------------------------------------------
+
+.define array_item(array, index) array::.ident(.sprintf("_%d", index))
+.define array_member(array, index, member) array::.ident(.sprintf("_%d", index))::member
+
+; ------------------------------------------------------------------------------
 
 .endif
 .list on
