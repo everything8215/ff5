@@ -1,13 +1,13 @@
 .list off
-.ifndef ENTRANCE_INC
-ENTRANCE_INC = 1
+.ifndef ENTRANCE_TRIGGER_INC
+ENTRANCE_TRIGGER_INC = 1
 
-.global Entrance, EntrancePtrs
+.global EntranceTrigger, EntranceTriggerPtrs
 
-.scope Entrance
+.scope EntranceTrigger
 
         ITEM_SIZE = 6
-        Start := EntrancePtrs
+        Start := EntranceTriggerPtrs
 
         SrcPos := Start
         SrcX := Start

@@ -52,7 +52,8 @@ Decomp_ext:
 ShowCutscene:
         .a8
         .i16
-        pha
+        rtl
+        ; pha
         jsr     InitDecomp
         sei
         lda     #$80

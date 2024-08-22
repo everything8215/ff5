@@ -44,6 +44,7 @@ class AssetExtractor:
                 + ' is not divisible by pointer size'
             array_length = len(ptr_data) // ptr_size
 
+            auto_bank = kwargs.get('auto_bank', False)
             for i in range(array_length):
                 pointer = ptr_data[i * ptr_size]
                 if ptr_size > 1:
@@ -57,7 +58,14 @@ class AssetExtractor:
                 if is_mapped:
                     # map pointer after adding pointer offset
                     pointer = self.memory_map.map_address(pointer)
-                pointer_list.append(pointer - mapped_range.begin)
+                pointer -= mapped_range.begin
+
+                # check if we just reached a new bank (auto-bank)
+                if auto_bank and i > 0 and pointer < pointer_list[-1]:
+                    ptr_offset += 0x010000
+                    pointer += 0x010000
+
+                pointer_list.append(pointer)
 
         elif 'item_offsets' in kwargs:
             # items with specified offsets

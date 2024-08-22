@@ -433,6 +433,22 @@ PSW_C = %00000001
 
 ; ------------------------------------------------------------------------------
 
+; [ make pointer table (dword) ]
+
+.macro ptr_tbl_dword label
+        .local offset
+        .ifdef label::Start
+                offset = label::Start
+        .else
+                offset = 0
+        .endif
+        .repeat label::ARRAY_LENGTH, i
+                .dword label::.ident(.sprintf("_%d", i)) - offset
+        .endrep
+.endmacro
+
+; ------------------------------------------------------------------------------
+
 ; [ make end pointer ]
 
 .mac end_ptr label
@@ -448,6 +464,14 @@ PSW_C = %00000001
                 .faraddr label::End - label::Start
         .else
                 .faraddr label::End
+        .endif
+.endmac
+
+.mac end_ptr_dword label
+        .ifdef label::Start
+                .dword label::End - label::Start
+        .else
+                .dword label::End
         .endif
 .endmac
 

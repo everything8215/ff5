@@ -21,9 +21,13 @@
 .include "text/magic_name_jp.inc"
 .include "text/map_title_jp.inc"
 
+.include "field/event_cond.inc"
 .include "field/event_script.inc"
 .include "field/event_trigger.inc"
-.include "field/entrance.inc"
+.include "field/entrance_trigger.inc"
+.include "field/npc_prop.inc"
+.include "field/npc_script.inc"
+.include "field/world_tilemap.inc"
 
 .import _c10003, _c10006
 .import ExecBattle_ext
@@ -31,7 +35,10 @@
 .import ShowCutscene_ext, Decomp_ext
 .import InitSound_ext, ExecSound_ext
 
-.import BigFontGfx, KanjiGfx
+.import WindowPal, WindowGfx, BigFontGfx, KanjiGfx
+.import MapBG3Gfx, MapBG3GfxPtrs, MapGfx, MapGfxPtrs
+.import MapPal, MapAnimGfx, MapSpritePal, MapOverlayGfx
+.import WorldPal, WorldTileAttr, WorldGfx
 
 ; ===========================================================================
 
@@ -298,7 +305,7 @@ _0246:  jsr     _c00f8c
         jsr     $612b
         jsr     _c01ec5
         jsr     _c01e64
-        jsr     $420a
+        jsr     _c0420a
         jmp     _00ad
         rts                 ; unused rts
 _0262:  jsr     _c00d3d
@@ -341,7 +348,7 @@ _02b5:  jsr     _c01ae4
         jsr     UpdatePlayerSprite
         jsr     _c039b3       ; update object sprites
         jsr     _c02842
-        jsr     $420a
+        jsr     _c0420a
         jmp     _00ad
         rts                 ; unused rts
 
@@ -552,40 +559,40 @@ _0446:  php
 .proc ExecTriggerScript
 
 _046a:  longa
-        lda     $d8e080,x               ; pointer to event condition
+        lda     f:EventCondPtrs,x
         sta     $23
-        lda     $d8e082,x
+        lda     f:EventCondPtrs+2,x
         sta     $26
         lda     $06
         shorta
 _047c:  ldx     $23
-        lda     $d8e080,x
+        lda     f:EventCond::Start,x
         cmp     #$ff                    ; $ff: execute event
         jeq     _05fc
         cmp     #$fe                    ; $fe: if event flag $00xx is set
         bne     _049b
-        lda     $d8e081,x
+        lda     f:EventCond::Start+1,x
         jsr     $ca2f                   ; get event flag $00xx
         cmp     #$00
         bne     _04d1
         jmp     _05e5
 _049b:  cmp     #$fd                    ; $fd: if event flag $00xx is clear
         bne     _04ad
-        lda     $d8e081,x
+        lda     f:EventCond::Start+1,x
         jsr     $ca2f                   ; get event flag $00xx
         cmp     #$00
         beq     _04d1
         jmp     _05e5
 _04ad:  cmp     #$fc                    ; $fc: if event flag $01xx is set
         bne     _04bf
-        lda     $d8e081,x
+        lda     f:EventCond::Start+1,x
         jsr     $ca3c                   ; get event flag $01xx
         cmp     #$00
         bne     _04d1
         jmp     _05e5
 _04bf:  cmp     #$fb                    ; $fb: if event flag $01xx is clear
         bne     _04da
-        lda     $d8e081,x
+        lda     f:EventCond::Start+1,x
         jsr     $ca3c                   ; get event flag $01xx
         cmp     #$00
         jne     _05e5
@@ -596,39 +603,39 @@ _04d1:  ldx     $23
 _04da:  cmp     #$fa                    ; $fa: compare ram (1-byte)
         bne     _051c
         longa
-        lda     $d8e081,x
+        lda     f:EventCond::Start+1,x
         and     #$3fff
         tay
         lda     $06
         shorta
-        lda     $d8e082,x
+        lda     f:EventCond::Start+2,x
         and     #$c0
         bne     _0500
         lda     $0500,y
-        cmp     $d8e083,x
+        cmp     f:EventCond::Start+3,x
         beq     _0568
         jmp     _05e5
 _0500:  cmp     #$40
         bne     _0510
         lda     $0500,y
-        cmp     $d8e083,x
+        cmp     f:EventCond::Start+3,x
         bcs     _0568
         jmp     _05e5
 _0510:  lda     $0500,y
-        cmp     $d8e083,x
+        cmp     f:EventCond::Start+3,x
         bcc     _0568
         jmp     _05e5
 _051c:  cmp     #$f9                    ; $f9: compare ram (2-byte)
         bne     _0573
         longa
-        lda     $d8e081,x
+        lda     f:EventCond::Start+1,x
         and     #$3fff
         tay
-        lda     $d8e081,x
+        lda     f:EventCond::Start+1,x
         and     #$c000
         bne     _0543
         lda     $0500,y
-        cmp     $d8e083,x
+        cmp     f:EventCond::Start+3,x
         beq     _0568
         lda     $06
         shorta
@@ -637,13 +644,13 @@ _0543:  cmp     #$00
         rti
         bne     _0558
         lda     $0500,y
-        cmp     $d8e083,x
+        cmp     f:EventCond::Start+3,x
         bcs     _0568
         lda     $06
         shorta
         jmp     _05e5
 _0558:  lda     $0500,y
-        cmp     $d8e083,x
+        cmp     f:EventCond::Start+3,x
         bcc     _0568
         lda     $06
         shorta
@@ -655,13 +662,13 @@ _0568:  ldx     $23
 _0573:  cmp     #$f8                    ; $f8: boolean compare ram (1-byte)
         bne     _05a1
         longa
-        lda     $d8e081,x
+        lda     f:EventCond::Start+1,x
         and     #$3fff
         tay
         lda     $06
         shorta
         lda     $0500,y
-        and     $d8e083,x
+        and     f:EventCond::Start+3,x
         bne     _0568
         jmp     _05e5
         lda     $06
@@ -672,7 +679,7 @@ _0573:  cmp     #$f8                    ; $f8: boolean compare ram (1-byte)
         jmp     _047c
 _05a1:  cmp     #$f7                    ; $f7: if facing direction
         bne     _05b1
-        lda     $d8e081,x
+        lda     f:EventCond::Start+1,x
         cmp     $0adb                   ; facing direction
         bne     _05e5
         jmp     _04d1
@@ -689,18 +696,18 @@ _05b1:  cmp     #$f6                    ; $f6: if button pressed
         stx     $23
         jmp     _047c
 _05cb:  longa                           ; $f5: boolean compare ram (2-byte)
-        lda     $d8e081,x
+        lda     f:EventCond::Start+1,x
         and     #$3fff
         tay
         lda     $06
         shorta
         lda     $0500,y
-        and     $d8e083,x
+        and     f:EventCond::Start+3,x
         beq     _0568
         jmp     _05e5
 _05e5:  ldx     $23
 _05e7:  inx
-        lda     $d8e080,x
+        lda     f:EventCond::Start,x
         cmp     #$ff
         bne     _05e7
         inx3
@@ -713,7 +720,7 @@ _05fc:  lda     #$01
         stz     $ba
         longa
         ldx     $23
-        lda     $d8e081,x               ; event index
+        lda     f:EventCond::Start+1,x               ; event index
         sta     $ce
         lda     $06
         shorta
@@ -786,18 +793,18 @@ _0681:  longa
         lda     $0ad4
 _068e:  asl
         tax
-        lda     f:EntrancePtrs+2,x               ; entrance triggers
+        lda     f:EntranceTriggerPtrs+2,x
         sta     $23
-        lda     f:EntrancePtrs,x
+        lda     f:EntranceTriggerPtrs,x
         tax
 _069b:  cpx     $23
         jeq     _0739
         lda     $0ad8
-        cmp     f:Entrance::SrcPos,x
+        cmp     f:EntranceTrigger::SrcPos,x
         beq     _06b4
         txa
         clc
-        adc     #Entrance::ITEM_SIZE
+        adc     #EntranceTrigger::ITEM_SIZE
         tax
         jmp     _069b
 _06b4:  lda     $59
@@ -810,7 +817,7 @@ _06b4:  lda     $59
         sta     $0af5                   ; set parent map
         lda     $0ad8
         sta     $0af7                   ; set parent map xy position
-_06d2:  lda     f:Entrance::Map,x
+_06d2:  lda     f:EntranceTrigger::Map,x
         and     #$03ff
         sta     $0ad4
         sta     $0ad6                   ; map index
@@ -818,31 +825,31 @@ _06d2:  lda     f:Entrance::Map,x
         bcs     _06f8
         lda     $06
         shorta
-        lda     f:Entrance::DestX,x
+        lda     f:EntranceTrigger::DestX,x
         sta     $1088
-        lda     f:Entrance::DestY,x
+        lda     f:EntranceTrigger::DestY,x
         sta     $1089
         bra     _0737
 _06f8:  lda     $06
         shorta
-        lda     f:Entrance::Flags,x
+        lda     f:EntranceTrigger::Flags,x
         and     #$08
         beq     _0707
         inc     $16a0                   ; enable map title
-_0707:  lda     f:Entrance::Flags,x
+_0707:  lda     f:EntranceTrigger::Flags,x
         lsr4
         sta     $169e
-        lda     f:Entrance::Dir,x
+        lda     f:EntranceTrigger::Dir,x
         and     #$c0
         lsr6
         sta     $b9
         inc
         sta     $ba
         sta     $bf
-        lda     f:Entrance::DestX,x
+        lda     f:EntranceTrigger::DestX,x
         and     #$3f
         sta     $1088
-        lda     f:Entrance::DestY,x
+        lda     f:EntranceTrigger::DestY,x
         and     #$3f
         sta     $1089
 _0737:  inc     $6e
@@ -3847,7 +3854,7 @@ _1dc3:  pha
         cmp     #$0a
         bcs     _1dda
         ldx     $06
-_1dca:  lda     $dfff40,x   ; copy color palette
+_1dca:  lda     f:MapSpritePal+26*$20,x   ; copy color palette
         sta     $0d00,x
         sta     $0d80,x
         inx
@@ -4806,7 +4813,7 @@ _25a7:  lda     $11
         shorta
         phx
         ldy     #$0008
-_25d2:  lda     f:$c0df00,x
+_25d2:  lda     f:MapOverlayGfx,x
         stz     hVMDATAL
         sta     hVMDATAH
         inx
@@ -4814,7 +4821,7 @@ _25d2:  lda     f:$c0df00,x
         bne     _25d2
         jsr     _c02636
         ldy     #$0008
-_25e6:  lda     f:$c0df00,x
+_25e6:  lda     f:MapOverlayGfx,x
         stz     hVMDATAL
         sta     hVMDATAH
         inx
@@ -4825,7 +4832,7 @@ _25e6:  lda     f:$c0df00,x
         sty     hVMADDL
         plx
         ldy     #$0008
-_2600:  lda     f:$c0df80,x
+_2600:  lda     f:MapOverlayGfx+128,x
         stz     hVMDATAL
         sta     hVMDATAH
         inx
@@ -4833,7 +4840,7 @@ _2600:  lda     f:$c0df80,x
         bne     _2600
         jsr     _c02636
         ldy     #$0008
-_2614:  lda     f:$c0df80,x
+_2614:  lda     f:MapOverlayGfx+128,x
         stz     hVMDATAL
         sta     hVMDATAH
         inx
@@ -4900,13 +4907,13 @@ _2817:  lda     $1114       ; tileset
         asl
         tax
         longa
-        lda     f:$c0d980,x   ;
+        lda     f:_c0d980Ptrs,x
         clc
-        adc     #$d980
+        adc     #near _c0d980Ptrs
         sta     $04f0
         lda     $06
         shorta
-        lda     #$c0
+        lda     #^_c0d980Ptrs
         sta     $04f2
         ldx     #$1873
         stx     $04f3
@@ -5243,15 +5250,15 @@ _c02a95:
         lda     $147f,x     ; npc script
         asl
         tax
-        lda     $ce0000,x
+        lda     f:NPCScriptPtrs,x
         sta     $23
         sta     $29
-        lda     $ce0002,x
+        lda     f:NPCScriptPtrs+2,x
         sta     $26
         lda     $06
         shorta
 @2fae:  ldx     $23
-        lda     $ce0000,x
+        lda     f:NPCScript::Start,x
         cmp     #$f0        ; find the end of the script ($f0)
         beq     @2fcd
         sec
@@ -5270,7 +5277,7 @@ _c02a95:
         ldy     $06
 @2fd2:  cpx     $26
         beq     @2fe3
-        lda     $ce0000,x   ; copy npc dialog
+        lda     f:NPCScript::Start,x   ; copy npc dialog
         sta     $13d6,y
         inx2
         iny2
@@ -5278,7 +5285,7 @@ _c02a95:
 @2fe3:  lda     $06
         shorta
 @2fe7:  ldx     $29
-        lda     $ce0000,x   ; npc script command
+        lda     f:NPCScript::Start,x   ; npc script command
 
 ; command $ff: execute event
 @2fed:  cmp     #$ff
@@ -5287,7 +5294,7 @@ _c02a95:
 ; command $fe: if event flag $00xx set
         cmp     #$fe
         bne     @3006
-        lda     $ce0001,x
+        lda     f:NPCScript::Start+1,x
         jsr     $ca2f       ; get event flag $00xx
         cmp     #$00
         bne     @303c
@@ -5296,7 +5303,7 @@ _c02a95:
 ; command $fd: if event flag $00xx clear
 @3006:  cmp     #$fd
         bne     @3018
-        lda     $ce0001,x
+        lda     f:NPCScript::Start+1,x
         jsr     $ca2f       ; get event flag $00xx
         cmp     #$00
         beq     @303c
@@ -5305,7 +5312,7 @@ _c02a95:
 ; command $fc: if event flag $01xx set
 @3018:  cmp     #$fc
         bne     @302a
-        lda     $ce0001,x
+        lda     f:NPCScript::Start+1,x
         jsr     $ca3c       ; get event flag $01xx
         cmp     #$00
         bne     @303c
@@ -5314,7 +5321,7 @@ _c02a95:
 ; command $fb: if event flag $01xx clear
 @302a:  cmp     #$fb
         bne     @3045
-        lda     $ce0001,x
+        lda     f:NPCScript::Start+1,x
         jsr     $ca3c       ; get event flag $01xx
         cmp     #$00
         jne     @3136
@@ -5327,18 +5334,18 @@ _c02a95:
 @3045:  cmp     #$fa
         bne     @3092
         longa
-        lda     $ce0001,x
+        lda     f:NPCScript::Start+1,x
         and     #$3fff
         tay
         lda     $06
         shorta
-        lda     $ce0002,x
+        lda     f:NPCScript::Start+2,x
         and     #$c0
         bne     @306b
 
 ; 0 (if equal)
 @305f:  lda     $0500,y     ; character data
-        cmp     $ce0003,x
+        cmp     f:NPCScript::Start+3,x
         beq     @3087
         jmp     @3136
 
@@ -5346,13 +5353,13 @@ _c02a95:
 @306b:  cmp     #$40
         bne     @307b
         lda     $0500,y
-        cmp     $ce0003,x
+        cmp     f:NPCScript::Start+3,x
         bcs     @3087
         jmp     @3136
 
 ; 2 (if less)
 @307b:  lda     $0500,y
-        cmp     $ce0003,x
+        cmp     f:NPCScript::Start+3,x
         jcs     @3136
 
 @3087:  ldx     $29         ; skip 4 bytes
@@ -5364,14 +5371,14 @@ _c02a95:
 @3092:  cmp     #$f9
         bne     @30de
         longa
-        lda     $ce0001,x
+        lda     f:NPCScript::Start+1,x
         and     #$3fff
         tay
-        lda     $ce0001,x
+        lda     f:NPCScript::Start+1,x
         and     #$c000
         bne     @30b9
         lda     $0500,y     ; character data
-        cmp     $ce0003,x
+        cmp     f:NPCScript::Start+3,x
         beq     @3087
         lda     $06
         shorta
@@ -5381,13 +5388,13 @@ _c02a95:
         cmp     #$4000
         bne     @30ce
         lda     $0500,y
-        cmp     $ce0003,x
+        cmp     f:NPCScript::Start+3,x
         bcs     @30fc
         lda     $06
         shorta
         jmp     @3136
 @30ce:  lda     $0500,y
-        cmp     $ce0003,x
+        cmp     f:NPCScript::Start+3,x
         bcc     @30fc
         lda     $06
         shorta
@@ -5397,13 +5404,13 @@ _c02a95:
 @30de:  cmp     #$f8
         bne     @310c
         longa
-        lda     $ce0001,x   ; pointer to character data
+        lda     f:NPCScript::Start+1,x   ; pointer to character data
         and     #$3fff
         tay
         lda     $06
         shorta
         lda     $0500,y     ; character data
-        and     $ce0003,x   ; mask
+        and     f:NPCScript::Start+3,x   ; mask
         bne     @3087
         jmp     @3136
 
@@ -5417,26 +5424,26 @@ _c02a95:
 ; command $f7: if party is facing xx
 @310c:  cmp     #$f7
         bne     @311c
-        lda     $ce0001,x
+        lda     f:NPCScript::Start+1,x
         cmp     $0adb       ; facing direction
         bne     @3136
         jmp     @303c
 
 ; command $f5: if character data xxxx & yyyy
 @311c:  longa
-        lda     $ce0001,x
+        lda     f:NPCScript::Start+1,x
         and     #$3fff
         tay
         lda     $06
         shorta
         lda     $0500,y
-        and     $ce0003,x
+        and     f:NPCScript::Start+3,x
         jeq     @3087
 
 ; condition not met, check next condition
 @3136:  ldx     $29
 @3138:  inx
-        lda     $ce0000,x
+        lda     f:NPCScript::Start,x
         cmp     #$ff
         bne     @3138
         inx3
@@ -5448,7 +5455,7 @@ _c02a95:
         stz     $ba
         longa
         ldx     $29
-        lda     $ce0001,x   ; event index
+        lda     f:NPCScript::Start+1,x   ; event index
         sta     $ce
         lda     $06
         shorta
@@ -6608,7 +6615,6 @@ _c039b3:
 _c03b88:
         .byte   3,4,5,2
 
-
 _c03b8c:
         .byte   0,0,0,0                 ; 0: animation frames (unused)
         .byte   0,0,0,0                 ; 1: animation frames (1 frame)
@@ -6870,8 +6876,8 @@ _c03d28:
         pla
         pha
         beq     @3d6f
-        lda     $ce59c2,x   ; npc graphics
-        cmp     $ce59bb,x
+        lda     f:NPCProp::Start+2,x   ; npc graphics
+        cmp     f:NPCProp::Start+2-7,x
         bne     @3d6f       ; branch if not the same as previous npc
         lda     $55
         bne     @3d6c
@@ -6884,7 +6890,7 @@ _c03d28:
         lda     $06
         shorta
 @3d6c:  jmp     @3e78
-@3d6f:  lda     $ce59c2,x
+@3d6f:  lda     f:NPCProp::Start+2,x
         cmp     #$ff
         beq     @3d95       ; branch if no graphics
         lda     $55
@@ -6909,7 +6915,7 @@ _c03d28:
         stz     $1484,x
 @3da7:  jmp     @3e78
 @3daa:  ldx     $29
-        lda     $ce59c2,x
+        lda     f:NPCProp::Start+2,x
 
 ; $67-$68: hiryuu, 64 tiles each ($0800 bytes)
         cmp     #$67
@@ -6961,7 +6967,7 @@ _c03d28:
         lda     $06
         shorta
         ldx     $29
-        lda     $ce59c1,x
+        lda     f:NPCProp::Start+1,x
         lsr6
         bne     @3e14
         lda     #$04
@@ -6982,7 +6988,7 @@ _c03d28:
         lda     $06
         shorta
         ldx     $29
-        lda     $ce59c1,x
+        lda     f:NPCProp::Start+1,x
         lsr6
         bne     @3e3e
         lda     #$02
@@ -7044,7 +7050,7 @@ _c03e98:
         lda     $110c       ; map index
         asl
         tax
-        lda     $ce59c0,x   ; pointer to npc properties
+        lda     f:NPCPropPtrs,x
         sta     $e7
         lda     $06
         shorta
@@ -7060,11 +7066,11 @@ _c03eaa:
         lda     $110c
         asl
         tax
-        lda     $ce59c0,x   ; npc data
+        lda     f:NPCPropPtrs,x
         sta     $e7
-        lda     $ce59c2,x
+        lda     f:NPCPropPtrs+2,x
         sec
-        sbc     $ce59c0,x
+        sbc     f:NPCPropPtrs,x
         sta     $4204
         lda     $06
         shorta
@@ -7085,11 +7091,11 @@ _c03eaa:
         stz     $e5
 @3ee5:  ldy     $e9
         ldx     $e7
-        lda     $ce59c6,x   ; palette
+        lda     f:NPCProp::Start+6,x   ; palette
         and     #$07
         asl
         sta     $0f
-        lda     $ce59c6,x   ; layer priority (top)
+        lda     f:NPCProp::Start+6,x   ; layer priority (top)
         and     #$08
         ora     #$10
         asl
@@ -7100,7 +7106,7 @@ _c03eaa:
         sta     $1481,y
         lda     $06
         shorta
-        lda     $ce59c6,x   ; layer priority (bottom)
+        lda     f:NPCProp::Start+6,x   ; layer priority (bottom)
         and     #$10
         ora     #$20
         ora     $0f
@@ -7110,14 +7116,14 @@ _c03eaa:
         sta     $1483,y
         lda     $06
         shorta
-        lda     $ce59c5,x   ; misc. flags
+        lda     f:NPCProp::Start+5,x   ; misc. flags
         sta     $147e,y
         and     #$70
         beq     @3f47       ; branch if walking animation
         cmp     #$50
         beq     @3f47       ; branch if animal animation
         phx
-        lda     $ce59c6,x   ; action frame
+        lda     f:NPCProp::Start+6,x   ; action frame
         and     #$e0
         lsr5
         tax
@@ -7125,7 +7131,7 @@ _c03eaa:
         sta     $1487,y
         plx
         bra     @3f63
-@3f47:  lda     $ce59c6,x   ; action frame
+@3f47:  lda     f:NPCProp::Start+6,x   ; action frame
         and     #$e0
         lsr5
         asl
@@ -7138,19 +7144,19 @@ _c03eaa:
         inc
 @3f60:  sta     $147b,y     ; facing direction
 @3f63:  longa
-        lda     $ce59c0,x   ; npc script
+        lda     f:NPCProp::Start,x   ; npc script
         and     #$3fff
         sta     $147f,y
         lda     $06
         shorta
-        lda     $ce59c3,x   ; x position
+        lda     f:NPCProp::Start+3,x   ; x position
         and     #$3f
         longa
         xba
         sta     $1477,y
         lda     $06
         shorta
-        lda     $ce59c4,x   ; y position
+        lda     f:NPCProp::Start+4,x   ; y position
         and     #$3f
         longa
         xba
@@ -7161,10 +7167,10 @@ _c03eaa:
         sta     $147d,y     ; movement animation counter
         sta     $1486,y     ;
         sta     $1488,y     ; jump counter
-        lda     $ce59c3,x
+        lda     f:NPCProp::Start+3,x
         and     #$c0
         sta     $1485,y
-        lda     $ce59c4,x
+        lda     f:NPCProp::Start+4,x
         and     #$c0
         lsr2
         ora     $1485,y
@@ -7841,15 +7847,15 @@ _c0456b:
 
 _c04583:
         lda     #$fe
-        jsr     $ca3c       ; get event flag $01xx
+        jsr     $ca3c                   ; get event flag $01xx
         cmp     #$00
         bne     @45e3
-        jsr     $4635       ; stop sound
-        lda     $0adc       ; vehicles
+        jsr     _c04635                 ; stop sound
+        lda     $0adc                   ; vehicles
         beq     @45cc
         cmp     #$06
         bne     @45b4
-        lda     $0ad6       ; map index
+        lda     $0ad6                   ; map index
         cmp     #$02
         bne     @45b4
         lda     $0af1
@@ -7858,10 +7864,10 @@ _c04583:
         lda     #$69
         jsr     PlaySfx
 @45ab:  lda     #$79
-        jsr     $ca2f       ; get event flag $00xx
+        jsr     $ca2f                   ; get event flag $00xx
         cmp     #$00
         bne     @45cc
-@45b4:  lda     $0adc       ; current vehicle
+@45b4:  lda     $0adc                   ; current vehicle
         asl2
         sta     $08
         tay
@@ -7873,12 +7879,12 @@ _c04583:
         beq     @45cc
         bra     @45e0
 @45cc:  lda     #$7f
-        jsr     $ca3c       ; get event flag $01xx
+        jsr     $ca3c                   ; get event flag $01xx
         cmp     #$00
         beq     @45d7
         lda     #$05
 @45d7:  clc
-        adc     $0ad6       ; map index
+        adc     $0ad6                   ; map index
         tax
         lda     f:_c045e4,x
 @45e0:  jsr     PlaySong
@@ -8265,7 +8271,7 @@ _c04741:
 
 _c048dd:
         ldx     $06
-@48df:  lda     $d8e000,x
+@48df:  lda     f:InitNPCSwitch,x
         sta     $0a54,x
         inx
         cpx     #$0080
@@ -8291,7 +8297,7 @@ _c048ed:
 
 _c048fa:
         ldx     $06
-@48fc:  lda     $d17000,x
+@48fc:  lda     f:CharProp,x
         sta     $0500,x
         inx
         cpx     #$0140
@@ -8369,7 +8375,7 @@ _c04931:
         sta     $17
         lda     $3f
         tax
-        lda     $c0fec1,x
+        lda     f:RNGTbl+1,x
         and     $17
         sta     $10a2
         sta     $10a6
@@ -8654,7 +8660,7 @@ _c04ad5:
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ load world map graphics ]
 
 _c04b56:
         lda     #$80
@@ -8663,12 +8669,12 @@ _c04b56:
         stx     $2116
         lda     $0ad6       ; map index
         tax
-        lda     f:_c04bbb,x
+        lda     f:WorldTileAttrTbl,x
         sta     $24
         stz     $23
         ldx     $23
         ldy     $06
-@4b70:  lda     $cff9c0,x
+@4b70:  lda     f:WorldTileAttr,x
         sta     $1873,y
         inx
         iny
@@ -8676,13 +8682,13 @@ _c04b56:
         bne     @4b70
         lda     $0ad6       ; map index
         tax
-        lda     f:_c04bbb,x
+        lda     f:WorldTileAttrTbl,x
         asl5
         sta     $24
         stz     $23
         ldx     $23
         ldy     #$0000
-@4b94:  lda     $db8000,x
+@4b94:  lda     f:WorldGfx,x
         sta     $0a
         inx
         and     #$0f
@@ -8702,7 +8708,8 @@ _c04b56:
 
 ; ---------------------------------------------------------------------------
 
-_c04bbb:
+; world map tilesets (identical to WorldTilesetTbl)
+WorldTileAttrTbl:
         .byte   0,1,0,2,2
 
 ; ---------------------------------------------------------------------------
@@ -9562,7 +9569,7 @@ LoadWorldMap:
         bne     @555d
         lda     $48
         sta     $47
-@555d:  jsr     $4b56
+@555d:  jsr     _c04b56
         jsr     TfrPartyGfx
         jsr     _c01e14
         ldx     #$6100
@@ -9617,12 +9624,12 @@ LoadWorldMap:
         jsr     $4cbc       ; copy data to vram
         jsr     $56f8
         ldx     #$0080
-@55e8:  lda     $dffcff,x
+@55e8:  lda     f:MapSpritePal+$0100-1,x
         sta     $0cff,x
         dex
         bne     @55e8
         ldx     #$0040
-@55f5:  lda     $dffbff,x
+@55f5:  lda     f:MapSpritePal-1,x
         sta     $0cff,x
         dex
         bne     @55f5
@@ -9633,7 +9640,7 @@ LoadWorldMap:
         bra     @560e
 @560c:  ldx     $06
 @560e:  ldy     $06
-@5610:  lda     $c0d340,x
+@5610:  lda     f:WindowPal,x
         sta     $0d80,y
         inx
         iny
@@ -9663,7 +9670,7 @@ LoadWorldMap:
         lda     $06
         shorta
         ldy     $06
-@5650:  lda     $cfea00,x   ; world map tile properties
+@5650:  lda     f:WorldTileProp,x
         sta     $1186,y
         inx
         iny
@@ -9680,11 +9687,11 @@ LoadWorldMap:
         longa
         xba
         clc
-        adc     #$f0c0
+        adc     #near WorldTileset
         tay
         lda     $06
         shorta
-        lda     #$cf
+        lda     #^WorldTileset
         jsr     $6b2d       ; load world tileset
         jsr     $6c4a
         jsr     $4583
@@ -9739,7 +9746,7 @@ LoadWorldMap:
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ load world map palette ]
 
 _c056f8:
 @56f8:  lda     $0ad6       ; map index
@@ -9749,7 +9756,7 @@ _c056f8:
         xba
         tax
         ldy     $06
-@5706:  lda     $cffcc0,x
+@5706:  lda     f:WorldPal,x
         sta     $0c00,y
         inx2
         iny2
@@ -9787,56 +9794,56 @@ _c0573e:
 LoadSubMap:
 @574c:  lda     #$01
         sta     $53
-        stz     $169f       ; clear hiryuu flag
+        stz     $169f                   ; clear hiryuu flag
         lda     $b9
         sta     $0adb
         inc
         sta     $bf
         jsr     $54a7
-        jsr     $5af6       ; load map properties
+        jsr     $5af6                   ; load map properties
         jsr     $5adb
-        jsr     $3eaa       ; load npcs
-        jsr     $6b44       ; load tile properties and tileset
-        jsr     $5875       ; load map layouts
-        jsr     $58db       ; load map palette
-        jsr     $5cbd       ; load treasure chests
+        jsr     $3eaa                   ; load npcs
+        jsr     $6b44                   ; load tile properties and tileset
+        jsr     $5875                   ; load map layouts
+        jsr     $58db                   ; load map palette
+        jsr     $5cbd                   ; load treasure chests
         jsr     $63d4
         jsr     $580e
         jsr     $57f9
         jsr     $54f6
-        ldx     $0971
+        ldx     $0971                   ; set window color
         stx     $0c02
-        jsr     $591a       ; load map graphics
+        jsr     $591a                   ; load map graphics
         lda     $55
-        beq     @5792       ; branch if not a world map
+        beq     @5792                   ; branch if not a world map
         jsr     $5adb
-        jsr     $3d28       ; load npc graphics
+        jsr     $3d28                   ; load npc graphics
 @5792:  stz     $ba
         ldx     #$0002
         stx     $c0
-        jsr     $5b2d       ; init map color math
-        jsr     $6b44       ; load tile properties and tileset
+        jsr     $5b2d                   ; init map color math
+        jsr     $6b44                   ; load tile properties and tileset
         jsr     $6d0c
         jsr     _c06c6a
         jsr     _c08c92
-        jsr     _c08c2e       ; init hdma #1 (window 2 position)
+        jsr     _c08c2e                 ; init hdma #1 (window 2 position)
         jsr     _c08d0e
         jsr     $8b53
-        jsr     $9a96       ; init map animation
+        jsr     $9a96                   ; init map animation
         jsr     $5d30
         jsr     $2817
-        jsr     $928c       ; init map title
+        jsr     $928c                   ; init map title
         lda     #$fe
-        jsr     $ca3c       ; get event flag $01xx
+        jsr     $ca3c                   ; get event flag $01xx
         cmp     #$00
         bne     @57cc
-        lda     $1125       ; song
-        jsr     $460a       ; play song
-@57cc:  jsr     _c017e8       ; update local tile properties (normal map)
-        jsr     _c01372       ; update party z-level (destination tile)
-        jsr     _c013a6       ; update party z-level (current tile)
+        lda     $1125                   ; song
+        jsr     $460a                   ; play song
+@57cc:  jsr     _c017e8                 ; update local tile properties (normal map)
+        jsr     _c01372                 ; update party z-level (destination tile)
+        jsr     _c013a6                 ; update party z-level (current tile)
         jsr     UpdatePlayerSprite
-        jsr     $39b3       ; update object sprites
+        jsr     $39b3                   ; update object sprites
         jsr     $2973
         jsr     $2842
         lda     $110f
@@ -9938,7 +9945,7 @@ _c05875:
         jsr     $6aca       ; load map layout
         bra     @5894
 @588f:  lda     #$01
-        jsr     $6b21
+        jsr     _c06b21
 @5894:  longa
         lda     $1119       ; bg2 map layout
         and     #$0ffc
@@ -9953,7 +9960,7 @@ _c05875:
         jsr     $6aca       ; load map layout
         bra     @58b6
 @58b1:  lda     #$01
-        jsr     $6b21
+        jsr     _c06b21
 @58b6:  longa
         lda     $111a       ; bg3 map layout
         and     #$3ff0
@@ -9968,7 +9975,7 @@ _c05875:
         jsr     $6aca       ; load map layout
         bra     @58da
 @58d5:  lda     #$01
-        jsr     $6b21
+        jsr     _c06b21
 @58da:  rts
 
 ; ---------------------------------------------------------------------------
@@ -9983,7 +9990,7 @@ _c058db:
         lda     $06
         tay
         shorta
-@58e7:  lda     $c3bb00,x   ; map palette
+@58e7:  lda     f:MapPal,x
         sta     $0c00,y
         inx
         iny
@@ -9996,7 +10003,7 @@ _c058db:
         ldx     #$7fff
         stx     $0c06
         ldx     #$0080
-@5909:  lda     $dffbff,x   ; sprite palettes
+@5909:  lda     f:MapSpritePal-1,x
         sta     $0cff,x
         sta     $0d7f,x
         dex
@@ -10015,12 +10022,12 @@ _c0591a:
         xba
         asl2
         tax
-        lda     $dc2d84,x   ; pointers to map graphics
+        lda     f:MapGfxPtrs,x
         clc
-        adc     #$2e24
+        adc     #.loword(MapGfx)
         sta     $23
-        lda     #$00dc
-        adc     $dc2d86,x
+        lda     #.hiword(MapGfx)
+        adc     f:MapGfxPtrs+2,x
         and     #$00ff
         shorta
         sta     $25
@@ -10065,12 +10072,12 @@ _c0591a:
         xba
         asl2
         tax
-        lda     $dc2d84,x   ; pointers to map graphics
+        lda     f:MapGfxPtrs,x
         clc
-        adc     #$2e24
+        adc     #.loword(MapGfx)
         sta     $23
-        lda     #$00dc
-        adc     $dc2d86,x
+        lda     #.hiword(MapGfx)
+        adc     f:MapGfxPtrs+2,x
         and     #$00ff
         shorta
         sta     $25
@@ -10115,12 +10122,12 @@ _c0591a:
         and     #$03f0
         lsr2
         tax
-        lda     $dc2d84,x   ; pointers to map graphics
+        lda     f:MapGfxPtrs,x   ; pointers to map graphics
         clc
-        adc     #$2e24
+        adc     #.loword(MapGfx)
         sta     $23
-        lda     #$00dc
-        adc     $dc2d86,x
+        lda     #.hiword(MapGfx)
+        adc     f:MapGfxPtrs+2,x
         and     #$00ff
         shorta
         sta     $25
@@ -10166,13 +10173,13 @@ _c0591a:
         lsr
         xba
         tax
-        lda     $dc0000,x   ; map bg3 graphics
+        lda     f:MapBG3GfxPtrs,x
         clc
-        adc     #$0024
+        adc     #near MapBG3Gfx
         sta     $23
         lda     $06
         shorta
-        lda     #$dc
+        lda     #^MapBG3Gfx
         sta     $25
         ldx     #$4000
         stx     $2e
@@ -10185,12 +10192,12 @@ _c0591a:
         stx     $2e
         ldx     #$0600
         stx     $2c
-        ldx     #$d380      ; c0/d380 (menu window graphics)
+        ldx     #near WindowGfx
         stx     $23
-        lda     #$c0
+        lda     #^WindowGfx
         sta     $25
         jsr     $4cbc       ; copy data to vram
-        jsr     $257c
+        jsr     _c0257c
         ldx     $06
 @5aae:  lda     $0500,x
         and     #$40
@@ -10246,7 +10253,7 @@ _c05af6:
         sta     $211c
         ldx     $2134
         ldy     $06
-@5b0f:  lda     $ce9c00,x   ; map properties
+@5b0f:  lda     f:MapProp,x
         sta     $110c,y
         inx
         iny
@@ -11915,7 +11922,7 @@ _c06961:
 .endscope
 
 _c069a1:
-        lda     #$c7
+        lda     #^WorldTilemap
         sta     $25
         lda     $ba
         and     #$02
@@ -11940,14 +11947,18 @@ _c069a1:
         clc
         adc     $23
         tax
-        lda     $cfe000,x   ; pointer to world layout
+        lda     f:WorldTilemapPtrs,x   ; pointer to world layout
         sta     $23
+
+; check if we are in the 2nd bank - this code is very sloppy and might need
+; to be modified if any major world map changes are made
         cpx     #$0800
-        bcc     @69e4
-        lda     $cfe000,x
-        cmp     #$8000
+        bcc     @69e4                   ; skip if slice id less than $0400
+        lda     f:WorldTilemapPtrs,x
+        cmp     #$8000                  ; skip if low pointer is > $8000
         bcs     @69e4
-        inc     $25
+        inc     $25                     ; increment the bank
+
 @69e4:  lda     $06
         shorta
         ldx     $06
@@ -12070,25 +12081,25 @@ WorldModPtrs:
 
 _c06aca:
         stx     $71
-        lda     #$cb
+        lda     #^SubTilemap
         sta     $25
         longa
         ldx     $06
-        cpy     #$0000
+        cpy     #$0000                  ; this could be tya instead
         beq     @6af3
         inx2
         dey
         beq     @6af3
 @6ade:  inx2
-        lda     $cb0000,x
+        lda     f:SubTilemapPtrs,x
         dex2
-        cmp     $cb0000,x
+        cmp     f:SubTilemapPtrs,x
         bcs     @6aee
-        inc     $25
+        inc     $25                     ; figure out which bank we're in
 @6aee:  inx2
         dey
         bne     @6ade
-@6af3:  lda     $cb0000,x   ; pointer to map layout
+@6af3:  lda     f:SubTilemapPtrs,x      ; pointer to map layout
         sta     $04f0
         sta     $23
         lda     $0b71
@@ -12105,7 +12116,7 @@ _c06aca:
         jsl     Decomp_ext
         rts
 @6b1b:  ldx     $71
-        jsr     $6b21       ; clear tile layout
+        jsr     _c06b21                 ; clear tile layout
         rts
 
 ; ---------------------------------------------------------------------------
@@ -12154,13 +12165,13 @@ _c06b44:
         asl
         tax
         longa
-        lda     $cfc540,x   ; pointers to tile properties
+        lda     f:MapTilePropPtrs,x
         clc
-        adc     #$c540      ; cf/c540
+        adc     #near MapTilePropPtrs
         sta     $04f0
         lda     $06
         shorta
-        lda     #$cf
+        lda     #^MapTilePropPtrs
         sta     $04f2
         ldx     #$1186      ; 00/1186
         stx     $04f3
@@ -12171,13 +12182,13 @@ _c06b44:
         asl
         tax
         longa
-        lda     $cf0000,x   ; pointers to tilesets
+        lda     f:MapTilesetPtrs,x   ; pointers to tilesets
         clc
-        adc     #$0000      ; cf/0000
+        adc     #near MapTilesetPtrs
         sta     $04f0
         lda     $06
         shorta
-        lda     #$cf
+        lda     #^MapTilesetPtrs
         sta     $04f2
         ldx     #$6e22      ; 7f/6e22
         stx     $04f3
@@ -15169,17 +15180,17 @@ _c0990d:
         nop4
         ldx     $4216
         ldy     $06
-@9925:  lda     $cdfa40,x
+@9925:  lda     f:MapPalAnim,x
         sta     $165a,y
-        lda     $cdfa41,x
+        lda     f:MapPalAnim+1,x
         sta     $1658,y
-        lda     $cdfa42,x
+        lda     f:MapPalAnim+2,x
         sta     $165b,y
-        lda     $cdfa43,x
+        lda     f:MapPalAnim+3,x
         sta     $165c,y
-        lda     $cdfa44,x
+        lda     f:MapPalAnim+4,x
         sta     $165d,y
-        lda     $cdfa45,x
+        lda     f:MapPalAnim+5,x
         sta     $165e,y
         lda     #$00
         sta     $1657,y
@@ -15409,7 +15420,7 @@ _c09b01:
 @9b01:  longa
         ldx     $2e
         ldy     $06
-@9b07:  lda     $df9b00,x   ; map animation graphics
+@9b07:  lda     f:MapAnimGfx,x   ; map animation graphics
         sta     $0f00,y     ; copy 4 tiles
         inx2
         iny2
@@ -16115,7 +16126,7 @@ _c0a45f:
         jsr     $2137
         jsr     _c01ec5
         jsr     _c01e64
-        jsr     $420a
+        jsr     _c0420a
         jsr     $612b
         bra     @a4c4
 @a4a9:  jsr     _c017e8       ; update local tile properties (normal map)
@@ -16126,7 +16137,7 @@ _c0a45f:
         jsr     $237c       ; update party sprite
         jsr     $39b3       ; update object sprites
         jsr     $2842
-        jsr     $420a
+        jsr     _c0420a
 @a4c4:  jsr     $4e41       ; wait for vblank
         lda     $be
         and     #$7f
@@ -17082,9 +17093,9 @@ _c0ad54:
 ; ---------------------------------------------------------------------------
 
 _c0ad86:
-@ad86:  lda     #$c0
+@ad86:  lda     #^WindowPal
         sta     $25
-        ldx     #$d340
+        ldx     #near WindowPal
         stx     $23
         ldx     #$0020
         stx     $2c
@@ -17098,9 +17109,9 @@ _c0ad86:
 ; ---------------------------------------------------------------------------
 
 _c0ada0:
-@ada0:  lda     #$c0
+@ada0:  lda     #^WindowPal
         sta     $25
-        ldx     #$d340
+        ldx     #near WindowPal
         stx     $23
         ldx     #$0020
         stx     $2c
@@ -17934,7 +17945,7 @@ _c0b594:
 @b59c:  jsr     $4e41       ; wait for vblank
         jsr     $4cad       ; hide all sprites
         jsr     $b35c
-        jsr     $420a
+        jsr     _c0420a
         inc     $3d
         lda     $3d
         cmp     #$40
@@ -17987,8 +17998,8 @@ _c0b5fd:
         lda     #$1e
         sta     $e0
         sta     $e1
-        jsr     $b9f5
-        jsr     $420a
+        jsr     _c0b9f5
+        jsr     _c0420a
         rts
 
 ; ---------------------------------------------------------------------------
@@ -18035,8 +18046,8 @@ EventCmd_bf17:
         clc
         adc     #$0e
         sta     $e1
-        jsr     $b9f5
-        jsr     $420a
+        jsr     _c0b9f5
+        jsr     _c0420a
         jsr     $bc9f
         dec     $3d
         lda     $3d
@@ -18051,8 +18062,8 @@ EventCmd_bf17:
         lda     #$1e
         sta     $e0
         sta     $e1
-        jsr     $b9f5
-        jsr     $420a
+        jsr     _c0b9f5
+        jsr     _c0420a
         jsr     $bc9f
         lda     $3d
         cmp     #$e0
@@ -18095,8 +18106,8 @@ EventCmd_bf03:
         lda     #$1e
         sta     $e0
         sta     $e1
-        jsr     $b9f5
-@b6f0:  jsr     $420a
+        jsr     _c0b9f5
+@b6f0:  jsr     _c0420a
         inc     $3d
         bne     @b6d1
         stz     $d3
@@ -18509,7 +18520,7 @@ EventCmd_dd:
 ; [ event command $da:  ]
 
 EventCmd_da:
-@b9ef:  jsr     $b9f5       ;
+@b9ef:  jsr     _c0b9f5
         jmp     IncEventPtr4
 
 ; ---------------------------------------------------------------------------
@@ -20451,7 +20462,7 @@ _c0c6de:
         jsr     $2137
         jsr     _c01ec5
         jsr     _c01e64
-        jsr     $420a
+        jsr     _c0420a
         jsr     $612b
         rts
 @c6f8:  jsr     _c01ae4
@@ -20459,7 +20470,7 @@ _c0c6de:
         jsr     $237c       ; update party sprite
         jsr     $39b3       ; update object sprites
         jsr     $2842
-        jsr     $420a
+        jsr     _c0420a
         rts
 
 ; ---------------------------------------------------------------------------
@@ -21511,6 +21522,34 @@ RNGTbl:
 
 ; ===========================================================================
 
+.scope _c0d980
+        ARRAY_LENGTH = 28
+        Start = _c0d980Ptrs
+.endscope
+
+.segment "unknown_c0d980"
+
+; c0/d980
+_c0d980Ptrs:
+        ptr_tbl _c0d980
+
+; c0/d9b8
+_c0d980:
+.repeat _c0d980::ARRAY_LENGTH, i
+        array_item _c0d980, {i} := *
+        .incbin .sprintf("unknown_c0d980/unknown_c0d980_%04x.dat.lz", i)
+.endrep
+
+; ===========================================================================
+
+.segment "world_tilemap"
+
+; c7/0000
+WorldTilemap:
+        .incbin "world_tilemap.dat"
+
+; ===========================================================================
+
 .segment "event_script"
 
 ; c8/3320
@@ -21520,6 +21559,58 @@ EventScriptPtrs:
 ; c8/49dc
 EventScript:
         .incbin "event_script.dat"
+
+; ===========================================================================
+
+.segment "sub_tilemap"
+
+.scope SubTilemap
+        ARRAY_LENGTH = 323
+        Start = bank_start SubTilemap
+.endscope
+
+; cb/0000
+SubTilemapPtrs:
+        fixed_block $0290
+        ptr_tbl SubTilemap
+        end_ptr SubTilemap
+        end_fixed_block 0
+
+; cb/0290
+SubTilemap:
+        fixed_block $02f7b0
+.repeat SubTilemap::ARRAY_LENGTH, i
+        array_item SubTilemap, {i} := *
+        .incbin .sprintf("sub_tilemap/sub_tilemap_%04x.dat.lz", i)
+.endrep
+SubTilemap::End:
+        end_fixed_block 0
+
+; ===========================================================================
+
+.segment "map_pal_anim"
+
+; cd/fa40
+MapPalAnim:
+        fixed_block $01c0
+        .incbin "map_pal_anim.dat"
+
+; palette animation colors
+        .word   $017d,$029d,$4f7e,$009d,$0073,$273f,$129f,$0e1d
+        .word   $0d9d,$0cfa,$0cf3,$0cac,$25af
+        end_fixed_block 0
+
+; ===========================================================================
+
+.segment "npc_script"
+
+; ce/0000
+NPCScriptPtrs:
+        ptr_tbl NPCScript
+
+; ce/0740
+NPCScript:
+        .incbin "npc_script.dat"
 
 ; ===========================================================================
 
@@ -21535,15 +21626,115 @@ EventTrigger:
 
 ; ===========================================================================
 
-.segment "entrance"
+.segment "entrance_trigger"
 
 ; ce/36c0
-EntrancePtrs:
-        ptr_tbl Entrance
+EntranceTriggerPtrs:
+        ptr_tbl EntranceTrigger
 
 ; ce/3ac0
-Entrance:
-        .incbin "trigger/entrance.dat"
+EntranceTrigger:
+        fixed_block $1f00
+        .incbin "trigger/entrance_trigger.dat"
+        end_fixed_block 0
+
+; ===========================================================================
+
+.segment "npc_prop"
+
+; ce/59c0
+NPCPropPtrs:
+        ptr_tbl NPCProp
+        end_ptr NPCProp
+
+; ce/5dc2
+NPCProp:
+        .incbin "trigger/npc_prop.dat"
+NPCProp::End:
+
+; ===========================================================================
+
+.segment "map_prop"
+
+; ce/9c00
+MapProp:
+.repeat 512, i
+        .incbin .sprintf("map_prop/map_prop_%04x.dat", i)
+.endrep
+
+; ===========================================================================
+
+.scope MapTileset
+        ARRAY_LENGTH = 28
+        Start = MapTilesetPtrs
+.endscope
+
+.segment "map_tileset"
+
+        fixed_block $c540
+
+; cf/0000
+MapTilesetPtrs:
+        ptr_tbl MapTileset
+
+; cf/0038
+MapTileset:
+.repeat MapTileset::ARRAY_LENGTH, i
+        array_item MapTileset, {i} := *
+        .incbin .sprintf("map_tileset/map_tileset_%04x.dat.lz", i)
+.endrep
+
+        end_fixed_block 0
+
+; ===========================================================================
+
+.scope MapTileProp
+        ARRAY_LENGTH = 22
+        Start = MapTilePropPtrs
+.endscope
+
+.segment "map_tile_prop"
+
+; cf/c540
+MapTilePropPtrs:
+        ptr_tbl MapTileProp
+        end_ptr MapTileProp
+
+; cf/c56e
+MapTileProp:
+.repeat MapTileProp::ARRAY_LENGTH, i
+        array_item MapTileProp, {i} := *
+        .incbin .sprintf("map_tile_prop/map_tile_prop_%04x.dat.lz", i)
+.endrep
+MapTileProp::End:
+
+; ===========================================================================
+
+.segment "world_tilemap_ptrs"
+
+; cf/e000
+WorldTilemapPtrs:
+        ptr_tbl WorldTilemap
+
+; ===========================================================================
+
+.segment "world_tile_prop"
+
+; cf/ea00
+WorldTileProp:
+        .incbin "world_tile_prop/bartz_world.dat"
+        .incbin "world_tile_prop/galuf_world.dat"
+        .incbin "world_tile_prop/underwater.dat"
+
+; ===========================================================================
+
+.segment "world_tileset"
+
+; cf/f0c0
+WorldTileset:
+        .incbin "world_tileset/bartz_world.dat"
+        .incbin "world_tileset/galuf_world.dat"
+        .incbin "world_tileset/underwater.dat"
 
 ; ===========================================================================
 
@@ -21555,10 +21746,38 @@ RandBattleGrp:
 
 ; ===========================================================================
 
+.segment "char_prop"
+
+; d1/7000
+CharProp:
+        .incbin "char_prop.dat"
+
+; ===========================================================================
+
 .segment "event_battle_grp"
 
 ; d0/7800
 EventBattleGrp:
         .incbin "event_battle_grp.dat"
+
+; ===========================================================================
+
+.segment "init_npc_switch"
+
+; d8/e000
+InitNPCSwitch:
+        .incbin "init_npc_switch.dat"
+
+; ===========================================================================
+
+.segment "event_cond"
+
+; d8/e080
+EventCondPtrs:
+        ptr_tbl EventCond
+
+; d8/e600
+EventCond:
+        .incbin "event_cond.dat"
 
 ; ===========================================================================

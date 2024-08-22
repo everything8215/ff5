@@ -44,10 +44,9 @@ def encode_lzss(src):
         if max_run >= 3:
             # sequence is compressible
             # add compressed data to line buffer
-            w = ((max_run - 3) << 11) | max_offset
-            line[l] = w & 0xFF
+            line[l] = max_offset & 0xFF
             l += 1
-            line[l] = w >> 8
+            line[l] = ((max_offset >> 3) & 0xE0) | (max_run - 3)
             l += 1
             s += max_run
             b += max_run
@@ -80,8 +79,8 @@ def encode_lzss(src):
         d += l
 
     # fill in the length
-    dest[0] = d & 0xFF
-    dest[1] = (d >> 8) & 0xFF
+    dest[0] = len(src) & 0xFF
+    dest[1] = (len(src) >> 8) & 0xFF
 
     return dest[:d]
 
@@ -89,8 +88,11 @@ def encode_lzss(src):
 def decode_lzss(src):
 
     # return an empty buffer if the source buffer is empty
-    if len(src) < 2:
+    if len(src) == 0:
         return bytearray(0)
+    elif len(src) == 1:
+        # submap tilemaps filled with a single byte
+        return src
 
     s = 0  # source pointer
 
@@ -127,9 +129,12 @@ def decode_lzss(src):
                 b = (b + 1) & 0x07FF
             else:
                 # 2-bytes (compressed)
-                w = src[s] | (src[s + 1] << 8)
-                s += 2
-                r = (w >> 11) + 3
+                w = src[s]
+                s += 1
+                r = src[s]
+                s += 1
+                w |= (r & 0xE0) << 3
+                r = (r & 0x1F) + 3
 
                 for i in range(r):
                     c = buffer[(w + i) & 0x07FF]
@@ -148,7 +153,7 @@ def decode_lzss(src):
                 d += l
 
             # reached end of compressed data
-            if (s >= length):
+            if (d >= length):
                 break
 
             header >>= 1

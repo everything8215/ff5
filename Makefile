@@ -1,7 +1,7 @@
 
 # the assembler
 ASM = ca65
-ASMFLAGS = -I include
+ASMFLAGS = -g -I include
 VERSION_EXT =
 
 # the linker
@@ -76,12 +76,12 @@ $(foreach M, $(MODULES), $(eval $(call MAKE_MODULE,$(M))))
 # rules for making ROM files
 $(FF5_JP_PATH): cfg/ff5-jp.cfg $(OBJ_FILES_JP)
 	@mkdir -p $(ROM_DIR)
-	$(LINK) $(LINKFLAGS) -m $(@:sfc=map) -o $@ -C $< $(OBJ_FILES_JP)
+	$(LINK) $(LINKFLAGS) --dbgfile $(@:sfc=dbg) -m $(@:sfc=map) -o $@ -C $< $(OBJ_FILES_JP)
 	@$(RM) -rf $(LZ_DIR)
 	$(FIX_CHECKSUM) $@
 
 $(FF5_EN_PATH): cfg/ff5-en.cfg $(OBJ_FILES_EN)
 	@mkdir -p $(ROM_DIR)
-	$(LINK) $(LINKFLAGS) -m $(@:sfc=map) -o $@ -C $< $(OBJ_FILES_EN)
+	$(LINK) $(LINKFLAGS) --dbgfile $(@:sfc=dbg) -m $(@:sfc=map) -o $@ -C $< $(OBJ_FILES_EN)
 	@$(RM) -rf $(LZ_DIR)
 	$(FIX_CHECKSUM) $@

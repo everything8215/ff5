@@ -21,6 +21,9 @@
 |               |                                                           |
 | C0D340-C0D380 | menu window palette                                       |
 | C0D380-C0D980 | menu window graphics (4bpp)                               |
+| C0D980-C0D9B8 | pointers to ??? (+$C0D980)                                |
+| C0D9B8-C0DF00 | ???                                                       |
+| C0DF00-C0E600 | overlay sprite graphics (1bpp)                            |
 |               |                                                           |
 | C0E841-C0E861 | pointers to menu tutorial scripts                         |
 | C0E861-C0E8DF | menu tutorial scripts                                     |
