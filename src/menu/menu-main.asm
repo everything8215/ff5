@@ -22,9 +22,7 @@
 
 ; c2/a000
 ExecMenu_ext:
-        rtl
-        nop
-        ; bra ExecMenu
+        bra ExecMenu
 
 UpdateJoypad_ext:
         jsr     _c2ff7d
@@ -45,6 +43,11 @@ _a012:  jsr     _c2fe5b
 ; ---------------------------------------------------------------------------
 
 ExecMenu:
+
+        lda     #$f0                    ; hack to force use a tent
+        sta     $0139
+        rtl
+
 @a016:  jsr     $a11b
         stz     $39
         lda     $34

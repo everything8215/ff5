@@ -81,8 +81,8 @@
     },
     {
       "file_path": "src/field/map_tile_prop/map_tile_prop_%s.dat.lz",
-      "asset_range": "0xCFC56E-0xCFD7CA",
-      "ptr_range": "0xCFC540-0xCFC56B",
+      "asset_range": "0xCFC56E-0xCFD7CB",
+      "ptr_range": "0xCFC540-0xCFC56D",
       "ptr_offset": "0xCFC540"
     },
     {

@@ -21689,7 +21689,7 @@ MapTileset:
 ; ===========================================================================
 
 .scope MapTileProp
-        ARRAY_LENGTH = 22
+        ARRAY_LENGTH = 23
         Start = MapTilePropPtrs
 .endscope
 
@@ -21698,7 +21698,6 @@ MapTileset:
 ; cf/c540
 MapTilePropPtrs:
         ptr_tbl MapTileProp
-        end_ptr MapTileProp
 
 ; cf/c56e
 MapTileProp:
