@@ -44,35 +44,38 @@ _a012:  jsr     _c2fe5b
 
 ExecMenu:
 
+        stz     $0139
+        lda     $0134
+        bne     :+
         lda     #$f0                    ; hack to force use a tent
         sta     $0139
-        rtl
+:       rtl
 
-@a016:  jsr     $a11b
-        stz     $39
-        lda     $34
-        and     #7
-        asl
-        tax
-        lda     $c0e600,x
-        sta     $c7
-        shorta
-        jmp     ($01c7)
+; @a016:  jsr     InitMenu
+;         stz     $39
+;         lda     $34
+;         and     #7
+;         asl
+;         tax
+;         lda     $c0e600,x
+;         sta     $c7
+;         shorta
+;         jmp     ($01c7)
 
 ; ---------------------------------------------------------------------------
 
 CommonReturn:
-@a02d:  jsr     $b2bd
-        shorta
-        rtl
+; @a02d:  jsr     $b2bd
+;         shorta
+;         rtl
 
 ; ---------------------------------------------------------------------------
 
 ; c2/a11b
 InitMenu:
-@a11b:  longai
-        lda     #$0100
-        tcd
+; @a11b:  longai
+;         lda     #$0100
+;         tcd
 
         rts
 
