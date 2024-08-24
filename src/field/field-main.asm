@@ -76,16 +76,16 @@ _0000:  sei
         lda     #$f1                    ; cutscene $f1 (title/credits)
         jsr     ShowCutscene
         jsr     InitHardware
-        jsr     $490a
+        jsr     _c0490a
         lda     #3
         sta     $0134
-        jsl     ExecMenu_ext
+        jsl     ExecMenu_ext            ; game load menu
         jsr     _c044e3
         jsr     InitHardware
         jsr     InitInterrupts
         lda     $0139
-        beq     _007d                   ; branch if there are no saved games
-        jsr     _c0491d                   ; reset ram $0b00-$1d00
+        beq     NewGame
+        jsr     _c0491d                 ; reset ram $0b00-$1d00
         lda     $0af9
         sta     $0b60
         lsr
@@ -101,7 +101,9 @@ _0000:  sei
         sta     $1089
         jsr     LoadMapNoFade
         jmp     Main
-_007d:  jsr     _c048fa                 ; init character data (new game)
+
+NewGame:
+        jsr     _c048fa                 ; init character data (new game)
         jsr     _c048ed                 ; init event flags
         jsr     _c048dd                 ; init npc flags
         jsr     _c04528                 ; init character names
@@ -153,7 +155,7 @@ _00c1:  lda     $0b61
         cpx     #$0005
         bcc     _00ea                   ; branch if not on a world map
         lda     #$fd
-        jsr     $ca3c                   ; get event flag $01xx
+        jsr     _c0ca3c                   ; get event flag $01xx
         cmp     #$00
         beq     _00ef
 _00ea:  lda     #$80                    ; enable tent/cabin/save
@@ -169,7 +171,7 @@ _00fc:  lda     $0135
         sta     $0135
         lda     #$00                    ; menu command $00 (main menu)
         sta     $0134
-        jsr     _c0454c                   ; open menu
+        jsr     OpenMenu
         lda     #$02
         sta     $55
         lda     $0ad8
@@ -194,7 +196,7 @@ _013e:  stz     $16aa
         jsr     PoisonMosaic                   ; pixelate screen (poison)
         jmp     _00ad
 _0147:  jsr     CheckTriggers
-        jsr     $a18b                   ; update timer
+        jsr     _c0a18b                   ; update timer
         lda     $58
         beq     _0156
         stz     $58
@@ -269,14 +271,14 @@ _01ef:  jsr     ExecTriggerScript
         beq     _01fb
         stz     $58
         jmp     _00ad
-_01fb:  jsr     $cb11
+_01fb:  jsr     _c0cb11
         lda     $55
         beq     _0220
         lda     #$ff
-        jsr     $ca3c                   ; get event flag $01xx
+        jsr     _c0ca3c                   ; get event flag $01xx
         cmp     #$00
         bne     _0220
-        jsr     $ccf0                   ; random battle
+        jsr     RandomBattle
         lda     $0ad8
         sta     $1088
         lda     $0ad9
@@ -288,10 +290,10 @@ _0220:  stz     $55
         and     #$40
         beq     _0246
         lda     #$fb
-        jsr     $ca3c                   ; get event flag $01xx
+        jsr     _c0ca3c                   ; get event flag $01xx
         cmp     #$00
         beq     _0246
-        jsr     $6632                   ; show mini-map
+        jsr     ShowMinimap
         lda     $0ad8
         sta     $1088
         lda     $0ad9
@@ -300,9 +302,9 @@ _0220:  stz     $55
         jmp     _00ad
 _0246:  jsr     _c00f8c
         jsr     _c01a1d
-        jsr     $4c95                   ; clear sprite data
+        jsr     _c04c95                   ; clear sprite data
         jsr     _c02137
-        jsr     $612b
+        jsr     _c0612b
         jsr     _c01ec5
         jsr     _c01e64
         jsr     _c0420a
@@ -320,14 +322,14 @@ _026e:  lda     $10fb       ; tile properties byte 2
         ldx     #$001c
         jsr     ExecTriggerScript
         jmp     _00ad
-_0281:  jsr     $ca69       ;
+_0281:  jsr     _c0ca69       ;
         lda     $55
         beq     _029a
         lda     #$ff
-        jsr     $ca3c       ; get event flag $01ff (disable random battles)
+        jsr     _c0ca3c       ; get event flag $01ff (disable random battles)
         cmp     #$00
         bne     _029a
-        jsr     $ccf0       ; random battle
+        jsr     RandomBattle
         jsr     ReloadMap
         jmp     _00ad
 _029a:  stz     $55
@@ -343,8 +345,8 @@ _02ac:  lda     $58
         jmp     _00ad
 _02b5:  jsr     _c01ae4
         jsr     _c03bac
-        jsr     $4c95       ; clear sprite data
-        jsr     $4834
+        jsr     _c04c95       ; clear sprite data
+        jsr     _c04834
         jsr     UpdatePlayerSprite
         jsr     _c039b3       ; update object sprites
         jsr     _c02842
@@ -381,25 +383,25 @@ _02d1:  php
         sta     $2131       ; addition/subtraction
         lda     $49
         sta     $212d       ; subscreen designation
-        jsr     $4d67       ; copy color palettes to ppu
-        jsr     $4d3e       ; copy sprite data to ppu
-        jsr     $4a7a
-        jsr     $4653       ; update screen pixelation
-        jsr     $49ff       ; update fixed color
+        jsr     _c04d67       ; copy color palettes to ppu
+        jsr     _c04d3e       ; copy sprite data to ppu
+        jsr     _c04a7a
+        jsr     _c04653       ; update screen pixelation
+        jsr     _c049ff       ; update fixed color
         lda     $a3
         beq     _0314
         stz     $a3
-        jsr     $40d8       ; copy data to vram
+        jsr     _c040d8       ; copy data to vram
 _0314:  lda     $52
         jne     _041f
-        jsr     $4bc0       ; update scrolling registers
+        jsr     _c04bc0       ; update scrolling registers
         lda     $53
         bne     _0360
-        jsr     $637e
-        jsr     $9695
-        jsr     $975f
-        jsr     $964c
-        jsr     $9722
+        jsr     _c0637e
+        jsr     _c09695
+        jsr     _c0975f
+        jsr     _c0964c
+        jsr     _c09722
         lda     $9f
         beq     _0348
         stz     $9f
@@ -407,9 +409,9 @@ _0314:  lda     $52
         beq     _0348
         and     #$01
         bne     _0345
-        jsr     $64bb
+        jsr     _c064bb
         jmp     _0348
-_0345:  jsr     $6465
+_0345:  jsr     _c06465
 _0348:  lda     $a1
         beq     _0354
         stz     $a1
@@ -423,7 +425,7 @@ _035d:  jmp     _0408
 _0360:  lda     $a0
         beq     _036c
         stz     $a0
-        jsr     $5e2b       ; copy tile layout to vram ???
+        jsr     _c05e2b       ; copy tile layout to vram ???
         jmp     _0408
 _036c:  lda     $a5
         beq     _0378
@@ -435,7 +437,7 @@ _0378:  lda     $a6
         stz     $a6
         ldx     $06
         stx     $71
-        jsr     $6e7a
+        jsr     _c06e7a
         jsr     _c08be4
         jmp     _03f9
 _038b:  lda     $a7
@@ -450,33 +452,33 @@ _0392:  jsr     _c08f78       ; draw yes/no indicator
         bne     _03c7
         ldx     $06
         stx     $71
-        jsr     $6df5       ; horizontal scrolling (bg1)
+        jsr     _c06df5       ; horizontal scrolling (bg1)
         lda     $1121
         and     #$40
         bne     _03b7
         ldx     #$1000
         stx     $71
-        jsr     $6df5       ; horizontal scrolling (bg2)
+        jsr     _c06df5       ; horizontal scrolling (bg2)
 _03b7:  lda     $1121
         bmi     _03c4
         ldx     #$2000
         stx     $71
-        jsr     $6df5       ; horizontal scrolling (bg3)
+        jsr     _c06df5       ; horizontal scrolling (bg3)
 _03c4:  jmp     _0408
 _03c7:  ldx     $06
         stx     $71
-        jsr     $6e7a       ; vertical scrolling (bg1)
+        jsr     _c06e7a       ; vertical scrolling (bg1)
         lda     $1121
         and     #$40
         bne     _03dd
         ldx     #$1000
         stx     $71
-        jsr     $6e7a       ; vertical scrolling (bg2)
+        jsr     _c06e7a       ; vertical scrolling (bg2)
 _03dd:  lda     $1121
         bmi     _03ea
         ldx     #$2000
         stx     $71
-        jsr     $6e7a       ; vertical scrolling (bg3)
+        jsr     _c06e7a       ; vertical scrolling (bg3)
 _03ea:  jmp     _0408
 _03ed:  lda     $a1
         beq     _03f9
@@ -488,17 +490,17 @@ _03f9:  lda     $a2
         stz     $a2
         jsr     _c01e14
         jmp     _0408
-_0405:  jsr     $996d       ; copy map animation graphics to vram
-_0408:  jsr     $5e8a
-        jsr     $5f3e
+_0405:  jsr     _c0996d       ; copy map animation graphics to vram
+_0408:  jsr     _c05e8a
+        jsr     _c05f3e
         lda     $5e         ; hdma enable
         sta     $420c
-        jsr     $9a00
-        jsr     $9799       ; update palette animation
-        jsr     $4931
-        jsr     $47aa
-_041f:  jsr     $4c90
-        jsr     $4d8e
+        jsr     _c09a00
+        jsr     _c09799       ; update palette animation
+        jsr     _c04931
+        jsr     _c047aa
+_041f:  jsr     _c04c90
+        jsr     _c04d8e
         inc     $094a
         bne     _0437
         inc     $094b
@@ -572,28 +574,28 @@ _047c:  ldx     $23
         cmp     #$fe                    ; $fe: if event flag $00xx is set
         bne     _049b
         lda     f:EventCond::Start+1,x
-        jsr     $ca2f                   ; get event flag $00xx
+        jsr     _c0ca2f                   ; get event flag $00xx
         cmp     #$00
         bne     _04d1
         jmp     _05e5
 _049b:  cmp     #$fd                    ; $fd: if event flag $00xx is clear
         bne     _04ad
         lda     f:EventCond::Start+1,x
-        jsr     $ca2f                   ; get event flag $00xx
+        jsr     _c0ca2f                   ; get event flag $00xx
         cmp     #$00
         beq     _04d1
         jmp     _05e5
 _04ad:  cmp     #$fc                    ; $fc: if event flag $01xx is set
         bne     _04bf
         lda     f:EventCond::Start+1,x
-        jsr     $ca3c                   ; get event flag $01xx
+        jsr     _c0ca3c                   ; get event flag $01xx
         cmp     #$00
         bne     _04d1
         jmp     _05e5
 _04bf:  cmp     #$fb                    ; $fb: if event flag $01xx is clear
         bne     _04da
         lda     f:EventCond::Start+1,x
-        jsr     $ca3c                   ; get event flag $01xx
+        jsr     _c0ca3c                   ; get event flag $01xx
         cmp     #$00
         jne     _05e5
 _04d1:  ldx     $23
@@ -925,11 +927,11 @@ _07a4:  sty     $169c
         txa
         asl
         tax
-        lda     f:_c00897,x
+        lda     f:BoardVehicleTbl,x
         sta     $26
-        lda     f:_c00897+1,x
+        lda     f:BoardVehicleTbl+1,x
         sta     $27
-        jsr     $4583
+        jsr     _c04583
         lda     #$01
         sta     $58
         jmp     ($0b26)
@@ -978,9 +980,9 @@ _0832:  iny4
         lsr
         inc2
         tax
-        lda     f:_c008a5,x
+        lda     f:LandVehicleTbl,x
         sta     $26
-        lda     f:_c008a5+1,x
+        lda     f:LandVehicleTbl+1,x
         sta     $27
         lda     #$01
         sta     $58
@@ -1009,7 +1011,7 @@ _0853:  ldy     $169c
         sta     $0add,y
         lda     #$02
         sta     $c0
-        jsr     $4583
+        jsr     _c04583
         lda     $57
         bne     _088f
         ldx     #$0240
@@ -1026,12 +1028,24 @@ _c00890:
 _0890:  .byte $00,$10,$20,$40,$00,$00,$80
 
 ; board vehicle subroutines
-_c00897:
-_0897:  .addr $0000,$08ba,$08c1,$08ef,$098d,$0a4d,$0a57
+BoardVehicleTbl:
+        .addr 0
+        .addr BoardChoco
+        .addr BoardBlackChoco
+        .addr BoardHiryuu
+        .addr BoardSubmarine
+        .addr BoardShip
+        .addr BoardAirship
 
 ; land vehicle subroutines
-_c008a5:
-_08a5:  .addr $0000,$08bb,$091d,$0955,$098e,$0a54,$0aa3
+LandVehicleTbl:
+        .addr 0
+        .addr LandChoco
+        .addr LandBlackChoco
+        .addr LandHiryuu
+        .addr LandSubmarine
+        .addr LandShip
+        .addr LandAirship
 
 _c008b3:
 _08b3:  .byte $02,$04,$04,$04,$04,$04,$10
@@ -1059,7 +1073,7 @@ BoardBlackChoco:
 _08c1:  lda     #$00
         sta     $3d
 _08c5:  jsr     WaitVBlank
-        jsr     $4c95       ; clear sprite data
+        jsr     _c04c95       ; clear sprite data
         ldy     $169c
         lda     $3d
         tax
@@ -1067,7 +1081,7 @@ _08c5:  jsr     WaitVBlank
         ora     #$80
         sta     $0ade,y     ; vehicle height
         jsr     _c02137
-        jsr     $612b
+        jsr     _c0612b
         jsr     _c01ec5
         jsr     _c01e64
         inc     $3d
@@ -1084,7 +1098,7 @@ BoardHiryuu:
 _08ef:  lda     #$00
         sta     $3d
 _08f3:  jsr     WaitVBlank
-        jsr     $4c95       ; clear sprite data
+        jsr     _c04c95       ; clear sprite data
         ldy     $169c
         lda     $3d
         tax
@@ -1092,7 +1106,7 @@ _08f3:  jsr     WaitVBlank
         ora     #$80
         sta     $0ade,y
         jsr     _c02137
-        jsr     $612b
+        jsr     _c0612b
         jsr     _c01ec5
         jsr     _c01e64
         inc     $3d
@@ -1111,7 +1125,7 @@ _091d:  lda     #$03
         lda     #$3f
         sta     $3d
 _0926:  jsr     WaitVBlank
-        jsr     $4c95       ; clear sprite data
+        jsr     _c04c95       ; clear sprite data
         ldy     $169c
         lda     $3d
         tax
@@ -1119,7 +1133,7 @@ _0926:  jsr     WaitVBlank
         ora     #$80
         sta     $0ade,y
         jsr     _c02137
-        jsr     $612b
+        jsr     _c0612b
         jsr     _c01ec5
         jsr     _c01e64
         dec     $3d
@@ -1139,7 +1153,7 @@ _0955:  lda     #$03
         lda     #$3f
         sta     $3d
 _095e:  jsr     WaitVBlank
-        jsr     $4c95       ; clear sprite data
+        jsr     _c04c95       ; clear sprite data
         ldy     $169c
         lda     $3d
         tax
@@ -1147,7 +1161,7 @@ _095e:  jsr     WaitVBlank
         ora     #$80
         sta     $0ade,y
         jsr     _c02137
-        jsr     $612b
+        jsr     _c0612b
         jsr     _c01ec5
         jsr     _c01e64
         dec     $3d
@@ -1179,7 +1193,7 @@ _098e:  lda     #$03
         jsr     _c009c6
         ldx     #$002a
         jsr     ExecTriggerScript
-        jsr     $4a68
+        jsr     _c04a68
         lda     #$01
         sta     $bd
         lda     #$28
@@ -1231,7 +1245,7 @@ _09f2:  inc     $3d
 .proc _c009f7
 _09f7:  lda     #$01
         sta     $5b
-        jsr     $4798
+        jsr     _c04798
         lda     #$88
         sta     $43
         lda     #$f0
@@ -1301,12 +1315,12 @@ _0a54:  stz     $58
 ; [ board airship ]
 
 BoardAirship:
-_0a57:  jsr     $4798
+_0a57:  jsr     _c04798
         lda     #$00
         sta     $3d
 _0a5e:  jsr     WaitVBlank
         jsr     _c05bf8
-        jsr     $4c95       ; clear sprite data
+        jsr     _c04c95       ; clear sprite data
         ldy     $169c
         lda     $3d
         tax
@@ -1323,11 +1337,11 @@ _0a5e:  jsr     WaitVBlank
         sta     $1879
         lda     #$7b
         sta     $187a
-        jsr     $4741
+        jsr     _c04741
 _0a8e:  jsr     _c02137
-        jsr     $612b
+        jsr     _c0612b
         jsr     _c01e64
-        jsr     $47f7
+        jsr     _c047f7
         inc     $3d
         lda     $3d
         cmp     #$40
@@ -1358,7 +1372,7 @@ _0ac5:  lda     $10fa       ; world tile properties byte 1
         jsr     _c009c6
         ldx     #$002e
         jsr     ExecTriggerScript
-        jsr     $4a68
+        jsr     _c04a68
         lda     #$01
         sta     $bd
         lda     #$28
@@ -1371,13 +1385,13 @@ _0ac5:  lda     $10fa       ; world tile properties byte 1
         and     #$e0
         ora     #$15
         sta     $0af1
-        jsr     $4583
+        jsr     _c04583
         jsr     WaitVBlank
 _0afa:  rts
 _0afb:  lda     $57
         bne     _0b5c
         lda     #$fa
-        jsr     $ca3c       ; get event flag $01xx
+        jsr     _c0ca3c       ; get event flag $01xx
         cmp     #$00
         beq     _0b5c
         jsr     _c00c9f
@@ -1422,7 +1436,7 @@ _0b5c:  lda     #$2f
         sta     $3d
 _0b60:  jsr     WaitVBlank
         jsr     _c05bf8
-        jsr     $4c95       ; clear sprite data
+        jsr     _c04c95       ; clear sprite data
         ldy     $169c
         lda     $3d
         tax
@@ -1432,7 +1446,7 @@ _0b60:  jsr     WaitVBlank
         ora     #$80
         sta     $0ade,y
         jsr     _c02137
-        jsr     $612b
+        jsr     _c0612b
         jsr     _c01e64
         jsr     _c05bf8
         dec     $3d
@@ -1459,7 +1473,7 @@ _0b60:  jsr     WaitVBlank
         sta     $c0
         jsr     _c02137
         jsr     WaitVBlank
-        jsr     $4583
+        jsr     _c04583
         jsr     WaitVBlank
         rts
 _0bc8:  stz     $0adc
@@ -1471,7 +1485,7 @@ _0bd1:  lda     $0adc
         lda     $57
         bne     _0bef
         lda     #$f9
-        jsr     $ca3c       ; get event flag $01xx
+        jsr     _c0ca3c       ; get event flag $01xx
         cmp     #$00
         beq     _0bef
         jsr     _c00c9f
@@ -1491,7 +1505,7 @@ _0bef:  lda     #$08
         sta     $0adb
         lda     #$10
         sta     $c0
-        jsr     $4583
+        jsr     _c04583
         jsr     _c022fb
         lda     #$01
         sta     $5b
@@ -1535,9 +1549,9 @@ _c00c4f:
 
 _0c9f:  stz     $1697
 _0ca2:  jsr     WaitVBlank
-        jsr     $4c95       ; clear sprite data
+        jsr     _c04c95       ; clear sprite data
         jsr     _c02137
-        jsr     $612b
+        jsr     _c0612b
         jsr     _c01e64
         lda     $03
         and     #$80
@@ -1616,7 +1630,7 @@ _0d3d:  lda     $61
         bne     _0d73
         jsr     _c017e8       ; update local tile properties (normal map)
         lda     #$f1
-        jsr     $ca3c       ; get event flag $01xx
+        jsr     _c0ca3c       ; get event flag $01xx
         cmp     #$00
         bne     _0d63
         lda     $02
@@ -1690,7 +1704,7 @@ _0dd3:  longa
         lda     #$00
         xba
         sta     $16a1
-        jsr     $ca16                   ; get treasure flag
+        jsr     _c0ca16                   ; get treasure flag
         cmp     #$00
         bne     _0dd2
         lda     #$01
@@ -1720,7 +1734,7 @@ _0dd3:  longa
         stx     $2c
         lda     #$12
         sta     $16b3
-        jsr     $6f08
+        jsr     _c06f08
         bra     _0e33
 _0e2e:  lda     #$68
         jsr     PlaySfx
@@ -1735,26 +1749,26 @@ _0e33:  plx
         bne     _0e63
         jsr     CalcGil
         jsr     GiveGil
-        jsr     $4dd7
+        jsr     _c04dd7
         ldx     #$0003
         stx     $af
         jsr     ShowDlg
         lda     $16a1
-        jsr     $ca21
+        jsr     _c0ca21
         rts
 _0e63:  cmp     #$20                    ; spell
         bne     _0e7e
 _0e67:  lda     $12
         sta     $16a3
-        jsr     $c9a5                   ; give magic
+        jsr     _c0c9a5                   ; give magic
         ldx     #$0004
         stx     $af
         jsr     ShowDlg
         lda     $16a1
-        jsr     $ca21
+        jsr     _c0ca21
         rts
 _0e7e:  lda     $12                     ; item
-        jsr     $bfdd
+        jsr     _c0bfdd
         cpy     #$0100
         beq     _0e98
         lda     $0740,y
@@ -1777,7 +1791,7 @@ _0ead:  ldx     #$0002
         stx     $af
         jsr     ShowDlg
         lda     $16a1
-        jsr     $ca21
+        jsr     _c0ca21
         rts
 _0ebc:  ldx     #$0005                  ; monster-in-a-box
         stx     $af
@@ -1789,7 +1803,7 @@ _0ebc:  ldx     #$0005                  ; monster-in-a-box
         ora     #$40
         ldx     $11
         phx
-        jsr     $bde6                   ; event battle
+        jsr     _c0bde6                   ; event battle
         lda     $09c4
         and     #$01
         beq     _0ee4                   ; branch if party was not defeated
@@ -1959,12 +1973,12 @@ _1003:  stz     $ba
 _1006:  sta     $ba
         lda     $0ad9
         sta     $76
-        jsr     $69a1
+        jsr     _c069a1
         lda     $0ad9
         sta     $76
         lda     $0ad8
         sta     $75
-        jsr     $6513
+        jsr     _c06513
         inc     $9f
         stz     $59
         stz     $16aa
@@ -1973,9 +1987,9 @@ _1006:  sta     $ba
         jsr     DoPoisonDmg
 _102c:  jsr     _c0103a
         lda     #$fc
-        jsr     $c796
+        jsr     _c0c796
         lda     #$fd
-        jsr     $c796
+        jsr     _c0c796
         rts
 
 .endproc
@@ -2118,7 +2132,7 @@ _10e8:  lda     $c4
         sta     $0adf,y
         lda     $0ad9
         sta     $0ae0,y
-        jsr     $4583
+        jsr     _c04583
         jsr     WaitVBlank
         rts
 _112a:  stz     $c4
@@ -2395,9 +2409,9 @@ _134e:  lda     $ba
         sta     $0adb       ; set facing direction
 _1354:  jsr     _c01538       ; update party sprite priority (destination tile)
         lda     #$fc
-        jsr     $c796       ;
+        jsr     _c0c796       ;
         lda     #$fd
-        jsr     $c796       ;
+        jsr     _c0c796       ;
         jsr     _c0155b
         jsr     _c015ac
 _1367:  jsr     _c02973
@@ -2727,7 +2741,7 @@ _1581:  ldx     $06
         sta     $16b3
         lda     #$14
         sta     $16b4
-        jsr     $6f08
+        jsr     _c06f08
         lda     #$8e
         jsr     PlaySfx
         lda     #$01
@@ -2783,7 +2797,7 @@ _15cf:  lda     $0adb
         stx     $2c
         lda     #$15
         sta     $16b3
-        jsr     $6f08
+        jsr     _c06f08
         lda     #$01
         sta     $57
         ldx     #$000b      ; event $0b
@@ -3491,7 +3505,7 @@ _1afc:  lda     $41
         lda     $ba
         ldx     $06
         stx     $71
-        jsr     $707d
+        jsr     _c0707d
         lda     $1121
         and     #$40
         bne     _1b2d
@@ -3502,7 +3516,7 @@ _1afc:  lda     $41
         lda     $ba
         ldx     #$1000
         stx     $71
-        jsr     $707d
+        jsr     _c0707d
 _1b2d:  lda     $1121
         bmi     _1b44
         lda     $7a
@@ -3512,7 +3526,7 @@ _1b2d:  lda     $1121
         lda     $ba
         ldx     #$2000
         stx     $71
-        jsr     $707d
+        jsr     _c0707d
 _1b44:  inc     $9f
 _1b46:  lda     $ba
         dec
@@ -3846,7 +3860,7 @@ _1d9c:  sta     $4305
         stx     $23
         lda     #$da
         sta     $25
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
 _1dc2:  rts
 
 ; vehicle
@@ -3874,7 +3888,7 @@ _1dda:  pla
         sta     $35
         lda     $06
         shorta
-        jsr     $4ad5       ; copy 3bpp graphics to vram
+        jsr     _c04ad5       ; copy 3bpp graphics to vram
         rts
 
 .endproc
@@ -4471,8 +4485,8 @@ _c022db:
 _c022fb:
         stz     $3e
 _22fd:  jsr     WaitVBlank
-        jsr     $4c95
-        jsr     $47f7
+        jsr     _c04c95
+        jsr     _c047f7
         lda     $3e
         and     #$18
         lsr2
@@ -4516,17 +4530,17 @@ _236c:  .word   $3704,$3708,$370c,$3710,$3710,$370c,$3708,$3704
 ; [ update party sprite ]
 
 UpdatePlayerSprite:
-@237c:  lda     $bd                     ; return if party sprite is not shown
-        bne     _2381
+        lda     $bd                     ; return if party sprite is not shown
+        bne     :+
         rts
-_2381:  lda     $cb                     ; return if party sprite is hidden (z-level)
-        beq     _2386
+:       lda     $cb                     ; return if party sprite is hidden (z-level)
+        beq     :+
         rts
-_2386:  lda     $be                     ; jump counter
-        bpl     _238d
+:       lda     $be                     ; jump counter
+        bpl     :+
         and     #$7f
         lsr
-_238d:  tax
+:       tax
         lda     f:_c022db,x
         sta     $0d
         lda     $10fb                   ; map tile properties byte 2
@@ -5295,7 +5309,7 @@ _c02a95:
         cmp     #$fe
         bne     @3006
         lda     f:NPCScript::Start+1,x
-        jsr     $ca2f       ; get event flag $00xx
+        jsr     _c0ca2f       ; get event flag $00xx
         cmp     #$00
         bne     @303c
         jmp     @3136
@@ -5304,7 +5318,7 @@ _c02a95:
 @3006:  cmp     #$fd
         bne     @3018
         lda     f:NPCScript::Start+1,x
-        jsr     $ca2f       ; get event flag $00xx
+        jsr     _c0ca2f       ; get event flag $00xx
         cmp     #$00
         beq     @303c
         jmp     @3136
@@ -5313,7 +5327,7 @@ _c02a95:
 @3018:  cmp     #$fc
         bne     @302a
         lda     f:NPCScript::Start+1,x
-        jsr     $ca3c       ; get event flag $01xx
+        jsr     _c0ca3c       ; get event flag $01xx
         cmp     #$00
         bne     @303c
         jmp     @3136
@@ -5322,7 +5336,7 @@ _c02a95:
 @302a:  cmp     #$fb
         bne     @3045
         lda     f:NPCScript::Start+1,x
-        jsr     $ca3c       ; get event flag $01xx
+        jsr     _c0ca3c       ; get event flag $01xx
         cmp     #$00
         jne     @3136
 @303c:  ldx     $29         ; skip 2 bytes
@@ -7006,7 +7020,7 @@ _c03d28:
         sta     $09
 @3e50:  ldx     #$0200
         stx     $2c
-@3e55:  jsr     $4cbc       ; copy data to vram
+@3e55:  jsr     _c04cbc       ; copy data to vram
         longa
         lda     $2e
         clc
@@ -7180,7 +7194,7 @@ _c03eaa:
         lda     $147f,y
         shorta
         phy
-        jsr     $c9c1       ; get npc flag
+        jsr     _c0c9c1       ; get npc flag
         ply
         cmp     #$00
         beq     @3fde
@@ -7339,8 +7353,8 @@ _c040d8:
 
 ; [  ]
 
-_c04017:
-@4017:  asl2
+_c04107:
+@4107:  asl2
         tax
         lda     f:_c04171,x
         sta     $0d
@@ -7728,7 +7742,7 @@ _c04488:
 
 .proc ShowCutscene
 
-_44c8:  pha
+        pha
         stz     hMDMAEN
         stz     hHDMAEN
         lda     #0
@@ -7810,8 +7824,10 @@ _c04528:
 
 ; [ open menu ]
 
-_c0454c:
-        jsr     $6081       ; fade out
+OpenMenu:
+        jsr     _c06081       ; fade out
+
+OpenMenuNoFade:
         stz     $420b
         stz     $420c
         lda     #$00
@@ -7847,7 +7863,7 @@ _c0456b:
 
 _c04583:
         lda     #$fe
-        jsr     $ca3c                   ; get event flag $01xx
+        jsr     _c0ca3c                   ; get event flag $01xx
         cmp     #$00
         bne     @45e3
         jsr     _c04635                 ; stop sound
@@ -7864,7 +7880,7 @@ _c04583:
         lda     #$69
         jsr     PlaySfx
 @45ab:  lda     #$79
-        jsr     $ca2f                   ; get event flag $00xx
+        jsr     _c0ca2f                   ; get event flag $00xx
         cmp     #$00
         bne     @45cc
 @45b4:  lda     $0adc                   ; current vehicle
@@ -7879,7 +7895,7 @@ _c04583:
         beq     @45cc
         bra     @45e0
 @45cc:  lda     #$7f
-        jsr     $ca3c                   ; get event flag $01xx
+        jsr     _c0ca3c                   ; get event flag $01xx
         cmp     #$00
         beq     @45d7
         lda     #$05
@@ -7910,10 +7926,10 @@ _c045ee:
 
 .proc PlaySong
 
-_460a:  sta     $08
+        sta     $08
         lda     $55
         cmp     #2
-        beq     _4634
+        beq     Done
         lda     $08
         sta     $1d01
         lda     #1
@@ -7928,7 +7944,7 @@ _460a:  sta     $08
 _462b:  lda     #$28
 _462d:  sta     $1d02
         jsl     ExecSound_ext
-_4634:  rts
+Done:   rts
 
 .endproc
 
@@ -8114,6 +8130,10 @@ _c04741:
         cmp     #$a0
         bne     @4748
         rts
+
+; ---------------------------------------------------------------------------
+
+_c04798:
         ldx     $06
 @479a:  stz     $1883,x
         stz     $1884,x
@@ -8124,6 +8144,10 @@ _c04741:
         cmp     #$a0
         bne     @479a
         rts
+
+; ---------------------------------------------------------------------------
+
+_c047aa:
         lda     $5b
         beq     @47f6
         ldy     $06
@@ -8160,6 +8184,10 @@ _c04741:
         lda     $06
         shorta
 @47f6:  rts
+
+; ---------------------------------------------------------------------------
+
+_c047f7:
         ldx     $1873
         ldy     $06
 @47fc:  lda     $1883,y
@@ -8187,6 +8215,10 @@ _c04741:
         cmp     #$a0
         bne     @47fc
         rts
+
+; ---------------------------------------------------------------------------
+
+_c04834:
         lda     $0afb
         cmp     #$02
         beq     @483c
@@ -8572,7 +8604,7 @@ _c04a7a:
 _c04aad:
 @4aad:  jsr     WaitVBlank
         jsr     UpdatePlayerSprite
-        jsr     $39b3       ; update object sprites
+        jsr     _c039b3       ; update object sprites
         lda     $02
         and     #$cf
         bne     @4aad
@@ -8587,7 +8619,7 @@ _c04aad:
 _c04ac1:
 @4ac1:  jsr     WaitVBlank
         jsr     UpdatePlayerSprite
-        jsr     $39b3       ; update object sprites
+        jsr     _c039b3       ; update object sprites
         lda     $02
         and     #$cf
         bne     @4ad4
@@ -8912,10 +8944,10 @@ _c04cfa:
 ; [ clear vram ]
 
 _c04d06:
-        jsr     $4ce8       ; disable interrupts
+        jsr     _c04ce8       ; disable interrupts
         stz     $0b6d
-        jsr     $4d13       ; fill vram
-        jsr     $4cfa       ; enable interrupts
+        jsr     _c04d13       ; fill vram
+        jsr     _c04cfa       ; enable interrupts
         rts
 
 ; ---------------------------------------------------------------------------
@@ -9437,18 +9469,18 @@ _c0505a:
 ; [ load map ]
 
 LoadMap:
-@545a:  jsr     $6081       ; fade out
+@545a:  jsr     _c06081       ; fade out
 
 LoadMapNoFade:
 @545d:  ldx     $0ad6       ; map index
         cpx     #$0005
         bcs     @546c
         jsr     LoadWorldMap
-        jsr     $6100       ; fade in
+        jsr     _c06100       ; fade in
         rts
 @546c:  jsr     LoadSubMap
-        jsr     $6100       ; fade in
-        jsr     $9267       ; show map title
+        jsr     _c06100       ; fade in
+        jsr     _c09267       ; show map title
         rts
 
 ; ---------------------------------------------------------------------------
@@ -9459,12 +9491,12 @@ ReloadMap:
 @5476:  ldx     $0ad6       ; map index
         cpx     #$0005
         bcs     @5485
-        jsr     $5532       ; reload world map
-        jsr     $6100       ; fade in
+        jsr     _c05532       ; reload world map
+        jsr     _c06100       ; fade in
         rts
-@5485:  jsr     $577c       ; reload map
-        jsr     $6100       ; fade in
-        jsr     $9267       ; show map title
+@5485:  jsr     _c0577c       ; reload map
+        jsr     _c06100       ; fade in
+        jsr     _c09267       ; show map title
         rts
 
 ; ---------------------------------------------------------------------------
@@ -9514,12 +9546,14 @@ _c054a7:
         ldx     $06
         stx     $16a8
         lda     #$f1
-        jsr     $c796
+        jsr     _c0c796
         lda     #$fd
-        jsr     $c796
+        jsr     _c0c796
         stz     $16a4
         stz     $16a5
         stz     $16a6
+
+_c054f6:
         stz     $420b
         stz     $420c
         lda     #$80
@@ -9528,17 +9562,17 @@ _c054a7:
         sta     $4200
         sei
         stz     $5e
-        jsr     $4e69       ; init hardware registers
-        jsr     $4c95       ; clear sprite data
-        jsr     $4d3e       ; copy sprite data to ppu
+        jsr     InitHardware
+        jsr     _c04c95       ; clear sprite data
+        jsr     _c04d3e       ; copy sprite data to ppu
         lda     #$70
         sta     $c5
         sta     $c6
-        jsr     $5ee5
-        jsr     $5f8d
-        jsr     $990d       ; init palette animation
-        jsr     $41f1
-        jsr     $62bc
+        jsr     _c05ee5
+        jsr     _c05f8d
+        jsr     _c0990d       ; init palette animation
+        jsr     _c041f1
+        jsr     _c062bc
         rts
 
 ; ---------------------------------------------------------------------------
@@ -9547,12 +9581,14 @@ _c054a7:
 
 LoadWorldMap:
 @5528:  lda     $0adc
-        beq     @5532
+        beq     _c05532
         lda     #$03
         sta     $0adb
+
+_c05532:
 @5532:  stz     $53
         stz     $169a
-        jsr     $54a7
+        jsr     _c054a7
         lda     #$00
         sta     $2107
         lda     #$10
@@ -9580,7 +9616,7 @@ LoadWorldMap:
         stx     $23
         lda     #$da
         sta     $25
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
         ldx     #$6200
         stx     $2e
         ldx     #$0400
@@ -9589,21 +9625,21 @@ LoadWorldMap:
         stx     $23
         lda     #$da        ; da/c000 (flying chocobo graphics)
         sta     $25
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
         ldx     #$6440
         stx     $33
         ldx     #$000c
         stx     $35
         ldx     #$3ac0
         stx     $30
-        jsr     $4ad5       ; copy 3bpp graphics to vram
+        jsr     _c04ad5       ; copy 3bpp graphics to vram
         ldx     #$6540
         stx     $33
         ldx     #$00f0
         stx     $35
         ldx     #$3b80
         stx     $30
-        jsr     $4ad5       ; copy 3bpp graphics to vram
+        jsr     _c04ad5       ; copy 3bpp graphics to vram
         ldx     #$6400
         stx     $2e
         ldx     #$0080
@@ -9612,7 +9648,7 @@ LoadWorldMap:
         stx     $23
         lda     #$da        ; da/1f00 (gradient graphics 1)
         sta     $25
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
         ldx     #$6500
         stx     $2e
         ldx     #$0080
@@ -9621,8 +9657,8 @@ LoadWorldMap:
         stx     $23
         lda     #$da        ; da/1f80 (gradient graphics 2)
         sta     $25
-        jsr     $4cbc       ; copy data to vram
-        jsr     $56f8
+        jsr     _c04cbc       ; copy data to vram
+        jsr     _c056f8
         ldx     #$0080
 @55e8:  lda     f:MapSpritePal+$0100-1,x
         sta     $0cff,x
@@ -9646,9 +9682,9 @@ LoadWorldMap:
         iny
         cpy     #$0020
         bne     @5610
-        jsr     $4d67       ; copy color palettes to ppu
-        jsr     $4c95       ; clear sprite data
-        jsr     $4d3e       ; copy sprite data to ppu
+        jsr     _c04d67       ; copy color palettes to ppu
+        jsr     _c04c95       ; clear sprite data
+        jsr     _c04d3e       ; copy sprite data to ppu
         lda     $0ad6       ; map index
         tax
         lda     f:WorldTilesetTbl,x
@@ -9692,10 +9728,10 @@ LoadWorldMap:
         lda     $06
         shorta
         lda     #^WorldTileset
-        jsr     $6b2d       ; load world tileset
-        jsr     $6c4a
-        jsr     $4583
-        jsr     $4798
+        jsr     _c06b2d       ; load world tileset
+        jsr     _c06c4a
+        jsr     _c04583
+        jsr     _c04798
         jsr     _c08c92
         jsr     _c08c2e       ; init hdma #1 (window 2 position)
         stz     $6f
@@ -9717,14 +9753,14 @@ LoadWorldMap:
 @56b5:  jsr     _c05bf8
         jsr     _c01733       ; update local tile properties (world map)
         jsr     _c0104a
-        jsr     $612b
-        jsr     $2137
+        jsr     _c0612b
+        jsr     _c02137
         jsr     _c01e64
         jsr     _c01ec5
-        jsr     $61d7
+        jsr     _c061d7
         lda     #$07
         sta     $2105
-        jsr     $630a
+        jsr     _c0630a
         stz     $ba
         lda     $0adc
         beq     @56e7
@@ -9771,9 +9807,9 @@ _c056f8:
         bne     @572e
 @5726:  lda     #$0e
         sta     $1123
-        jsr     $990d       ; init palette animation
-@572e:  jsr     $9618
-        jsr     $9704
+        jsr     _c0990d       ; init palette animation
+@572e:  jsr     _c09618
+        jsr     _c09704
         lda     #$66
         sta     $5e
         rts
@@ -9789,7 +9825,7 @@ _c0573e:
 
 ; ---------------------------------------------------------------------------
 
-; [ load normal map ]
+; [ load normal map (sub-map) ]
 
 LoadSubMap:
 @574c:  lda     #$01
@@ -9799,53 +9835,55 @@ LoadSubMap:
         sta     $0adb
         inc
         sta     $bf
-        jsr     $54a7
-        jsr     $5af6                   ; load map properties
-        jsr     $5adb
-        jsr     $3eaa                   ; load npcs
-        jsr     $6b44                   ; load tile properties and tileset
-        jsr     $5875                   ; load map layouts
-        jsr     $58db                   ; load map palette
-        jsr     $5cbd                   ; load treasure chests
-        jsr     $63d4
-        jsr     $580e
-        jsr     $57f9
-        jsr     $54f6
+        jsr     _c054a7
+        jsr     _c05af6                   ; load map properties
+        jsr     _c05adb
+        jsr     _c03eaa                   ; load npcs
+        jsr     _c06b44                   ; load tile properties and tileset
+        jsr     _c05875                   ; load map layouts
+        jsr     _c058db                   ; load map palette
+        jsr     _c05cbd                   ; load treasure chests
+        jsr     _c063d4
+        jsr     _c0580e
+        jsr     _c057f9
+
+_c0577c:
+        jsr     _c054f6
         ldx     $0971                   ; set window color
         stx     $0c02
-        jsr     $591a                   ; load map graphics
+        jsr     _c0591a                   ; load map graphics
         lda     $55
         beq     @5792                   ; branch if not a world map
-        jsr     $5adb
-        jsr     $3d28                   ; load npc graphics
+        jsr     _c05adb
+        jsr     _c03d28                   ; load npc graphics
 @5792:  stz     $ba
         ldx     #$0002
         stx     $c0
-        jsr     $5b2d                   ; init map color math
-        jsr     $6b44                   ; load tile properties and tileset
-        jsr     $6d0c
+        jsr     _c05b2d                   ; init map color math
+        jsr     _c06b44                   ; load tile properties and tileset
+        jsr     _c06d0c
         jsr     _c06c6a
         jsr     _c08c92
         jsr     _c08c2e                 ; init hdma #1 (window 2 position)
         jsr     _c08d0e
-        jsr     $8b53
-        jsr     $9a96                   ; init map animation
-        jsr     $5d30
-        jsr     $2817
-        jsr     $928c                   ; init map title
+        jsr     _c08b53
+        jsr     _c09a96                   ; init map animation
+        jsr     _c05d30
+        jsr     _c02817
+        jsr     _c0928c                   ; init map title
         lda     #$fe
-        jsr     $ca3c                   ; get event flag $01xx
+        jsr     _c0ca3c                   ; get event flag $01xx
         cmp     #$00
         bne     @57cc
         lda     $1125                   ; song
-        jsr     $460a                   ; play song
+        jsr     PlaySong
 @57cc:  jsr     _c017e8                 ; update local tile properties (normal map)
         jsr     _c01372                 ; update party z-level (destination tile)
         jsr     _c013a6                 ; update party z-level (current tile)
         jsr     UpdatePlayerSprite
-        jsr     $39b3                   ; update object sprites
-        jsr     $2973
-        jsr     $2842
+        jsr     _c039b3                   ; update object sprites
+        jsr     _c02973
+        jsr     _c02842
         lda     $110f
         lsr5
         and     #$03
@@ -9942,7 +9980,7 @@ _c05875:
         ldx     $06
         cpy     #$ffff
         beq     @588f
-        jsr     $6aca       ; load map layout
+        jsr     _c06aca       ; load map layout
         bra     @5894
 @588f:  lda     #$01
         jsr     _c06b21
@@ -9957,7 +9995,7 @@ _c05875:
         ldx     #$1000
         cpy     #$ffff
         beq     @58b1
-        jsr     $6aca       ; load map layout
+        jsr     _c06aca       ; load map layout
         bra     @58b6
 @58b1:  lda     #$01
         jsr     _c06b21
@@ -9972,7 +10010,7 @@ _c05875:
         ldx     #$2000
         cpy     #$ffff
         beq     @58d5
-        jsr     $6aca       ; load map layout
+        jsr     _c06aca       ; load map layout
         bra     @58da
 @58d5:  lda     #$01
         jsr     _c06b21
@@ -10008,7 +10046,7 @@ _c058db:
         sta     $0d7f,x
         dex
         bne     @5909
-        jsr     $4d67       ; copy color palettes to ppu
+        jsr     _c04d67       ; copy color palettes to ppu
         rts
 
 ; ---------------------------------------------------------------------------
@@ -10051,7 +10089,7 @@ _c0591a:
         shorta
         ldx     $06
         stx     $2e
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
         longa
         lda     $2c
         lsr
@@ -10064,7 +10102,7 @@ _c0591a:
         ldx     $06
         stx     $23
         inc     $25
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
 @5984:  longa
         lda     $1115       ; map graphics 2
         and     #$0fc0
@@ -10101,7 +10139,7 @@ _c0591a:
         shorta
         ldx     #$1000
         stx     $2e
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
         longa
         lda     $2c
         lsr
@@ -10116,7 +10154,7 @@ _c0591a:
         ldx     $06
         stx     $23
         inc     $25
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
 @59f5:  longa
         lda     $1116       ; map graphics 3
         and     #$03f0
@@ -10151,7 +10189,7 @@ _c0591a:
         shorta
         ldx     #$2000
         stx     $2e
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
         longa
         lda     $2c
         lsr
@@ -10166,7 +10204,7 @@ _c0591a:
         ldx     $06
         stx     $23
         inc     $25
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
 @5a63:  longa
         lda     $1116
         and     #$fc00
@@ -10185,7 +10223,7 @@ _c0591a:
         stx     $2e
         ldx     #$1000
         stx     $2c
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
         jsr     TfrPartyGfx
         jsr     _c01e14
         ldx     #$3d00
@@ -10196,7 +10234,7 @@ _c0591a:
         stx     $23
         lda     #^WindowGfx
         sta     $25
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
         jsr     _c0257c
         ldx     $06
 @5aae:  lda     $0500,x
@@ -10218,7 +10256,7 @@ _c0591a:
         ldx     #$0020
         stx     $2e
         stx     $2c
-        jsr     $4d13       ; fill vram
+        jsr     _c04d13       ; fill vram
 @5ada:  rts
 
 ; ---------------------------------------------------------------------------
@@ -10236,7 +10274,7 @@ _c05adb:
         stx     $23
         lda     #$cd
         sta     $25
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
 @5af5:  rts
 
 ; ---------------------------------------------------------------------------
@@ -10362,14 +10400,16 @@ _c05bb8:
 
 _c05bf4:
         lda     #$10
-        bra     _5c01
+        bra     _c05c01
 
 _c05bf8:
         lda     $0ad6       ; map index
         cmp     #$03
         bcs     _5c2c       ; return if underwater
         lda     $6f
-_5c01:  lsr
+
+_c05c01:
+        lsr
         asl4
         tax
         lda     $0ad6       ; map index
@@ -10430,7 +10470,7 @@ _c05cbd:
         lda     #$00
         xba
         sta     $16a1
-        jsr     $ca16       ; get treasure flag
+        jsr     _c0ca16       ; get treasure flag
         cmp     #$00
         beq     @5d25       ; skip if treasure hasn't been obtained
         ldx     $23
@@ -10461,7 +10501,7 @@ _c05cbd:
 ; [  ]
 
 _c05d30:
-        jsr     $5d87
+        jsr     _c05d87
         lda     #$7f
         pha
         plb
@@ -10485,7 +10525,7 @@ _c05d30:
 ; [  ]
 
 _c05d54:
-        jsr     $5d87
+        jsr     _c05d87
         lda     #$7f
         pha
         plb
@@ -10654,8 +10694,12 @@ _c05e61:
         sta     $23
         ldx     $23
         lda     $7f0000,x
-        jsr     $5e88
-@5e88:  cmp     #$20
+        jsr     _c05e88
+
+_c05e88:
+        cmp     #$20                    ; does nothing ???
+
+_c05e8a:
         lda     $53
         bne     @5e96
         ldx     $61
@@ -10730,6 +10774,10 @@ _c05ee5:
         lda     #$11
         sta     $4351
         rts
+
+; ---------------------------------------------------------------------------
+
+_c05f3e:
         ldy     $06
 @5f40:  lda     $3f
         lsr2
@@ -10840,7 +10888,7 @@ _c05fe6:
         stx     $73
         lda     #$15
         sta     $16b3
-        jsr     $6f08
+        jsr     _c06f08
         bra     @6075
 @6048:  lda     $42
         lsr3
@@ -10850,7 +10898,7 @@ _c05fe6:
         lda     $42
         cmp     #$30
         bne     @6061
-        jsr     $4a71
+        jsr     _c04a71
         lda     #$85
         jsr     PlaySfx
 @6061:  lda     $42
@@ -10866,7 +10914,7 @@ _c05fe6:
 @6075:  rts
 @6076:  lda     $42
         bne     @6080
-        jsr     $4a71
+        jsr     _c04a71
         stz     $169e
 @6080:  rts
 
@@ -10877,14 +10925,14 @@ _c05fe6:
 _c06081:
         lda     $169e
         bne     @6089
-        jsr     $4a71
+        jsr     _c04a71
 @6089:  stz     $42
 @608b:  jsr     WaitVBlank
         lda     $169e
         beq     @60a1
         lda     $42
         bmi     @60a1
-        jsr     $5fe6
+        jsr     _c05fe6
         jsr     UpdatePlayerSprite
         inc     $42
         bra     @608b
@@ -10946,7 +10994,7 @@ _c060a8:
 ; [ fade in ]
 
 _c06100:
-        jsr     $4a68
+        jsr     _c04a68
         stz     $42
         lda     #$81
         sta     $4200
@@ -10957,7 +11005,7 @@ _c06100:
         lda     $169e
         cmp     #$02
         bne     @6124
-        jsr     $60a8
+        jsr     _c060a8
         jsr     UpdatePlayerSprite
         inc     $42
         bra     @6110
@@ -10974,11 +11022,13 @@ _c0612b:
         ldx     #$003c
         stx     $23
         ldx     $06
-        bra     @613c
+        bra     _613c
+
+_c06134:
         ldx     #$0040
         stx     $23
         ldx     #$000f
-@613c:  lda     $6f
+_613c:  lda     $6f
         cmp     #$08
         bcc     @6198
         ldy     $06
@@ -11134,6 +11184,10 @@ _c061d7:
         cmp     #$48
         bne     @6268
         rts
+
+; ---------------------------------------------------------------------------
+
+_c062bc:
         ldx     $06
 @62be:  lda     #$90
         sta     $7f6a18,x
@@ -11341,7 +11395,7 @@ _c06461:
 
 _c06465:
         stz     $2115
-        jsr     $6de9
+        jsr     _c06de9
         stz     $4300
         ldx     $7f
         stx     $2116
@@ -11382,7 +11436,7 @@ _c06465:
 _c064bb:
         lda     #$03
         sta     $2115
-        jsr     $6de9
+        jsr     _c06de9
         stz     $4300
         ldx     $7f
         stx     $2116
@@ -11569,10 +11623,11 @@ _c065a3:
 
 ; [ show mini-map ]
 
-showminimap:
-@6632:
-        jsr     $6081       ; fade out
-        jsr     $4ce8       ; disable interrupts
+ShowMinimap:
+@6632:  jsr     _c06081       ; fade out
+
+ShowMinimapNoFade:
+        jsr     _c04ce8       ; disable interrupts
         stz     $5e
         lda     #$07
         sta     $2105
@@ -11611,7 +11666,7 @@ showminimap:
         lda     #$1f
         sta     $76
         stz     $ba
-@6696:  jsr     $69a1
+@6696:  jsr     _c069a1
         ldy     $06
 @669b:  ldx     $26
         lda     $7f0000,x
@@ -11637,9 +11692,9 @@ showminimap:
         lda     $76
         cmp     #$1f
         bne     @6696
-        jsr     $4c95       ; clear sprite data
-        jsr     $56f8
-        jsr     $6831
+        jsr     _c04c95       ; clear sprite data
+        jsr     _c056f8
+        jsr     _c06831
         lda     #$cf
         sta     $25
         ldx     #$d800
@@ -11648,32 +11703,32 @@ showminimap:
         stx     $2e
         ldx     #$0400
         stx     $2c
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
         lda     #$01
         sta     $52
         stz     $3f
-        jsr     $6100       ; fade in
+        jsr     _c06100       ; fade in
 @66f9:  jsr     WaitVBlank
-        jsr     $6731
-        jsr     $6755
-        jsr     $67ec
-        jsr     $679c
+        jsr     _c06731
+        jsr     _c06755
+        jsr     _c067ec
+        jsr     _c0679c
         lda     $02
         and     #$cf
         bne     @66f9
         lda     $03
         bne     @66f9
 @6712:  jsr     WaitVBlank
-        jsr     $6731
-        jsr     $6755
-        jsr     $67ec
-        jsr     $679c
+        jsr     _c06731
+        jsr     _c06755
+        jsr     _c067ec
+        jsr     _c0679c
         lda     $02
         and     #$cf
         bne     @672b
         lda     $03
         beq     @6712
-@672b:  jsr     $6081       ; fade out
+@672b:  jsr     _c06081       ; fade out
         stz     $52
         rts
 
@@ -11700,8 +11755,12 @@ _c06731:
         ora     #$06
         sta     $0203
         rts
+
+; ---------------------------------------------------------------------------
+
+_c06755:
 @6755:  lda     #$f8
-        jsr     $ca3c       ; get event flag $01xx
+        jsr     _c0ca3c       ; get event flag $01xx
         cmp     #$00
         beq     @679b
         lda     $3f
@@ -11735,6 +11794,10 @@ _c06731:
         cpy     #$0010
         bne     @6766
 @679b:  rts
+
+; ---------------------------------------------------------------------------
+
+_c0679c:
 @679c:  ldy     $06
 @679e:  lda     $0ade,y
         bmi     @67da
@@ -11806,11 +11869,15 @@ _c067ec:
         dec     $2c
         bne     @680a
         rts
+
+; ---------------------------------------------------------------------------
+
+_c06831:
 @6831:  lda     #$0a
         sta     $df
         lda     #$0b
         sta     $e0
-        jsr     $baae       ; change color palette
+        jsr     _c0baae       ; change color palette
         ldx     $06
 @683e:  lda     f:_c06859,x
         sta     $0360,x
@@ -12032,7 +12099,7 @@ _c069a1:
 @6a7b:  lda     f:WorldMod::Switch,x
         clc
         adc     #$d0
-        jsr     $ca3c       ; get event flag $01xx
+        jsr     _c0ca3c       ; get event flag $01xx
         cmp     #$00
         beq     @6a73
         phx
@@ -12287,16 +12354,16 @@ _c06bdb:
 ; [  ]
 
 _c06c4a:
-        jsr     $6bac
+        jsr     _c06bac
         lda     $0ad9
         sta     $76
         lda     $0ad8
         sta     $75
         lda     #$40
 @6c59:  pha
-        jsr     $69a1
-        jsr     $6513
-        jsr     $6465
+        jsr     _c069a1
+        jsr     _c06513
+        jsr     _c06465
         inc     $76
         pla
         dec
@@ -12315,7 +12382,7 @@ _c06c6a:
         ldx     #$2000
         stx     $2e
         stx     $2c
-        jsr     $4d13       ; fill vram
+        jsr     _c04d13       ; fill vram
         lda     #$80
         sta     $2115
         ldy     #$2702
@@ -12401,7 +12468,7 @@ _c06cd4:
 _c06d0c:
         lda     #$10
         sta     $09
-        jsr     $6bdb       ; init bg scroll positions
+        jsr     _c06bdb       ; init bg scroll positions
         lda     $0ad9       ; y position
         sta     $0a
         lda     $78
@@ -12415,8 +12482,8 @@ _c06d0c:
         lda     #$01
         ldx     $06
         stx     $71
-        jsr     $707d
-        jsr     $6e7a
+        jsr     _c0707d
+        jsr     _c06e7a
         lda     $1121
         and     #$40
         bne     @6d53
@@ -12427,8 +12494,8 @@ _c06d0c:
         lda     #$01
         ldx     #$1000
         stx     $71
-        jsr     $707d
-        jsr     $6e7a
+        jsr     _c0707d
+        jsr     _c06e7a
         bra     @6d89
 @6d53:  lda     #$07
         sta     $75
@@ -12441,8 +12508,8 @@ _c06d0c:
         lda     #$01
         ldx     #$1000
         stx     $71
-        jsr     $707d
-        jsr     $6e7a
+        jsr     _c0707d
+        jsr     _c06e7a
         lda     #$17
         sta     $75
         lda     $0b
@@ -12454,8 +12521,8 @@ _c06d0c:
         lda     #$01
         ldx     #$1000
         stx     $71
-        jsr     $707d
-        jsr     $6e7a
+        jsr     _c0707d
+        jsr     _c06e7a
 @6d89:  lda     $1121
         bmi     @6da5
         lda     $79
@@ -12465,8 +12532,8 @@ _c06d0c:
         lda     #$01
         ldx     #$2000
         stx     $71
-        jsr     $707d
-        jsr     $6e7a
+        jsr     _c0707d
+        jsr     _c06e7a
         bra     @6ddb
 @6da5:  lda     #$07
         sta     $75
@@ -12479,8 +12546,8 @@ _c06d0c:
         lda     #$01
         ldx     #$2000
         stx     $71
-        jsr     $707d
-        jsr     $6e7a
+        jsr     _c0707d
+        jsr     _c06e7a
         lda     #$17
         sta     $75
         lda     $0c
@@ -12492,8 +12559,8 @@ _c06d0c:
         lda     #$01
         ldx     #$2000
         stx     $71
-        jsr     $707d
-        jsr     $6e7a
+        jsr     _c0707d
+        jsr     _c06e7a
 @6ddb:  inc     $0a
         inc     $0b
         inc     $0c
@@ -12530,7 +12597,7 @@ _c06df5:
         shorta
         lda     #$81        ; increment vertically
         sta     $2115
-        jsr     $6de9
+        jsr     _c06de9
         lda     #$01
         sta     $4300
         longa
@@ -12597,7 +12664,7 @@ _c06e7a:
         shorta
         lda     #$80
         sta     $2115
-        jsr     $6de9
+        jsr     _c06de9
         lda     #$01
         sta     $4300
         ldx     $7f,y
@@ -12768,9 +12835,9 @@ _c06f08:
 @6fdf:  ldx     $23
         stx     $0d
         ldy     $26
-        jsr     $703e
+        jsr     _c0703e
         ldy     $29
-        jsr     $703e
+        jsr     _c0703e
         lda     $23
         clc
         adc     #$0040
@@ -12886,7 +12953,7 @@ _c0707d:
         sta     $23
         ldx     $23
         stx     $26
-        jsr     $7221
+        jsr     _c07221
 @70c2:  ldx     $23
         lda     $7f0000,x
         longa
@@ -12915,8 +12982,8 @@ _c0707d:
         and     #$003f
         shorta
         bne     @70c2
-        jsr     $722f
-        jsr     $7241
+        jsr     _c0722f
+        jsr     _c07241
         longa
         lda     $71
         lsr
@@ -12978,7 +13045,7 @@ _c0707d:
         sta     $23
         ldx     $23
         stx     $26
-        jsr     $7221
+        jsr     _c07221
 @7186:  ldx     $23
         lda     $7f0000,x
         longa
@@ -13006,8 +13073,8 @@ _c0707d:
         tya
         and     #$3f
         bne     @7186
-        jsr     $722f
-        jsr     $7241
+        jsr     _c0722f
+        jsr     _c07241
         lda     $27
         sta     $80,x
         lda     $26
@@ -13086,6 +13153,10 @@ _c0722f:
         lda     $06
         shorta
         rts
+
+; ---------------------------------------------------------------------------
+
+_c07241:
 @7241:  longa
         lda     $26
         and     #$03c0
@@ -13128,25 +13199,25 @@ ShowDlg:
 @83c3:  jsr     _c08d3b
         jsr     WaitVBlank
         jsr     UpdatePlayerSprite
-        jsr     $39b3       ; update object sprites
-        jsr     $2842
+        jsr     _c039b3       ; update object sprites
+        jsr     _c02842
         ldy     $ab
         cpy     #$0040
         bne     @83c3
         lda     $b8
         bne     @83e6
-        jsr     $4aad
-        jsr     $4ac1       ; wait for keypress
-        jsr     $4aad
+        jsr     _c04aad
+        jsr     _c04ac1       ; wait for keypress
+        jsr     _c04aad
 @83e6:  stz     $b8
         inc     $a5
         jsr     WaitVBlank
         jsr     UpdatePlayerSprite
-        jsr     $39b3       ; update object sprites
-        jsr     $2842
+        jsr     _c039b3       ; update object sprites
+        jsr     _c02842
         lda     $b3
         beq     @83b1
-@83fa:  jsr     $94a8
+@83fa:  jsr     _c094a8
         jsr     WaitVBlank
         rts
 
@@ -13192,7 +13263,7 @@ _842b:  ldx     $b1
         longa
         asl
         tax
-        lda     f:_c08b13,x
+        lda     f:DlgCmdTbl,x
         sta     $23
         lda     $06
         shorta
@@ -13604,7 +13675,7 @@ _c08aea:
         jmp     _c08459
 
 ; escape code jump table ($00-$1F), also includes MTE codes
-_c08b13:
+DlgCmdTbl:
         .addr   _c08493,_c084af,_c084e9,_c0850d,_c0850d,_c0850d,_c0850d,_c0850d
         .addr   _c0850d,_c0850d,_c0850d,_c0850d,_c08466,_c0850d,_c0850d,_c08466
         .addr   _c08aea,_c08ab7,_c08a85,_c0850d,_c0850d,_c0850d,_c0850d,_c08477
@@ -13845,7 +13916,7 @@ _c08d3b:
         jsr     _c08e08
 @8d3e:  ldy     $ab
         lda     $1a13,y
-        jne     $8de1
+        jne     @8de1
         lda     $19d3,y
         cmp     #$0c
         bne     @8d54
@@ -13865,8 +13936,8 @@ _c08d3b:
         sty     $ab
 @8d6e:  jsr     WaitVBlank
         jsr     UpdatePlayerSprite
-        jsr     $39b3       ; update object sprites
-        jsr     $2842
+        jsr     _c039b3       ; update object sprites
+        jsr     _c02842
         ldx     $ad
         dex
         stx     $ad
@@ -13890,8 +13961,8 @@ _c08d3b:
         inc     $a7
         jsr     WaitVBlank
         jsr     UpdatePlayerSprite
-        jsr     $39b3       ; update object sprites
-        jsr     $2842
+        jsr     _c039b3       ; update object sprites
+        jsr     _c02842
         lda     $a8
         clc
         adc     #$0d
@@ -13930,7 +14001,7 @@ _c08d3b:
         adc     #$0d
         sta     $a8
         cmp     #$10
-        jcc     $8d3e
+        jcc     @8d3e
         and     #$0f
         sta     $a8
         inc     $a7
@@ -14238,7 +14309,7 @@ _c08fed:
         lda     #$01
         ldx     $06
         stx     $71
-        jsr     $707d
+        jsr     _c0707d
         lda     $b7
         longa
         asl2
@@ -14284,6 +14355,10 @@ _c08fed:
         cmp     #$03
         bne     @903d
         rts
+
+; ---------------------------------------------------------------------------
+
+_c090ad:
         lda     #$0a
         sec
         adc     $0ad9
@@ -14294,7 +14369,7 @@ _c08fed:
         lda     #$01
         ldx     $06
         stx     $71
-        jsr     $707d
+        jsr     _c0707d
         inc     $a6
         lda     $b7
         asl
@@ -14338,11 +14413,11 @@ _c09133:
         lda     $0ad8       ; x position
         sta     $75
         stz     $b6
-@9142:  jsr     $4e41       ; wait for vblank
+@9142:  jsr     WaitVBlank
         lda     #$01
         ldx     $06
         stx     $71
-        jsr     $707d
+        jsr     _c0707d
         lda     $b6
         longa
         asl3
@@ -14425,11 +14500,11 @@ _c091ed:
         sta     $76
         lda     $0ad8
         sta     $75
-@91fa:  jsr     $4e41       ; wait for vblank
+@91fa:  jsr     WaitVBlank
         lda     #$01
         ldx     $06
         stx     $71
-        jsr     $707d
+        jsr     _c0707d
         inc     $a6
         lda     $b6
         asl
@@ -14472,12 +14547,12 @@ _c09267:
         beq     @927e       ; branch if map title is disabled
         lda     #$01        ; dialog window at top
         sta     $b4
-        jsr     $933d       ; show dialog window (map title)
-        jsr     $4ac1       ; wait for keypress
-        jsr     $9419       ; hide dialog window (map title)
+        jsr     _c0933d       ; show dialog window (map title)
+        jsr     _c04ac1       ; wait for keypress
+        jsr     _c09419       ; hide dialog window (map title)
 @927e:  stz     $16a0
         inc     $a5
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         lda     #$01
         sta     $10b8
 @928b:  rts
@@ -14487,7 +14562,7 @@ _c09267:
 ; [ init map title ]
 
 _c0928c:
-        jsr     $8f54
+        jsr     _c08f54
         lda     $57
         beq     @929d
         lda     $16a0
@@ -14569,7 +14644,7 @@ _c0928c:
 ; [ show dialog window (map title) ]
 
 _c0933d:
-@933d:  jsr     $8bd3
+@933d:  jsr     _c08bd3
         lda     $b4
         sec
         adc     $0ad9
@@ -14578,11 +14653,11 @@ _c0933d:
         sta     $75
         lda     #$00
         sta     $b5
-@9351:  jsr     $4e41       ; wait for vblank
+@9351:  jsr     WaitVBlank
         lda     #$01
         ldx     $06
         stx     $71
-        jsr     $707d
+        jsr     _c0707d
         lda     $b5
         longa
         xba
@@ -14643,11 +14718,11 @@ _c09419:
         sta     $76
         lda     $0ad8
         sta     $75
-@9429:  jsr     $4e41       ; wait for vblank
+@9429:  jsr     WaitVBlank
         lda     #$01
         ldx     $06
         stx     $71
-        jsr     $707d
+        jsr     _c0707d
         inc     $a6
         dec     $76
         dec     $b5
@@ -14660,7 +14735,7 @@ _c09419:
 ; [  ]
 
 _c09440:
-        jsr     $8bd3
+        jsr     _c08bd3
         lda     $b4
         sec
         adc     $0ad9
@@ -14669,14 +14744,14 @@ _c09440:
         sta     $75
         lda     #$00
         sta     $b5
-@9454:  jsr     $4e41       ; wait for vblank
-        jsr     $237c       ; update party sprite
-        jsr     $39b3       ; update object sprites
-        jsr     $2842
+@9454:  jsr     WaitVBlank
+        jsr     UpdatePlayerSprite
+        jsr     _c039b3       ; update object sprites
+        jsr     _c02842
         lda     #$01
         ldx     $06
         stx     $71
-        jsr     $707d
+        jsr     _c0707d
         lda     $b5
         longa
         xba
@@ -14703,7 +14778,7 @@ _c09440:
         lda     $b5
         cmp     #$05
         bne     @9454
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         rts
 
 ; ---------------------------------------------------------------------------
@@ -14719,14 +14794,14 @@ _c094a8:
         sta     $76
         lda     $0ad8
         sta     $75
-@94b8:  jsr     $4e41       ; wait for vblank
-        jsr     $237c       ; update party sprite
-        jsr     $39b3       ; update object sprites
-        jsr     $2842
+@94b8:  jsr     WaitVBlank
+        jsr     UpdatePlayerSprite
+        jsr     _c039b3       ; update object sprites
+        jsr     _c02842
         lda     #$01
         ldx     $06
         stx     $71
-        jsr     $707d
+        jsr     _c0707d
         inc     $a6
         dec     $76
         dec     $b5
@@ -14802,6 +14877,10 @@ _c09618:
         cpx     #$0100
         bne     @963e
         rts
+
+; ---------------------------------------------------------------------------
+
+_c0964c:
         lda     $3e
         and     #$0f
         tax
@@ -14975,23 +15054,23 @@ _c09799:
         and     #$f0
         lsr4
         bne     @97ba
-        jsr     $98e2
+        jsr     _c098e2
         cmp     #$00
         bne     @97d5
-        jsr     $97e2
+        jsr     _c097e2
         jmp     @97d5
 @97ba:  dec
         bne     @97ca
-        jsr     $98e2
+        jsr     _c098e2
         cmp     #$00
         bne     @97d5
-        jsr     $980d
+        jsr     _c0980d
         jmp     @97d5
 @97ca:  dec
         bne     @97d5
-        jsr     $98e2
+        jsr     _c098e2
         phy
-        jsr     $9838
+        jsr     _c09838
         ply
 @97d5:  tya
         clc
@@ -15079,7 +15158,7 @@ _c09838:
         asl
         tax
         pla
-        jsr     $9865
+        jsr     _c09865
         rts
 
 ; ---------------------------------------------------------------------------
@@ -15405,7 +15484,7 @@ _c09a96:
         sta     $1419,y
         lda     $06
         shorta
-        jsr     $9b01       ; load animated tile graphics
+        jsr     _c09b01       ; load animated tile graphics
 @9af8:  inc     $15         ; next tile
         lda     $15
         cmp     #$0c
@@ -15432,23 +15511,23 @@ _c09b01:
         cmp     #$08
         bcs     @9b3a       ; branch if a bg3 tile
         ldy     $06
-@9b23:  jsr     $9c3d
+@9b23:  jsr     _c09c3d
         iny
         cpy     #$0020
         bne     @9b23
         ldy     #$0040
-@9b2f:  jsr     $9c3d
+@9b2f:  jsr     _c09c3d
         iny
         cpy     #$0060
         bne     @9b2f
         bra     @9b51
 @9b3a:  ldy     $06
-@9b3c:  jsr     $9cac
+@9b3c:  jsr     _c09cac
         iny
         cpy     #$0010
         bne     @9b3c
         ldy     #$0020
-@9b48:  jsr     $9cac
+@9b48:  jsr     _c09cac
         iny
         cpy     #$0030
         bne     @9b48
@@ -15523,7 +15602,7 @@ _c09b01:
         inc     $11
         lda     $11
         cmp     #$0010
-        jne     $9b5f
+        jne     @9b5f
         lda     $0d
         clc
         adc     #$0012
@@ -15687,7 +15766,7 @@ _c0a18b:
         dec     $0afc       ; decrement timer counter
         lda     $06
         shorta
-        jsr     $a1c1       ;
+        jsr     _c0a1c1       ;
         bra     @a1c0
 @a1a3:  lda     $61
         and     #$1f
@@ -15801,26 +15880,26 @@ ExecEventCmd:
         cmp     #$c7
         bne     _a278
         inc     $d2
-        jsr     $a40a
+        jsr     _c0a40a
         jmp     NextEventCmd
 
 ; event command $cf
 _a278:  cmp     #$cf
         bne     _a284
         inc     $d2
-        jsr     $a3c9
+        jsr     _c0a3c9
         jmp     NextEventCmd
 
 ; event command $ce
 _a284:  cmp     #$ce
         bne     _a28e
-        jsr     $a3c9
+        jsr     _c0a3c9
         jmp     NextEventCmd
 
 ; event command $cd
 _a28e:  cmp     #$cd
         bne     _a298
-        jsr     $a380       ; jump to event
+        jsr     _c0a380       ; jump to event
         jmp     NextEventCmd
 
 ; event command $ff: end of script
@@ -15828,7 +15907,7 @@ _a298:  cmp     #$ff
         bne     _a2a6
         ldy     $d4
         beq     TerminateEvent          ; end of event if not a nested event
-        jsr     $a365                   ; return from subroutine
+        jsr     _c0a365                   ; return from subroutine
         jmp     NextEventCmd
 
 _a2a6:  cmp     #$05
@@ -15919,7 +15998,7 @@ _a337:  lda     $1478,y
         sta     $75
         lda     $147a,y
         sta     $76
-        jsr     $3ce0       ; add object to object layout
+        jsr     _c03ce0       ; add object to object layout
 _a344:  longa
         tya                 ; next object
         clc
@@ -16087,12 +16166,12 @@ _c0a449:
         longa
         asl
         tax
-        lda     f:_c0a508,x   ; event command jump table
+        lda     f:EventCmdTbl,x
         sta     $23
         lda     $06
         shorta
         lda     $df
-        jmp     ($0b23)     ; execute event command
+        jmp     ($0b23)                 ; execute event command
 
 ; ---------------------------------------------------------------------------
 
@@ -16103,9 +16182,9 @@ _c0a45f:
         lda     [$d6],y
         cmp     #$80
         bcs     @a46c       ; branch if moving an object (not camera)
-        jsr     $c98a       ; init camera movement
+        jsr     _c0c98a       ; init camera movement
         bra     @a46f
-@a46c:  jsr     $c7c8       ; init object movement
+@a46c:  jsr     _c0c7c8       ; init object movement
 @a46f:  lda     #$01
         jsr     AddEventPtr
         lda     $d2
@@ -16122,23 +16201,23 @@ _c0a45f:
         jsr     _c01733       ; update local tile properties (world map)
         jsr     _c00f8c
         jsr     _c01a1d
-        jsr     $4c95       ; clear sprite data
-        jsr     $2137
+        jsr     _c04c95       ; clear sprite data
+        jsr     _c02137
         jsr     _c01ec5
         jsr     _c01e64
         jsr     _c0420a
-        jsr     $612b
+        jsr     _c0612b
         bra     @a4c4
 @a4a9:  jsr     _c017e8       ; update local tile properties (normal map)
         jsr     _c011c2
         jsr     _c01ae4
-        jsr     $3bac
-        jsr     $4c95       ; clear sprite data
-        jsr     $237c       ; update party sprite
-        jsr     $39b3       ; update object sprites
-        jsr     $2842
+        jsr     _c03bac
+        jsr     _c04c95       ; clear sprite data
+        jsr     UpdatePlayerSprite
+        jsr     _c039b3       ; update object sprites
+        jsr     _c02842
         jsr     _c0420a
-@a4c4:  jsr     $4e41       ; wait for vblank
+@a4c4:  jsr     WaitVBlank
         lda     $be
         and     #$7f
         bne     @a488
@@ -16175,30 +16254,157 @@ _c0a45f:
 ; ---------------------------------------------------------------------------
 
 ; event command jump table ($70-$7f, $a0-$ff)
-_c0a508:
-        .addr   $bcce,$bcce,$bcce,$bcce,$bcce,$bcce,$c27c,$c28a
-        .addr   $c282,$ba98,$bd0d,$baff,$c56f,$c64b,$c6a7,$bb24
-        .addr   $c735,$bd1e,$c758,$c77c,$c76a,$c78e,$baef,$baf7
-        .addr   $c04b,$c0e0,$bf92,$bfc0,$bc64,$bb4c,$bae1,$bf07
-        .addr   $bf10,$c6d4,$c70b,$c71c,$c212,$c25a,$bad9,$be62
-        .addr   $c67d,$c692,$bff1,$c00f,$c02d,$bd8d,$c6c4,$a672
-        .addr   $bc6c,$c6cb,$c1aa,$c6ac,$c6b7,$c65a,$bee9,$0000
-        .addr   $c7a4,$c1ed,$c9ce,$c9e4,$0000,$0000,$0000,$0000
-        .addr   $bcb4,$c5fb,$c1bb,$c5c4,$c236,$c266,$c362,$c623
-        .addr   $c57a,$baa8,$b9ef,$ba9e,$bcf5,$b9e5,$0000,$0000
-        .addr   $c3d3,$c3f7,$bdbc,$c418,$b9d5,$b9dd,$b9cf,$b991
-        .addr   $bd36,$b8c8,$b8a0,$b8b7,$0000,$0000,$0000,$0000
-        .addr   $c2af,$c292,$0000,$c504,$c4e0,$0000,$0000,$0000
-        .addr   $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+EventCmdTbl:
+        .addr   EventCmd_70
+        .addr   EventCmd_71
+        .addr   EventCmd_72
+        .addr   EventCmd_73
+        .addr   EventCmd_74
+        .addr   EventCmd_75
+        .addr   EventCmd_76
+        .addr   EventCmd_77
+        .addr   EventCmd_78
+        .addr   EventCmd_79
+        .addr   EventCmd_7a
+        .addr   EventCmd_7b
+        .addr   EventCmd_7c
+        .addr   EventCmd_7d
+        .addr   EventCmd_7e
+        .addr   EventCmd_7f
+
+        .addr   EventCmd_a0
+        .addr   EventCmd_a1
+        .addr   EventCmd_a2
+        .addr   EventCmd_a3
+        .addr   EventCmd_a4
+        .addr   EventCmd_a5
+        .addr   EventCmd_a6
+        .addr   EventCmd_a7
+        .addr   EventCmd_a8
+        .addr   EventCmd_a9
+        .addr   EventCmd_aa
+        .addr   EventCmd_ab
+        .addr   EventCmd_ac
+        .addr   EventCmd_ad
+        .addr   EventCmd_ae
+        .addr   EventCmd_af
+        .addr   EventCmd_b0
+        .addr   EventCmd_b1
+        .addr   EventCmd_b2
+        .addr   EventCmd_b3
+        .addr   EventCmd_b4
+        .addr   EventCmd_b5
+        .addr   EventCmd_b6
+        .addr   EventCmd_b7
+        .addr   EventCmd_b8
+        .addr   EventCmd_b9
+        .addr   EventCmd_ba
+        .addr   EventCmd_bb
+        .addr   EventCmd_bc
+        .addr   EventCmd_bd
+        .addr   EventCmd_be
+        .addr   EventCmd_bf
+        .addr   EventCmd_c0
+        .addr   EventCmd_c1
+        .addr   EventCmd_c2
+        .addr   EventCmd_c3
+        .addr   EventCmd_c4
+        .addr   EventCmd_c5
+        .addr   EventCmd_c6
+        .addr   0
+        .addr   EventCmd_c8
+        .addr   EventCmd_c9
+        .addr   EventCmd_ca
+        .addr   EventCmd_cb
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   EventCmd_d0
+        .addr   EventCmd_d1
+        .addr   EventCmd_d2
+        .addr   EventCmd_d3
+        .addr   EventCmd_d4
+        .addr   EventCmd_d5
+        .addr   EventCmd_d6
+        .addr   EventCmd_d7
+        .addr   EventCmd_d8
+        .addr   EventCmd_d9
+        .addr   EventCmd_da
+        .addr   EventCmd_db
+        .addr   EventCmd_dc
+        .addr   EventCmd_dd
+        .addr   0
+        .addr   0
+        .addr   EventCmd_e0
+        .addr   EventCmd_e1
+        .addr   EventCmd_e2
+        .addr   EventCmd_e3
+        .addr   EventCmd_e4
+        .addr   EventCmd_e5
+        .addr   EventCmd_e6
+        .addr   EventCmd_e7
+        .addr   EventCmd_e8
+        .addr   EventCmd_e9
+        .addr   EventCmd_ea
+        .addr   EventCmd_eb
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   EventCmd_f0
+        .addr   EventCmd_f1
+        .addr   0
+        .addr   EventCmd_f3
+        .addr   EventCmd_f4
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   0
 
 ; ---------------------------------------------------------------------------
 
 ; event command $bf subcommand jump table
 _c0a5e8:
-        .addr   $b044,$b04c,$b0a7,$b6b0,$b259,$b185,$b548,$ac37
-        .addr   $ac4a,$ac65,$ac71,$b5b1,$b834,$b848,$b83a,$ac01
-        .addr   $ac1c,$b10b,$ab65,$ab49,$a98b,$a86d,$b052,$b60e
-        .addr   $a766,$a7c9,$a685,$0000,$0000,$0000,$0000,$0000
+        .addr   EventCmd_bf00
+        .addr   EventCmd_bf01
+        .addr   EventCmd_bf02
+        .addr   EventCmd_bf03
+        .addr   EventCmd_bf04
+        .addr   EventCmd_bf05
+        .addr   EventCmd_bf06
+        .addr   EventCmd_bf07
+        .addr   EventCmd_bf08
+        .addr   EventCmd_bf09
+        .addr   EventCmd_bf0a
+        .addr   EventCmd_bf0b
+        .addr   EventCmd_bf0c
+        .addr   EventCmd_bf0d
+        .addr   EventCmd_bf0e
+        .addr   EventCmd_bf0f
+        .addr   EventCmd_bf10
+        .addr   EventCmd_bf11
+        .addr   EventCmd_bf12
+        .addr   EventCmd_bf13
+        .addr   EventCmd_bf14
+        .addr   EventCmd_bf15
+        .addr   EventCmd_bf16
+        .addr   EventCmd_bf17
+        .addr   EventCmd_bf18
+        .addr   EventCmd_bf19
+        .addr   EventCmd_bf1a
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   0
+        .addr   0
 
 ; ---------------------------------------------------------------------------
 
@@ -16306,7 +16512,7 @@ EventCmd_bf1a:
         lda     $06
         shorta
         stz     $3d
-@a6dd:  jsr     $4e41       ; wait for vblank
+@a6dd:  jsr     WaitVBlank
         lda     $3d
         and     #$01
         beq     @a6ec
@@ -16326,7 +16532,7 @@ EventCmd_bf1a:
         inx
         cpx     #$0080
         bne     @a6ff
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         lda     $5e
         ora     #$04
         sta     $420c
@@ -16336,7 +16542,7 @@ EventCmd_bf1a:
         sta     $5e
         lda     #$bb
         sta     $2125
-        jsr     $8c7b
+        jsr     _c08c7b
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -16382,12 +16588,12 @@ _c0a726:
 EventCmd_bf18:
 @a766:  lda     #$0f
         sta     $6f
-        jsr     $a7be
-        jsr     $5bf4
-        jsr     $4a68
+        jsr     _c0a7be
+        jsr     _c05bf4
+        jsr     _c04a68
         stz     $3d
-@a775:  jsr     $4e41       ; wait for vblank
-        jsr     $4c95       ; clear sprite data
+@a775:  jsr     WaitVBlank
+        jsr     _c04c95       ; clear sprite data
         lda     $3d
         and     #$01
         bne     @a787
@@ -16403,21 +16609,25 @@ EventCmd_bf18:
         sta     $212a
         lda     #$00
         sta     $212b
-        jsr     $6134
+        jsr     _c06134
         lda     $3d
         lsr
         inc2
         sta     $169a
-        jsr     $5d54
+        jsr     _c05d54
         lda     $3d
         cmp     #$e0
         bne     @a7b3
-        jsr     $4a71
+        jsr     _c04a71
 @a7b3:  inc     $3d
         lda     $3d
         cmp     #$f0
         bne     @a775
         jmp     IncEventPtr2
+
+; ---------------------------------------------------------------------------
+
+_c0a7be:
 @a7be:  lda     #$00
         sta     $2126
         lda     #$ff
@@ -16431,9 +16641,9 @@ EventCmd_bf18:
 EventCmd_bf19:
 @a7c9:  lda     #$0f
         sta     $6f
-        jsr     $a7be
-        jsr     $5bf4
-        jsr     $4a68
+        jsr     _c0a7be
+        jsr     _c05bf4
+        jsr     _c04a68
         lda     #$1f
         sta     $0c00
         lda     #$03
@@ -16442,17 +16652,17 @@ EventCmd_bf19:
         sta     $212b
         lda     #$40
         sta     $3d
-@a7e9:  jsr     $4e41       ; wait for vblank
-        jsr     $6134
+@a7e9:  jsr     WaitVBlank
+        jsr     _c06134
         dec     $3d
         bne     @a7e9
         lda     #$77
         sta     $169a
-        jsr     $5d54
+        jsr     _c05d54
         stz     $da
         stz     $3d
-@a7ff:  jsr     $4e41       ; wait for vblank
-        jsr     $4c95       ; clear sprite data
+@a7ff:  jsr     WaitVBlank
+        jsr     _c04c95       ; clear sprite data
         lda     $da
         clc
         adc     $3d
@@ -16464,14 +16674,14 @@ EventCmd_bf19:
 @a814:  lda     $5e
         ora     #$02
 @a818:  sta     $5e
-        jsr     $6134
+        jsr     _c06134
         inc     $3d
         lda     $3d
         cmp     #$80
         bne     @a7ff
         lda     #$e0
         sta     $3d
-@a829:  jsr     $4e41       ; wait for vblank
+@a829:  jsr     WaitVBlank
         lda     $3d
         and     #$01
         bne     @a838
@@ -16481,12 +16691,12 @@ EventCmd_bf19:
 @a838:  lda     $5e
         ora     #$02
 @a83c:  sta     $5e
-        jsr     $6134
+        jsr     _c06134
         lda     $3d
         lsr
         inc2
         sta     $169a
-        jsr     $5d54
+        jsr     _c05d54
         dec     $3d
         bne     @a829
         lda     $5e
@@ -16494,11 +16704,11 @@ EventCmd_bf19:
         sta     $5e
         lda     #$40
         sta     $3d
-@a85a:  jsr     $4e41       ; wait for vblank
+@a85a:  jsr     WaitVBlank
         lda     $3d
         cmp     #$10
         bne     @a866
-        jsr     $4a71
+        jsr     _c04a71
 @a866:  dec     $3d
         bne     @a85a
         jmp     IncEventPtr2
@@ -16508,7 +16718,7 @@ EventCmd_bf19:
 ; [ event command $bf15:  ]
 
 EventCmd_bf15:
-@a86d:  jsr     $4e41       ; wait for vblank
+@a86d:  jsr     WaitVBlank
         ldx     #$7800
         stx     $16ad
         lda     #$db
@@ -16517,12 +16727,12 @@ EventCmd_bf15:
         stx     $23
         ldx     #$0400
         stx     $26
-        jsr     $4107
+        jsr     _c04107
         inc     $a3
         stz     $3d
-@a88b:  jsr     $4e41       ; wait for vblank
+@a88b:  jsr     WaitVBlank
         jsr     _c01ec5
-        jsr     $a933
+        jsr     _c0a933
         lda     #$db
         sta     $25
         ldx     #$5a80
@@ -16531,16 +16741,16 @@ EventCmd_bf15:
         stx     $26
         lda     $3d
         lsr2
-        jsr     $4107
+        jsr     _c04107
         inc     $a3
         inc     $3d
         lda     $3d
         bpl     @a88b
         stz     $3d
-@a8b3:  jsr     $4e41       ; wait for vblank
+@a8b3:  jsr     WaitVBlank
         stz     $49
-        jsr     $4c95       ; clear sprite data
-        jsr     $a933
+        jsr     _c04c95       ; clear sprite data
+        jsr     _c0a933
         lda     #$a0
         sta     $040f
         lda     #$60
@@ -16574,9 +16784,9 @@ EventCmd_bf15:
         sta     $0aee
         lda     #$7f
         sta     $3d
-@a90c:  jsr     $4e41       ; wait for vblank
-        jsr     $4c95       ; clear sprite data
-        jsr     $a933
+@a90c:  jsr     WaitVBlank
+        jsr     _c04c95       ; clear sprite data
+        jsr     _c0a933
         lda     #$db
         sta     $25
         ldx     #$5a80
@@ -16585,11 +16795,15 @@ EventCmd_bf15:
         stx     $26
         lda     $3d
         lsr2
-        jsr     $4107
+        jsr     _c04107
         inc     $a3
         dec     $3d
         bne     @a90c
         jmp     IncEventPtr2
+
+; ---------------------------------------------------------------------------
+
+_c0a933:
 @a933:  lda     $3f
         and     #$0c
         lsr
@@ -16639,19 +16853,19 @@ EventCmd_bf14:
         stx     $2e
         ldx     #$1000
         stx     $2c
-        jsr     $4d06       ; clear vram
+        jsr     _c04d06       ; clear vram
         ldx     #$0800
         lda     #$00
 @a99d:  sta     $7f7621,x
         dex
         bne     @a99d
-        jsr     $4a68
+        jsr     _c04a68
         lda     $5e
         ora     #$18
         sta     $5e
-        jsr     $4c95       ; clear sprite data
-        jsr     $612b
-@a9b3:  jsr     $4e41       ; wait for vblank
+        jsr     _c04c95       ; clear sprite data
+        jsr     _c0612b
+@a9b3:  jsr     WaitVBlank
         lda     $3d
         and     #$e0
         lsr4
@@ -16675,16 +16889,16 @@ EventCmd_bf14:
         stx     $26
         lda     $3d
         and     #$1f
-        jsr     $4107
+        jsr     _c04107
         inc     $a3
-        jsr     $aa0e
+        jsr     _c0aa0e
         lda     $3f
         and     #$03
         bne     @a9b3
         lda     $3d
         cmp     #$70
         bne     @a9ff
-        jsr     $4a71
+        jsr     _c04a71
 @a9ff:  inc     $3d
         lda     $3d
         bpl     @a9b3
@@ -16780,16 +16994,16 @@ _c0aa89:
 ; [ event command $bf13:  ]
 
 EventCmd_bf13:
-@ab49:  jsr     $abb5
-        jsr     $4a68
+@ab49:  jsr     _c0abb5
+        jsr     _c04a68
         lda     #$7f
         sta     $3d
-@ab53:  jsr     $4e41       ; wait for vblank
-        jsr     $ab8e
+@ab53:  jsr     WaitVBlank
+        jsr     _c0ab8e
         dec     $3d
         lda     $3d
         bpl     @ab53
-        jsr     $4c95       ; clear sprite data
+        jsr     _c04c95       ; clear sprite data
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -16797,17 +17011,17 @@ EventCmd_bf13:
 ; [ event command $bf12:  ]
 
 EventCmd_bf12:
-@ab65:  jsr     $abb5
+@ab65:  jsr     _c0abb5
         stz     $3d
-@ab6a:  jsr     $4e41       ; wait for vblank
-        jsr     $ab8e
+@ab6a:  jsr     WaitVBlank
+        jsr     _c0ab8e
         inc     $3d
         lda     $3d
         cmp     #$81
         bne     @ab6a
-        jsr     $4a71
+        jsr     _c04a71
         stz     $0b3d
-@ab7e:  jsr     $4e41       ; wait for vblank
+@ab7e:  jsr     WaitVBlank
         stz     $49
         inc     $3d
         lda     $3d
@@ -16837,8 +17051,12 @@ _c0ab8e:
         sbc     $da
         sta     $021c
         rts
+
+; ---------------------------------------------------------------------------
+
+_c0abb5:
 @abb5:  stz     $49
-        jsr     $4c95       ; clear sprite data
+        jsr     _c04c95       ; clear sprite data
         ldx     $06
 @abbc:  lda     f:_c0abd5,x
         sta     $0200,x
@@ -16903,12 +17121,12 @@ EventCmd_bf10:
 ; [ event command $bf07:  ]
 
 EventCmd_bf07:
-@ac37:  jsr     $ad28
-        jsr     $ae0b
-        jsr     $ad54
+@ac37:  jsr     _c0ad28
+        jsr     _c0ae0b
+        jsr     _c0ad54
         lda     #$01        ; show party sprite
         sta     $bd
-        jsr     $ac80
+        jsr     _c0ac80
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -16917,14 +17135,14 @@ EventCmd_bf07:
 
 EventCmd_bf08:
 @ac4a:  stz     $bd         ; hide party sprite
-        jsr     $4cad       ; hide all sprites
-        jsr     $ada0
-        jsr     $acdd
-        jsr     $ae0b
-        jsr     $acb1
+        jsr     _c04cad       ; hide all sprites
+        jsr     _c0ada0
+        jsr     _c0acdd
+        jsr     _c0ae0b
+        jsr     _c0acb1
         lda     #$01        ; show party sprite
         sta     $bd
-        jsr     $ac80
+        jsr     _c0ac80
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -16932,9 +17150,9 @@ EventCmd_bf08:
 ; [ event command $bf09:  ]
 
 EventCmd_bf09:
-@ac65:  jsr     $ad01
-        jsr     $add6
-        jsr     $ac80
+@ac65:  jsr     _c0ad01
+        jsr     _c0add6
+        jsr     _c0ac80
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -16942,10 +17160,10 @@ EventCmd_bf09:
 ; [ event command $bf0a:  ]
 
 EventCmd_bf0a:
-@ac71:  jsr     $ada0
-        jsr     $ae0b
-        jsr     $ac8b
-        jsr     $ac80
+@ac71:  jsr     _c0ada0
+        jsr     _c0ae0b
+        jsr     _c0ac8b
+        jsr     _c0ac80
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -16962,7 +17180,7 @@ _c0ac80:
 _c0ac8b:
 @ac8b:  lda     #$3f
         sta     $3d
-@ac8f:  jsr     $4e41       ; wait for vblank
+@ac8f:  jsr     WaitVBlank
         lda     #$03
         sta     $212a
         lda     #$01
@@ -16970,11 +17188,11 @@ _c0ac8b:
         lda     $3d
         inc2
         sta     $169a
-        jsr     $5d30
-        jsr     $ad86
+        jsr     _c05d30
+        jsr     _c0ad86
         dec     $3d
         bne     @ac8f
-        jsr     $8c7b
+        jsr     _c08c7b
         rts
 
 ; ---------------------------------------------------------------------------
@@ -16982,7 +17200,7 @@ _c0ac8b:
 _c0acb1:
 @acb1:  lda     #$3f
         sta     $3d
-@acb5:  jsr     $4e41       ; wait for vblank
+@acb5:  jsr     WaitVBlank
         lda     #$03
         sta     $212a
         lda     #$01
@@ -16990,13 +17208,13 @@ _c0acb1:
         lda     $3d
         inc2
         sta     $169a
-        jsr     $5d30
-        jsr     $ad86
-        jsr     $adb7
+        jsr     _c05d30
+        jsr     _c0ad86
+        jsr     _c0adb7
         dec     $3d
         bne     @acb5
-        jsr     $4e41       ; wait for vblank
-        jsr     $8c7b
+        jsr     WaitVBlank
+        jsr     _c08c7b
         rts
 
 ; ---------------------------------------------------------------------------
@@ -17004,7 +17222,7 @@ _c0acb1:
 _c0acdd:
 @acdd:  lda     #$70
         sta     $3d
-@ace1:  jsr     $4e41       ; wait for vblank
+@ace1:  jsr     WaitVBlank
         lda     #$03
         sta     $212a
         lda     #$00
@@ -17012,7 +17230,7 @@ _c0acdd:
         lda     $3d
         inc2
         sta     $169a
-        jsr     $5d30
+        jsr     _c05d30
         dec     $3d
         lda     $3d
         cmp     #$40
@@ -17023,7 +17241,7 @@ _c0acdd:
 
 _c0ad01:
 @ad01:  stz     $3d
-@ad03:  jsr     $4e41       ; wait for vblank
+@ad03:  jsr     WaitVBlank
         lda     #$03
         sta     $212a
         lda     #$01
@@ -17031,8 +17249,8 @@ _c0ad01:
         lda     $3d
         inc2
         sta     $169a
-        jsr     $5d30
-        jsr     $ad86
+        jsr     _c05d30
+        jsr     _c0ad86
         inc     $3d
         lda     $3d
         cmp     #$40
@@ -17045,7 +17263,7 @@ _c0ad01:
 _c0ad28:
 @ad28:  stz     $3d
         stz     $da
-@ad2c:  jsr     $4e41       ; wait for vblank
+@ad2c:  jsr     WaitVBlank
         lda     #$03
         sta     $212a
         lda     #$01
@@ -17053,9 +17271,9 @@ _c0ad28:
         lda     $3d
         inc2
         sta     $169a
-        jsr     $5d30
-        jsr     $ad86
-        jsr     $adb7
+        jsr     _c05d30
+        jsr     _c0ad86
+        jsr     _c0adb7
         inc     $3d
         lda     $3d
         cmp     #$40
@@ -17068,7 +17286,7 @@ _c0ad28:
 _c0ad54:
 @ad54:  lda     #$40
         sta     $3d
-@ad58:  jsr     $4e41       ; wait for vblank
+@ad58:  jsr     WaitVBlank
         lda     #$03
         sta     $212a
         lda     #$00
@@ -17076,7 +17294,7 @@ _c0ad54:
         lda     $3d
         inc2
         sta     $169a
-        jsr     $5d30
+        jsr     _c05d30
         lda     $3d
         cmp     #$60
         bne     @ad7d
@@ -17103,7 +17321,7 @@ _c0ad86:
         lda     #$7f
         sec
         sbc     $3d
-        jsr     $406b
+        jsr     _c0406b
         rts
 
 ; ---------------------------------------------------------------------------
@@ -17117,7 +17335,7 @@ _c0ada0:
         stx     $2c
         ldx     #$0180
         lda     #$40
-        jsr     $406b
+        jsr     _c0406b
         rts
 
 ; ---------------------------------------------------------------------------
@@ -17134,9 +17352,9 @@ _c0adb7:
         bra     @adca
 @adc8:  lda     #$01        ; show party sprite
 @adca:  sta     $bd
-        jsr     $4c95       ; clear sprite data
-        jsr     $2137
-        jsr     $612b
+        jsr     _c04c95       ; clear sprite data
+        jsr     _c02137
+        jsr     _c0612b
         rts
 
 ; ---------------------------------------------------------------------------
@@ -17145,17 +17363,17 @@ _c0add6:
 @add6:  stz     $da
         stz     $db
         stz     $3d
-@addc:  jsr     $4e41       ; wait for vblank
+@addc:  jsr     WaitVBlank
         lda     #$03
         sta     $212a
         lda     #$01
         sta     $212b
-        jsr     $ae32
+        jsr     _c0ae32
         lda     $3d
         and     #$01
         ora     #$3e
         sta     $169a
-        jsr     $5d30
+        jsr     _c05d30
         lda     $3d
         cmp     #$f0
         bne     @ae06
@@ -17173,17 +17391,17 @@ _c0ae0b:
 @ae0b:  stz     $da
         stz     $db
         stz     $3d
-@ae11:  jsr     $4e41       ; wait for vblank
+@ae11:  jsr     WaitVBlank
         lda     #$03
         sta     $212a
         lda     #$01
         sta     $212b
-        jsr     $ae32
+        jsr     _c0ae32
         lda     $3d
         and     #$01
         ora     #$3e
         sta     $169a
-        jsr     $5d30
+        jsr     _c05d30
         inc     $3d
         bne     @ae11
         rts
@@ -17200,19 +17418,19 @@ _c0ae32:
         sta     $0411
         sta     $0412
         sta     $0413
-        jsr     $4f2b       ; generate random number
+        jsr     Rand
         and     #$01
         bne     @ae6d
-        jsr     $4f2b       ; generate random number
+        jsr     Rand
         and     #$e0
         sta     $da
-        jsr     $4f2b       ; generate random number
+        jsr     Rand
         and     #$e0
         sta     $db
-        jsr     $4f2b       ; generate random number
+        jsr     Rand
         and     #$c0
         sta     $dc
-        jsr     $4f2b       ; generate random number
+        jsr     Rand
         and     #$c0
         sta     $dd
 @ae6d:  lda     $da
@@ -17390,7 +17608,7 @@ EventCmd_bf00:
 ; [ event command $bf01: load parent map ]
 
 EventCmd_bf01:
-@b04c:  jsr     $548f       ; load parent map
+@b04c:  jsr     LoadParentMap
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -17404,7 +17622,7 @@ EventCmd_bf16:
         stx     $1a53
         lda     #$07
         sta     $1a55
-@b061:  jsr     $4e41       ; wait for vblank
+@b061:  jsr     WaitVBlank
         lda     $3d
         lsr4
         tax
@@ -17421,7 +17639,7 @@ EventCmd_bf16:
         sty     $15
         ldx     $06
         stx     $16b1
-        jsr     $4f48       ; update shattering crystal
+        jsr     _c04f48       ; update shattering crystal
         longa
         lda     $1a53
         sec
@@ -17443,7 +17661,7 @@ EventCmd_bf02:
         stx     $1a53
         lda     #$01
         sta     $1a55
-@b0b4:  jsr     $4e41       ; wait for vblank
+@b0b4:  jsr     WaitVBlank
         lda     $3d
         lsr3
         tax
@@ -17460,7 +17678,7 @@ EventCmd_bf02:
         sty     $15
         ldx     $06
         stx     $16b1
-        jsr     $4f48       ; update shattering crystal
+        jsr     _c04f48       ; update shattering crystal
         longa
         lda     $1a53
         clc
@@ -17485,13 +17703,13 @@ _c0b0fb:
 EventCmd_bf11:
 @b10b:  lda     #$07
         sta     $6f
-        jsr     $4e41       ; wait for vblank
-        jsr     $4c95       ; clear sprite data
+        jsr     WaitVBlank
+        jsr     _c04c95       ; clear sprite data
         lda     #$01
         sta     $52
-        jsr     $5bf4
-        jsr     $4a68
-        jsr     $4e41       ; wait for vblank
+        jsr     _c05bf4
+        jsr     _c04a68
+        jsr     WaitVBlank
         ldx     #$7800
         stx     $2e
         ldx     #$0800
@@ -17500,8 +17718,8 @@ EventCmd_bf11:
         sta     $25
         ldx     #$6d80
         stx     $23
-        jsr     $4cbc       ; copy data to vram
-        jsr     $4e41       ; wait for vblank
+        jsr     _c04cbc       ; copy data to vram
+        jsr     WaitVBlank
         ldx     #$7c00
         stx     $2e
         ldx     #$0800
@@ -17510,12 +17728,12 @@ EventCmd_bf11:
         sta     $25
         ldx     #$7580
         stx     $23
-        jsr     $4cbc       ; copy data to vram
+        jsr     _c04cbc       ; copy data to vram
         stz     $52
         ldx     #$ff80
         stx     $15
         stz     $3d
-@b15a:  jsr     $4e41       ; wait for vblank
+@b15a:  jsr     WaitVBlank
         lda     $3f
         lsr
         bcc     @b15a
@@ -17528,11 +17746,11 @@ EventCmd_bf11:
         ldx     $15
         inx
         stx     $15
-@b172:  jsr     $b240
+@b172:  jsr     _c0b240
         lda     $3d
         cmp     #$f0
         bne     @b17e
-        jsr     $4a71
+        jsr     _c04a71
 @b17e:  inc     $3d
         bne     @b15a
         jmp     IncEventPtr2
@@ -17542,20 +17760,20 @@ EventCmd_bf11:
 ; [ event command $bf05:  ]
 
 EventCmd_bf05:
-@b185:  jsr     $4c95       ; clear sprite data
-        jsr     $5bf4
+@b185:  jsr     _c04c95       ; clear sprite data
+        jsr     _c05bf4
         lda     #$07
         sta     $6f
         ldx     #$7800
         stx     $2e
         ldx     #$1000
         stx     $2c
-        jsr     $4d06       ; clear vram
+        jsr     _c04d06       ; clear vram
         ldx     #$0050
         stx     $15
         lda     #$00
-        jsr     $b3cd
-        jsr     $4ce8       ; disable interrupts
+        jsr     _c0b3cd
+        jsr     _c04ce8       ; disable interrupts
         ldx     #$7c00
         stx     $2e
         ldx     #$0800
@@ -17564,11 +17782,11 @@ EventCmd_bf05:
         sta     $25
         ldx     #$7580
         stx     $23
-        jsr     $4cbc       ; copy data to vram
-        jsr     $4cfa       ; enable interrupts
-        jsr     $4a68
+        jsr     _c04cbc       ; copy data to vram
+        jsr     _c04cfa       ; enable interrupts
+        jsr     _c04a68
         stz     $3d
-@b1c7:  jsr     $4e41       ; wait for vblank
+@b1c7:  jsr     WaitVBlank
         lda     #$df
         sta     $25
         ldx     #$fe24
@@ -17579,7 +17797,7 @@ EventCmd_bf05:
         lda     $3d
         lsr
         inc
-        jsr     $406b
+        jsr     _c0406b
         ldx     #$7800
         stx     $16ad
         lda     #$db
@@ -17590,25 +17808,25 @@ EventCmd_bf05:
         stx     $26
         lda     $3d
         lsr3
-        jsr     $4107
+        jsr     _c04107
         inc     $a3
         inc     $3d
         bne     @b1c7
-@b204:  jsr     $4e41       ; wait for vblank
+@b204:  jsr     WaitVBlank
         lda     $3d
         lsr
         bcs     @b211
         ldx     $15
         dex
         stx     $15
-@b211:  jsr     $b240
+@b211:  jsr     _c0b240
         inc     $3d
         lda     $3d
         cmp     #$60
         bne     @b204
         stz     $3d
-@b21e:  jsr     $4e41       ; wait for vblank
-        jsr     $b240
+@b21e:  jsr     WaitVBlank
+        jsr     _c0b240
         lda     $3d
         lsr
         bcs     @b22e
@@ -17618,7 +17836,7 @@ EventCmd_bf05:
 @b22e:  lda     $3d
         cmp     #$f0
         bne     @b237
-        jsr     $4a71
+        jsr     _c04a71
 @b237:  inc     $3d
         bne     @b21e
         stz     $52
@@ -17632,7 +17850,7 @@ _c0b240:
         and     #$07
         tax
         lda     f:_c0b250,x
-        jsr     $b3cd
+        jsr     _c0b3cd
         rts
 
 ; ---------------------------------------------------------------------------
@@ -17645,18 +17863,18 @@ _c0b250:
 ; [ event command $bf04:  ]
 
 EventCmd_bf04:
-@b259:  jsr     $b371
+@b259:  jsr     _c0b371
         lda     #$38
         sta     $13
         lda     #$58
         sta     $15
         ldy     #$0080
         ldx     #$0050
-        jsr     $b2a5
+        jsr     _c0b2a5
         stz     $3d
-@b26f:  jsr     $4e41       ; wait for vblank
-        jsr     $4cad       ; hide all sprites
-        jsr     $b35c
+@b26f:  jsr     WaitVBlank
+        jsr     _c04cad       ; hide all sprites
+        jsr     _c0b35c
         ldx     #$7800
         stx     $16ad
         lda     #$db
@@ -17667,12 +17885,12 @@ EventCmd_bf04:
         stx     $26
         lda     $3d
         lsr3
-        jsr     $4107
+        jsr     _c04107
         inc     $a3
-        jsr     $b5fd
+        jsr     _c0b5fd
         inc     $3d
         bne     @b26f
-        jsr     $b594
+        jsr     _c0b594
         stz     $52
         jmp     IncEventPtr2
 
@@ -17748,23 +17966,23 @@ _c0b371:
         stx     $2e
         ldx     #$1000
         stx     $2c
-        jsr     $4d06       ; clear vram
+        jsr     _c04d06       ; clear vram
         lda     #$0a
         sta     $df
         lda     #$00
         sta     $e0
-        jsr     $baae       ; change color palette
+        jsr     _c0baae       ; change color palette
         lda     #$01
         sta     $a4
         inc     $a2
-        jsr     $4e41       ; wait for vblank
-        jsr     $4c95       ; clear sprite data
+        jsr     WaitVBlank
+        jsr     _c04c95       ; clear sprite data
         lda     #$01
         sta     $52
-        jsr     $41f1
-        jsr     $4a68
+        jsr     _c041f1
+        jsr     _c04a68
         stz     $3d
-@b3a5:  jsr     $4e41       ; wait for vblank
+@b3a5:  jsr     WaitVBlank
         lda     $3d
         sta     $211b
         lda     #$01
@@ -17775,10 +17993,10 @@ _c0b371:
         sta     $211e
         lda     $3d
         lsr4
-        jsr     $5c01
+        jsr     _c05c01
         inc     $3d
         bne     @b3a5
-        jsr     $5bf4
+        jsr     _c05bf4
         rts
 
 ; ---------------------------------------------------------------------------
@@ -17902,18 +18120,18 @@ _c0b428:
 ; [ event command $bf06:  ]
 
 EventCmd_bf06:
-@b548:  jsr     $b371
+@b548:  jsr     _c0b371
         lda     #$40
         sta     $13
         lda     #$40
         sta     $15
         ldy     #$00c0
         ldx     #$0000
-        jsr     $b2a5
+        jsr     _c0b2a5
         stz     $3d
-@b55e:  jsr     $4e41       ; wait for vblank
-        jsr     $4cad       ; hide all sprites
-        jsr     $b35c
+@b55e:  jsr     WaitVBlank
+        jsr     _c04cad       ; hide all sprites
+        jsr     _c0b35c
         ldx     #$7800
         stx     $16ad
         lda     #$db
@@ -17924,12 +18142,12 @@ EventCmd_bf06:
         stx     $26
         lda     $3d
         lsr3
-        jsr     $4107
+        jsr     _c04107
         inc     $a3
-        jsr     $b5fd
+        jsr     _c0b5fd
         inc     $3d
         bne     @b55e
-        jsr     $b594
+        jsr     _c0b594
         stz     $52
         jmp     IncEventPtr2
 
@@ -17942,9 +18160,9 @@ _c0b594:
         sta     $43
         lda     #$f0
         sta     $45
-@b59c:  jsr     $4e41       ; wait for vblank
-        jsr     $4cad       ; hide all sprites
-        jsr     $b35c
+@b59c:  jsr     WaitVBlank
+        jsr     _c04cad       ; hide all sprites
+        jsr     _c0b35c
         jsr     _c0420a
         inc     $3d
         lda     $3d
@@ -17957,18 +18175,18 @@ _c0b594:
 ; [ event command $bf0b: tower of walse sinking ]
 
 EventCmd_bf0b:
-@b5b1:  jsr     $b371
+@b5b1:  jsr     _c0b371
         lda     #$22
         sta     $13
         lda     #$41
         sta     $15
         ldy     #$00e0
         ldx     #$0000
-        jsr     $b2a5
+        jsr     _c0b2a5
         stz     $3d
-@b5c7:  jsr     $4e41       ; wait for vblank
-        jsr     $4cad       ; hide all sprites
-        jsr     $b35c
+@b5c7:  jsr     WaitVBlank
+        jsr     _c04cad       ; hide all sprites
+        jsr     _c0b35c
         ldx     #$7800
         stx     $16ad
         lda     #$db
@@ -17979,12 +18197,12 @@ EventCmd_bf0b:
         stx     $26
         lda     $3d
         lsr3
-        jsr     $4107
+        jsr     _c04107
         inc     $a3
-        jsr     $b5fd
+        jsr     _c0b5fd
         inc     $3d
         bne     @b5c7
-        jsr     $b594
+        jsr     _c0b594
         stz     $52
         jmp     IncEventPtr2
 
@@ -18007,9 +18225,9 @@ _c0b5fd:
 ; [ event command $bf17:  ]
 
 EventCmd_bf17:
-@b60e:  jsr     $4ce8       ; disable interrupts
+@b60e:  jsr     _c04ce8       ; disable interrupts
         jsr     _c01e14
-        jsr     $4cfa       ; enable interrupts
+        jsr     _c04cfa       ; enable interrupts
         ldx     #$7800
         stx     $16ad
         lda     #$db
@@ -18019,22 +18237,22 @@ EventCmd_bf17:
         ldx     #$0700
         stx     $26
         lda     #$1f
-        jsr     $4107
+        jsr     _c04107
         inc     $a3
-        jsr     $4a68
-        jsr     $b750
-        jsr     $5bf4
+        jsr     _c04a68
+        jsr     _c0b750
+        jsr     _c05bf4
         lda     #$0f
         sta     $6f
         lda     #$ff
         sta     $3d
-@b643:  jsr     $4e41       ; wait for vblank
+@b643:  jsr     WaitVBlank
         lda     $3d
         lsr2
         sta     $da
-        jsr     $4c95       ; clear sprite data
-        jsr     $b791
-        jsr     $612b
+        jsr     _c04c95       ; clear sprite data
+        jsr     _c0b791
+        jsr     _c0612b
         lda     #$87
         sta     $df
         lda     #$1e
@@ -18048,15 +18266,15 @@ EventCmd_bf17:
         sta     $e1
         jsr     _c0b9f5
         jsr     _c0420a
-        jsr     $bc9f
+        jsr     _c0bc9f
         dec     $3d
         lda     $3d
         bne     @b643
         stz     $3d
-@b67c:  jsr     $4e41       ; wait for vblank
-        jsr     $4c95       ; clear sprite data
-        jsr     $b791
-        jsr     $612b
+@b67c:  jsr     WaitVBlank
+        jsr     _c04c95       ; clear sprite data
+        jsr     _c0b791
+        jsr     _c0612b
         lda     #$87
         sta     $df
         lda     #$1e
@@ -18064,7 +18282,7 @@ EventCmd_bf17:
         sta     $e1
         jsr     _c0b9f5
         jsr     _c0420a
-        jsr     $bc9f
+        jsr     _c0bc9f
         lda     $3d
         cmp     #$e0
         bne     @b6a9
@@ -18085,19 +18303,19 @@ EventCmd_bf03:
         stx     $2e
         ldx     #$1000
         stx     $2c
-        jsr     $4d06
+        jsr     _c04d06
         lda     #$0f
         sta     $6f
-        jsr     $b750
+        jsr     _c0b750
         stz     $da
-        jsr     $b791
-        jsr     $5bf4
-        jsr     $4a68
+        jsr     _c0b791
+        jsr     _c05bf4
+        jsr     _c04a68
         stz     $3d
-@b6d1:  jsr     $4e41       ; wait for vblank
-        jsr     $4c95       ; clear sprite data
-        jsr     $b791
-        jsr     $612b
+@b6d1:  jsr     WaitVBlank
+        jsr     _c04c95       ; clear sprite data
+        jsr     _c0b791
+        jsr     _c0612b
         lda     $3d
         cmp     #$c0
         bcs     @b6f0
@@ -18112,10 +18330,10 @@ EventCmd_bf03:
         bne     @b6d1
         stz     $d3
         stz     $3d
-@b6fb:  jsr     $4e41       ; wait for vblank
-        jsr     $4c95       ; clear sprite data
-        jsr     $b791
-        jsr     $612b
+@b6fb:  jsr     WaitVBlank
+        jsr     _c04c95       ; clear sprite data
+        jsr     _c0b791
+        jsr     _c0612b
         ldx     #$7800
         stx     $16ad
         lda     #$db
@@ -18126,23 +18344,23 @@ EventCmd_bf03:
         stx     $26
         lda     $3d
         lsr2
-        jsr     $4107
+        jsr     _c04107
         inc     $a3
         inc     $3d
         lda     $3d
         bpl     @b6fb
         stz     $3d
-@b72c:  jsr     $4e41       ; wait for vblank
+@b72c:  jsr     WaitVBlank
         lda     $3d
         lsr2
         sta     $da
         lda     $3d
         cmp     #$f0
         bne     @b73e
-        jsr     $4a71
-@b73e:  jsr     $4c95       ; clear sprite data
-        jsr     $b791
-        jsr     $612b
+        jsr     _c04a71
+@b73e:  jsr     _c04c95       ; clear sprite data
+        jsr     _c0b791
+        jsr     _c0612b
         inc     $3d
         lda     $3d
         bne     @b72c
@@ -18251,7 +18469,7 @@ _c0b804:
 ; [ event command $bf0c:  ]
 
 EventCmd_bf0c:
-@b834:  jsr     $b854
+@b834:  jsr     _c0b854
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -18263,7 +18481,7 @@ EventCmd_bf0e:
         sta     $43
         lda     #$f0
         sta     $45
-        jsr     $b854
+        jsr     _c0b854
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -18274,7 +18492,7 @@ EventCmd_bf0d:
 @b848:  lda     #$02
         sta     $43
         stz     $45
-        jsr     $b854
+        jsr     _c0b854
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -18282,12 +18500,12 @@ EventCmd_bf0d:
 ; [  ]
 
 _c0b854:
-@b854:  jsr     $4e41       ; wait for vblank
+@b854:  jsr     WaitVBlank
         lda     #$80
         sta     $da
         lda     #$01
         sta     $52
-@b85f:  jsr     $4e41       ; wait for vblank
+@b85f:  jsr     WaitVBlank
         lda     $5e
         ora     #$80
         sta     $420c
@@ -18296,7 +18514,7 @@ _c0b854:
         inc
         sta     $4202
         ldx     $06
-@b873:  jsr     $4f2b       ; generate random number
+@b873:  jsr     Rand
         and     #$f0
         sta     $4203
         nop4
@@ -18308,7 +18526,7 @@ _c0b854:
         bne     @b873
         dec     $da
         bne     @b85f
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         stz     $420c
         stz     $52
         lda     #$00
@@ -18322,11 +18540,11 @@ _c0b854:
 EventCmd_ea:
 @b8a0:  lda     #$01        ; enable map title
         sta     $16a0
-        jsr     $4ce8       ; disable interrupts
-        jsr     $928c       ; init map title
-        jsr     $4cfa       ; enable interrupts
-        jsr     $4a68
-        jsr     $9267       ; show map title
+        jsr     _c04ce8       ; disable interrupts
+        jsr     _c0928c       ; init map title
+        jsr     _c04cfa       ; enable interrupts
+        jsr     _c04a68
+        jsr     _c09267       ; show map title
         jmp     IncEventPtr1
 
 ; ---------------------------------------------------------------------------
@@ -18336,9 +18554,9 @@ EventCmd_ea:
 EventCmd_eb:
 @b8b7:  lda     #$06        ; menu command $06 (transfer galuf's stats to krile)
         sta     $0134
-        jsr     $454f       ; open menu
-        jsr     $5532       ; load world map
-        jsr     $6100       ; fade in
+        jsr     OpenMenuNoFade
+        jsr     _c05532       ; load world map
+        jsr     _c06100       ; fade in
         jmp     IncEventPtr1
 
 ; ---------------------------------------------------------------------------
@@ -18361,7 +18579,7 @@ EventCmd_e9:
 @b8e4:  sty     $23
         stx     $26
 @b8e8:  inx
-        jsr     $c19d
+        jsr     _c0c19d
         cpy     #$0140
         bne     @b8cc
         lda     $26
@@ -18461,7 +18679,7 @@ EventCmd_e7:
         lda     $0d
         ora     f:_c0b9ca,x
         sta     $0d
-@b9b6:  jsr     $c19d
+@b9b6:  jsr     _c0c19d
         cpy     #$0140
         bne     @b995
         lda     $0d
@@ -18481,7 +18699,7 @@ _c0b9ca:
 ; [ event command $e6: convert color palettes to grayscale ]
 
 EventCmd_e6:
-@b9cf:  jsr     $4008       ; convert color palettes to grayscale
+@b9cf:  jsr     _c04008       ; convert color palettes to grayscale
         jmp     IncEventPtr1
 
 ; ---------------------------------------------------------------------------
@@ -18552,7 +18770,7 @@ _c0b9f5:
         and     #$c0
         lsr4
         tax
-        jsr     $4f2b       ; generate random number
+        jsr     Rand
         and     f:_c0ba86+2,x
         clc
         adc     #$10
@@ -18561,7 +18779,7 @@ _c0b9f5:
         and     #$07
         asl
         tax
-        jsr     $4f2b       ; generate random number
+        jsr     Rand
         and     f:_c0ba86+2,x
         longa
         sec
@@ -18569,7 +18787,7 @@ _c0b9f5:
         sta     $1a5a,y
         lda     $06
         shorta
-        jsr     $4f2b       ; generate random number
+        jsr     Rand
         and     f:_c0ba86+2,x
         longa
         sec
@@ -18609,7 +18827,7 @@ _c0ba86:
 ; [ event command $79: show mini-map ]
 
 EventCmd_79:
-@ba98:  jsr     $6635       ; show mini-map
+@ba98:  jsr     ShowMinimapNoFade
         jmp     IncEventPtr1
 
 ; ---------------------------------------------------------------------------
@@ -18627,7 +18845,7 @@ EventCmd_db:
 ; [ event command $d9: change color palette ]
 
 EventCmd_d9:
-@baa8:  jsr     $baae       ; change color palette
+@baa8:  jsr     _c0baae       ; change color palette
         jmp     IncEventPtr3
 
 ; ---------------------------------------------------------------------------
@@ -18663,7 +18881,7 @@ _c0baae:
 
 EventCmd_b6:
 @bad9:  lda     $df
-        jsr     $44c8       ; show cutscene
+        jsr     ShowCutscene
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -18685,7 +18903,7 @@ EventCmd_ae:
 
 EventCmd_a6:
 @baef:  lda     $df
-        jsr     $c9fa       ; set battle flag
+        jsr     _c0c9fa       ; set battle flag
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -18694,7 +18912,7 @@ EventCmd_a6:
 
 EventCmd_a7:
 @baf7:  lda     $df
-        jsr     $ca08       ; clear battle flag
+        jsr     _c0ca08       ; clear battle flag
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -18750,28 +18968,28 @@ EventCmd_7f:
 
 EventCmd_ad:
 @bb4c:  jsr     CalcInnPrice
-        jsr     $4dd7       ;
+        jsr     _c04dd7       ;
         ldx     #$000d      ; dialog message $000d "welcome!  it is \gp gp per night ..."
         stx     $af
         jsr     GetDlgPtr
-@bb5a:  jsr     $8f54       ;
+@bb5a:  jsr     _c08f54       ;
         ldx     $b1
         lda     f:Dlg,x   ; dialog
         beq     @bb8a
-        jsr     $8427
+        jsr     LoadDlgText
         ldy     $06
         sty     $ab
 @bb6c:  jsr     _c08d3b
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         ldy     $ab
         cpy     #$0040
         bne     @bb6c
         lda     $b3
         bne     @bb8a
-        jsr     $4aad
-        jsr     $4ac1       ; wait for keypress
+        jsr     _c04aad
+        jsr     _c04ac1       ; wait for keypress
         inc     $a5
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         bra     @bb5a
 @bb8a:  lda     $0947
         sta     $37
@@ -18779,12 +18997,12 @@ EventCmd_ad:
         sta     $38
         lda     $0949
         sta     $39
-        jsr     $4dd7
-        jsr     $9133       ; show gp window
-        jsr     $8fed       ; show yes/no window
+        jsr     _c04dd7
+        jsr     _c09133       ; show gp window
+        jsr     _c08fed       ; show yes/no window
         lda     #$80
         sta     $1697
-@bba7:  jsr     $4e41       ; wait for vblank
+@bba7:  jsr     WaitVBlank
         lda     $03
         and     #$0c
         beq     @bbbd
@@ -18808,14 +19026,14 @@ EventCmd_ad:
 @bbd6:  lda     $1697
         and     #$01
         sta     $1697
-        jsr     $90ad
-        jsr     $4e41       ; wait for vblank
-        jsr     $91ed
-        jsr     $4e41       ; wait for vblank
-        jsr     $94a8
-        jsr     $4e41       ; wait for vblank
+        jsr     _c090ad
+        jsr     WaitVBlank
+        jsr     _c091ed
+        jsr     WaitVBlank
+        jsr     _c094a8
+        jsr     WaitVBlank
         inc     $a5
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         lda     $1697
         bne     @bc3e
         jsr     CalcInnPrice
@@ -18875,7 +19093,7 @@ CalcInnPrice:
 
 EventCmd_ac:
 @bc64:  lda     $df
-        jsr     $c9a5       ; give magic
+        jsr     _c0c9a5       ; give magic
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -18893,7 +19111,7 @@ EventCmd_c0:
         sta     $2124
         lda     #$01
         sta     $212a
-        jsr     $8c7b
+        jsr     _c08c7b
         jmp     IncEventPtr2
 @bc8a:  lda     $df
         bpl     @bc99
@@ -18901,7 +19119,7 @@ EventCmd_c0:
         sta     $2123
         sta     $2124
         sta     $212a
-@bc99:  jsr     $5d30
+@bc99:  jsr     _c05d30
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -18931,7 +19149,7 @@ EventCmd_d0:
         lda     #$01
         sta     $5c
         jsl     ExecSound_ext
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         stz     $5c
         jmp     IncEventPtr3
 
@@ -18940,6 +19158,11 @@ EventCmd_d0:
 ; [ event command $70-$75: wait ]
 
 EventCmd_70:
+EventCmd_71:
+EventCmd_72:
+EventCmd_73:
+EventCmd_74:
+EventCmd_75:
 @bcce:  lda     $de
         sec
         sbc     #$70
@@ -18949,8 +19172,8 @@ EventCmd_70:
 @bcd9:  phx
         ldy     #$000f
 @bcdd:  phy
-        jsr     $c6de
-        jsr     $4e41       ; wait for vblank
+        jsr     _c0c6de
+        jsr     WaitVBlank
         ply
         dey
         bne     @bcdd
@@ -18976,10 +19199,10 @@ EventCmd_dc:
         sta     $0134
         lda     $df
         sta     $0135       ; tutorial index
-        jsr     _c0454c       ; open menu
+        jsr     OpenMenu
         inc     $55
-        jsr     $577c       ;
-        jsr     $6100       ; fade in
+        jsr     _c0577c       ;
+        jsr     _c06100       ; fade in
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -18989,9 +19212,9 @@ EventCmd_dc:
 EventCmd_7a:
 @bd0d:  lda     #$05        ; menu command $05 (name change)
         sta     $0134
-        jsr     _c0454c       ; open menu
-        jsr     $577c       ;
-        jsr     $6100       ; fade in
+        jsr     OpenMenu
+        jsr     _c0577c       ;
+        jsr     _c06100       ; fade in
         jmp     IncEventPtr1
 
 ; ---------------------------------------------------------------------------
@@ -19003,10 +19226,10 @@ EventCmd_a1:
         sta     $0135
         lda     #$02        ; menu command $02 (shop)
         sta     $0134
-        jsr     _c0454c       ; open menu
+        jsr     OpenMenu
         inc     $55
-        jsr     $577c
-        jsr     $6100       ; fade in
+        jsr     _c0577c
+        jsr     _c06100       ; fade in
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -19023,7 +19246,7 @@ EventCmd_e8:
         tax
         lda     $06
         shorta
-        jsr     $cc52
+        jsr     _c0cc52
         cmp     #$c0
         bcc     @bd51
         inx2
@@ -19062,20 +19285,20 @@ EventCmd_e8:
 EventCmd_bd:
 @bd8d:  lda     $df
         and     #$7f
-        jsr     $bde6       ; event battle
+        jsr     _c0bde6       ; event battle
         lda     $09c4       ; battle return code
         and     #$01
         beq     @bda3       ; branch if not defeated
         lda     #$f0
         sta     $1d00       ; don't reset spc
         jmp     Start
-@bda3:  jsr     $577c
+@bda3:  jsr     _c0577c
         lda     #$f0
         sta     $43
         stz     $45
         lda     $df
         bmi     @bdb3
-        jsr     $6100       ; fade in
+        jsr     _c06100       ; fade in
 @bdb3:  lda     #$81
         sta     $4200
         cli
@@ -19088,14 +19311,14 @@ EventCmd_bd:
 EventCmd_e2:
 @bdbc:  lda     $df
         and     #$7f
-        jsr     $bde6       ; event battle
-        jsr     $577c
+        jsr     _c0bde6       ; event battle
+        jsr     _c0577c
         lda     #$f0
         sta     $43
         stz     $45
         lda     $df
         bmi     @bdd3
-        jsr     $6100       ; fade in
+        jsr     _c06100       ; fade in
 @bdd3:  lda     #$81
         sta     $4200
         cli
@@ -19118,7 +19341,7 @@ _c0bde6:
         tax
         lda     $06
         shorta
-        jsr     $cc52
+        jsr     _c0cc52
         cmp     #$c0
         bcc     @bdfd
         inx2
@@ -19134,8 +19357,8 @@ _c0bde6:
 @be13:  sta     $04f2
         inc     $55
         lda     #$6f
-        jsr     $463c       ; play sound effect
-        jsr     $ccdd       ; battle blur
+        jsr     PlaySfx
+        jsr     _c0ccdd       ; battle blur
         stz     $420b
         stz     $420c
         lda     #$00
@@ -19159,7 +19382,7 @@ _c0bde6:
         beq     @be61
         lda     #$01        ; menu command $01 (collect items after battle)
         sta     $0134
-        jsr     $454f       ; open menu
+        jsr     OpenMenuNoFade
 @be61:  rts
 
 ; ---------------------------------------------------------------------------
@@ -19176,13 +19399,13 @@ EventCmd_b7:
         cmp     #$04        ; cara
         bne     @be7e
         lda     #$02        ; galuf
-        jsr     $c164       ; get pointer to character data
+        jsr     _c0c164       ; get pointer to character data
         lda     $0500,y
         and     #$80
         ora     $df
         sta     $0500,y
         bra     @be89
-@be7e:  jsr     $c164       ; get pointer to character data
+@be7e:  jsr     _c0c164       ; get pointer to character data
         lda     $0500,y
         and     #$bf
         sta     $0500,y
@@ -19209,7 +19432,7 @@ EventCmd_b7:
 
 ; remove character
 @beac:  and     #$07
-        jsr     $c164       ; get pointer to character data
+        jsr     _c0c164       ; get pointer to character data
         cpy     #$0140
         beq     @bebe
         lda     $0500,y
@@ -19254,7 +19477,7 @@ EventCmd_c6:
 ; [ event command $af: give gp ]
 
 EventCmd_af:
-@bf07:  jsr     $bf3f       ; calculate gp (event)
+@bf07:  jsr     _c0bf3f       ; calculate gp (event)
         jsr     GiveGil
         jmp     IncEventPtr2
 
@@ -19263,7 +19486,7 @@ EventCmd_af:
 ; [ event command $b0: take gp ]
 
 EventCmd_b0:
-@bf10:  jsr     $bf3f       ; calculate gp (event)
+@bf10:  jsr     _c0bf3f       ; calculate gp (event)
         lda     $0947       ; current gp
         sec
         sbc     $0b37
@@ -19339,7 +19562,7 @@ _c0bf3f:
 
 EventCmd_aa:
 @bf92:  lda     $df
-        jsr     $bfdd       ; find item slot
+        jsr     _c0bfdd       ; find item slot
         cpy     #$0100
         beq     @bfa9       ; branch if not found
         lda     $0740,y
@@ -19365,7 +19588,7 @@ EventCmd_aa:
 
 EventCmd_ab:
 @bfc0:  lda     $df
-        jsr     $bfdd       ; find item slot
+        jsr     _c0bfdd       ; find item slot
         cpy     #$0100
         beq     @bfda
         lda     $0740,y
@@ -19399,7 +19622,7 @@ _c0bfdd:
 EventCmd_ba:
 @bff1:  lda     $df
         and     #$07
-        jsr     $c164       ; get pointer to character data
+        jsr     _c0c164       ; get pointer to character data
         cpy     #$0140
         beq     @c00c
         lda     $0500,y
@@ -19417,7 +19640,7 @@ EventCmd_ba:
 EventCmd_bb:
 @c00f:  lda     $df
         and     #$07
-        jsr     $c164       ; get pointer to character data
+        jsr     _c0c164       ; get pointer to character data
         cpy     #$0140
         beq     @c02a
         lda     $0500,y
@@ -19435,7 +19658,7 @@ EventCmd_bb:
 EventCmd_bc:
 @c02d:  lda     $df
         and     #$07
-        jsr     $c164       ; get pointer to character data
+        jsr     _c0c164       ; get pointer to character data
         cpy     #$0140
         beq     @c048
         lda     $0500,y
@@ -19456,7 +19679,7 @@ EventCmd_a8:
 @c04b:  lda     $df
         and     #$c0
         lsr6
-        jsr     $c164       ; get pointer to character data
+        jsr     _c0c164       ; get pointer to character data
         cpy     #$0140
         beq     @c0cd
         lda     $0500,y
@@ -19526,7 +19749,7 @@ EventCmd_a9:
 @c0e0:  lda     $df
         and     #$c0
         lsr6
-        jsr     $c164       ; get pointer to character data
+        jsr     _c0c164       ; get pointer to character data
         cpy     #$0140
         beq     @c153
         lda     $0500,y
@@ -19596,7 +19819,7 @@ _c0c164:
         and     #$07
         cmp     $09
         beq     @c19c
-        jsr     $c19d
+        jsr     _c0c19d
         cpy     #$0140
         beq     @c19c
         bra     @c170
@@ -19607,7 +19830,7 @@ _c0c164:
         beq     @c19c
         cmp     #$04
         beq     @c19c
-        jsr     $c19d
+        jsr     _c0c19d
         cpy     #$0140
         beq     @c19c
         bra     @c185
@@ -19694,7 +19917,7 @@ EventCmd_c9:
         lda     #$01
         sta     $5c
         jsl     ExecSound_ext
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         stz     $5c
         jmp     IncEventPtr3
 
@@ -19714,7 +19937,7 @@ EventCmd_b4:
         lda     #$01
         sta     $5c
         jsl     ExecSound_ext
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         stz     $5c
         jmp     IncEventPtr2
 
@@ -19734,7 +19957,7 @@ EventCmd_d4:
         lda     #$01
         sta     $5c
         jsl     ExecSound_ext
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         stz     $5c
         jmp     IncEventPtr4
 
@@ -19744,7 +19967,7 @@ EventCmd_d4:
 
 EventCmd_b5:
 @c25a:  lda     $df
-        jsr     $463c       ; play sound effect
+        jsr     PlaySfx
         jsl     ExecSound_ext
         jmp     IncEventPtr2
 
@@ -19754,7 +19977,7 @@ EventCmd_b5:
 
 EventCmd_d5:
 @c266:  lda     $df
-        jsr     $463c       ; play sound effect
+        jsr     PlaySfx
         lda     $e0
         sta     $1d02
         lda     $e1
@@ -19795,7 +20018,7 @@ EventCmd_77:
 ; b1: bitmask with number of options (4 bytes each)
 
 EventCmd_f1:
-@c292:  jsr     $4f2b       ; generate random number
+@c292:  jsr     Rand
         and     $df
         longa
         asl2
@@ -19823,34 +20046,34 @@ EventCmd_f0:
         ldx     $0ad6       ; map index
         cpx     #$0005
         bcc     @c2cd
-        jsr     $4c95       ; clear sprite data
-        jsr     $237c       ; update party sprite
-        jsr     $39b3       ; update object sprites
-        jsr     $2842
+        jsr     _c04c95       ; clear sprite data
+        jsr     UpdatePlayerSprite
+        jsr     _c039b3       ; update object sprites
+        jsr     _c02842
 @c2cd:  jsr     GetDlgPtr
-@c2d0:  jsr     $8f54
+@c2d0:  jsr     _c08f54
         ldx     $b1
         lda     f:Dlg,x   ; dialog
         beq     @c300       ; branch if end of string
-        jsr     $8427
+        jsr     LoadDlgText
         ldy     $06
         sty     $ab
 @c2e2:  jsr     _c08d3b
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         ldy     $ab
         cpy     #$0040
         bne     @c2e2
         lda     $b3
         bne     @c300
-        jsr     $4aad
-        jsr     $4ac1       ; wait for keypress
+        jsr     _c04aad
+        jsr     _c04ac1       ; wait for keypress
         inc     $a5
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         bra     @c2d0
-@c300:  jsr     $8fed       ; show yes/no window
+@c300:  jsr     _c08fed       ; show yes/no window
         lda     #$80
         sta     $1697
-@c308:  jsr     $4e41       ; wait for vblank
+@c308:  jsr     WaitVBlank
         lda     $03
         and     #$0c
         beq     @c31e
@@ -19874,12 +20097,12 @@ EventCmd_f0:
         lda     $1697
         and     #$01
         sta     $1697
-@c33f:  jsr     $90ad
-        jsr     $4e41       ; wait for vblank
-        jsr     $94a8
-        jsr     $4e41       ; wait for vblank
+@c33f:  jsr     _c090ad
+        jsr     WaitVBlank
+        jsr     _c094a8
+        jsr     WaitVBlank
         inc     $a5
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         lda     #$03
         jsr     AddEventPtr
         lda     $1697
@@ -19901,7 +20124,7 @@ EventCmd_f0:
 ;        g: vehicle frame ???
 
 EventCmd_d6:
-@c362:  jsr     $4ce8       ; disable interrupts
+@c362:  jsr     _c04ce8       ; disable interrupts
         stz     $169e
         lda     $0ad8
         sta     $1088
@@ -19939,11 +20162,11 @@ EventCmd_d6:
         lda     $0ade,y
         asl
         sta     $0ade,y
-@c3bf:  jsr     $5528       ; load world map
+@c3bf:  jsr     LoadWorldMap
         lda     #$81
         sta     $4200
         cli
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         lda     #$04
         jsr     AddEventPtr
         jmp     NextEventCmd
@@ -19965,16 +20188,16 @@ EventCmd_d6:
 ;      h: vehicle height ???
 
 EventCmd_e0:
-@c3d3:  jsr     $6081       ; fade out
-        jsr     $c43f
+@c3d3:  jsr     _c06081       ; fade out
+        jsr     _c0c43f
         ldx     $0ad6       ; map index
         cpx     #$0005
         bcs     @c3e6
-        jsr     $5528       ; load world map
+        jsr     LoadWorldMap
         bra     @c3e9
-@c3e6:  jsr     $574c       ; load normal map
-@c3e9:  jsr     $6100       ; fade in
-        jsr     $9267       ; show map title
+@c3e6:  jsr     LoadSubMap
+@c3e9:  jsr     _c06100       ; fade in
+        jsr     _c09267       ; show map title
         lda     #$06
         jsr     AddEventPtr
         jmp     NextEventCmd
@@ -19984,15 +20207,15 @@ EventCmd_e0:
 ; [ event command $e1: load map (no fade) ]
 
 EventCmd_e1:
-@c3f7:  jsr     $c43f
+@c3f7:  jsr     _c0c43f
         ldx     $0ad6       ; map index
         cpx     #$0005
 @c400:  bcs     @c407
-        jsr     $5528       ; load world map
+        jsr     LoadWorldMap
         bra     @c40a
-@c407:  jsr     $574c       ; load normal map
-@c40a:  jsr     $4cfa       ; enable interrupts
-        jsr     $4e41       ; wait for vblank
+@c407:  jsr     LoadSubMap
+@c40a:  jsr     _c04cfa       ; enable interrupts
+        jsr     WaitVBlank
         lda     #$06
         jsr     AddEventPtr
         jmp     NextEventCmd
@@ -20002,18 +20225,18 @@ EventCmd_e1:
 ; [ event command $e3: load map (fade out only) ]
 
 EventCmd_e3:
-@c418:  jsr     $6081       ; fade out
-        jsr     $c43f
+@c418:  jsr     _c06081       ; fade out
+        jsr     _c0c43f
         ldx     $0ad6       ; map index
         cpx     #$0005
         bcs     @c42b
-        jsr     $5528       ; load world map
+        jsr     LoadWorldMap
         bra     @c42e
-@c42b:  jsr     $574c       ; load normal map
+@c42b:  jsr     LoadSubMap
 @c42e:  lda     #$81
         sta     $4200
         cli
-        jsr     $4e41       ; wait for vblank
+        jsr     WaitVBlank
         lda     #$06
         jsr     AddEventPtr
         jmp     NextEventCmd
@@ -20023,7 +20246,7 @@ EventCmd_e3:
 ; [  ]
 
 _c0c43f:
-@c43f:  jsr     $4ce8       ; disable interrupts
+@c43f:  jsr     _c04ce8       ; disable interrupts
         stz     $16a0       ; disable map title
         ldx     $0ad6       ; map index
         cpx     #$0005
@@ -20171,7 +20394,7 @@ _c51d:  lda     $e1
         sta     $d8
         lda     $06
         shorta
-        jsr     $6f08
+        jsr     _c06f08
         jmp     NextEventCmd
 
 ; ---------------------------------------------------------------------------
@@ -20191,7 +20414,7 @@ EventCmd_7c:
 EventCmd_d8:
 @c57a:  lda     $df
         and     #$1f
-        jsr     $c5e4       ; remove current object from object layout
+        jsr     _c0c5e4       ; remove current object from object layout
         lda     $df
         and     #$c0
         lsr5
@@ -20234,7 +20457,7 @@ EventCmd_d8:
 
 EventCmd_d3:
 @c5c4:  lda     $df
-        jsr     $c5e4       ; remove current object from object layout
+        jsr     _c0c5e4       ; remove current object from object layout
         lda     $e0
         and     #$c0
         lsr5
@@ -20258,7 +20481,7 @@ _c0c5e4:
         sta     $4203
         nop4
         ldy     $4216
-        jsr     $3cf8       ; remove object from object layout
+        jsr     _c03cf8       ; remove object from object layout
         rts
 
 ; ---------------------------------------------------------------------------
@@ -20366,7 +20589,7 @@ EventCmd_b8:
 @c67d:  lda     $46
         bne     @c689       ; if already active, reverse rate
         lda     $df
-        jsr     $49d7       ; init color addition
+        jsr     _c049d7       ; init color addition
         jmp     IncEventPtr2
 @c689:  lda     $44
         and     #$7f
@@ -20383,7 +20606,7 @@ EventCmd_b9:
 @c692:  lda     $46
         bne     @c69e       ; if already active, reverse rate
         lda     $df
-        jsr     $49e9       ; init color subtraction
+        jsr     _c049e9       ; init color subtraction
         jmp     IncEventPtr2
 @c69e:  lda     $44
         and     #$7f
@@ -20455,21 +20678,21 @@ EventCmd_b1:
 ; [  ]
 
 _c0c6de:
-@c6de:  jsr     $4c95       ; clear sprite data
+@c6de:  jsr     _c04c95       ; clear sprite data
         lda     $53
         bne     @c6f8
         jsr     _c01a1d
-        jsr     $2137
+        jsr     _c02137
         jsr     _c01ec5
         jsr     _c01e64
         jsr     _c0420a
-        jsr     $612b
+        jsr     _c0612b
         rts
 @c6f8:  jsr     _c01ae4
-        jsr     $3bac
-        jsr     $237c       ; update party sprite
-        jsr     $39b3       ; update object sprites
-        jsr     $2842
+        jsr     _c03bac
+        jsr     UpdatePlayerSprite
+        jsr     _c039b3       ; update object sprites
+        jsr     _c02842
         jsr     _c0420a
         rts
 
@@ -20481,8 +20704,8 @@ EventCmd_b2:
 @c70b:  lda     $df
         tax
 @c70e:  phx
-        jsr     $c6de
-        jsr     $4e41       ; wait for vblank
+        jsr     _c0c6de
+        jsr     WaitVBlank
         plx
         dex
         bne     @c70e
@@ -20498,8 +20721,8 @@ EventCmd_b3:
 @c71f:  phx
         ldy     #$000f
 @c723:  phy
-        jsr     $c6de
-        jsr     $4e41       ; wait for vblank
+        jsr     _c0c6de
+        jsr     WaitVBlank
         ply
         dey
         bne     @c723
@@ -20523,10 +20746,10 @@ EventCmd_a0:
         ldx     $0ad6       ; map index
         cpx     #$0005
         bcc     @c752
-        jsr     $4c95       ; clear sprite data
-        jsr     $237c       ; update party sprite
-        jsr     $39b3       ; update object sprites
-        jsr     $2842
+        jsr     _c04c95       ; clear sprite data
+        jsr     UpdatePlayerSprite
+        jsr     _c039b3       ; update object sprites
+        jsr     _c02842
 @c752:  jsr     ShowDlg
         jmp     IncEventPtr2
 
@@ -20538,7 +20761,7 @@ EventCmd_a0:
 
 EventCmd_a2:
 @c758:  lda     $df
-        jsr     $ca49       ; get flag index
+        jsr     _c0ca49       ; get flag index
         lda     $0a14,y     ; event flags
         ora     f:BitOrTbl,x
         sta     $0a14,y
@@ -20552,7 +20775,7 @@ EventCmd_a2:
 
 EventCmd_a4:
 @c76a:  lda     $df
-        jsr     $ca49       ; get flag index
+        jsr     _c0ca49       ; get flag index
         lda     $0a34,y
         ora     f:BitOrTbl,x
         sta     $0a34,y
@@ -20566,7 +20789,7 @@ EventCmd_a4:
 
 EventCmd_a3:
 @c77c:  lda     $df
-        jsr     $ca49       ; get flag index
+        jsr     _c0ca49       ; get flag index
         lda     $0a14,y
         and     f:BitAndTbl,x
         sta     $0a14,y
@@ -20580,9 +20803,13 @@ EventCmd_a3:
 
 EventCmd_a5:
 @c78e:  lda     $df
-        jsr     $c796
+        jsr     _c0c796
         jmp     IncEventPtr2
-@c796:  jsr     $ca49       ; get flag index
+
+; ---------------------------------------------------------------------------
+
+_c0c796:
+@c796:  jsr     _c0ca49       ; get flag index
         lda     $0a34,y
         and     f:BitAndTbl,x
         sta     $0a34,y
@@ -20603,10 +20830,10 @@ EventCmd_c8:
         ldx     $0ad6       ; map index
         cpx     #$0005
         bcc     @c7c2       ; branch if a world map
-        jsr     $4c95       ; clear sprite data
-        jsr     $237c       ; update party sprite
-        jsr     $39b3       ; update object sprites
-        jsr     $2842
+        jsr     _c04c95       ; clear sprite data
+        jsr     UpdatePlayerSprite
+        jsr     _c039b3       ; update object sprites
+        jsr     _c02842
 @c7c2:  jsr     ShowDlg
         jmp     IncEventPtr3
 
@@ -20615,7 +20842,7 @@ EventCmd_c8:
 ; [ init object movement ]
 
 _c0c7c8:
-        jsr     $c5e4       ; remove current object from object layout
+        jsr     _c0c5e4       ; remove current object from object layout
         lda     #$01
         jsr     AddEventPtr
         phy
@@ -20706,7 +20933,7 @@ _c0c7f9:
         lda     $1485,y
         and     #$fe
         sta     $1485,y
-        jsr     $3cf8       ; remove object from object layout
+        jsr     _c03cf8       ; remove object from object layout
         jmp     @c92f
 
 ; unused ???
@@ -20867,9 +21094,9 @@ _c0c932:
         sta     $0adb       ; facing direction
 @c97b:  lda     $53
         bne     @c984       ; branch if a world map ???
-        jsr     $2137
+        jsr     _c02137
         bra     @c987
-@c984:  jsr     $237c       ; update party sprite
+@c984:  jsr     UpdatePlayerSprite
 @c987:  jmp     IncEventPtr1
 
 ; ---------------------------------------------------------------------------
@@ -20916,7 +21143,7 @@ _c0c9b9:
 
 _c0c9c1:
         phx
-        jsr     $ca49       ; get flag index
+        jsr     _c0ca49       ; get flag index
         lda     $0a54,y
         and     f:BitOrTbl,x
         plx
@@ -20930,7 +21157,7 @@ EventCmd_ca:
 @c9ce:  longa
         lda     $df
         shorta
-        jsr     $ca49       ; get flag index
+        jsr     _c0ca49       ; get flag index
         lda     $0a54,y
         ora     f:BitOrTbl,x
         sta     $0a54,y
@@ -20944,7 +21171,7 @@ EventCmd_cb:
 @c9e4:  longa
         lda     $df
         shorta
-        jsr     $ca49       ; get flag index
+        jsr     _c0ca49       ; get flag index
         lda     $0a54,y
         and     f:BitAndTbl,x
         sta     $0a54,y
@@ -20955,7 +21182,7 @@ EventCmd_cb:
 ; [ set battle flag ]
 
 _c0c9fa:
-@c9fa:  jsr     $ca49       ; get flag index
+@c9fa:  jsr     _c0ca49       ; get flag index
         lda     $09b4,y
         ora     f:BitOrTbl,x
         sta     $09b4,y
@@ -20966,7 +21193,7 @@ _c0c9fa:
 ; [ clear battle flag ]
 
 _c0ca08:
-@ca08:  jsr     $ca49       ; get flag index
+@ca08:  jsr     _c0ca49       ; get flag index
         lda     $09b4,y
         and     f:BitAndTbl,x
         sta     $09b4,y
@@ -20977,7 +21204,7 @@ _c0ca08:
 ; [ get treasure flag ]
 
 _c0ca16:
-        jsr     $ca49       ; get flag index
+        jsr     _c0ca49       ; get flag index
         lda     $09d4,y
         and     f:BitOrTbl,x
         rts
@@ -20987,7 +21214,7 @@ _c0ca16:
 ; [ set treasure flag ]
 
 _c0ca21:
-        jsr     $ca49       ; get flag index
+        jsr     _c0ca49       ; get flag index
         lda     $09d4,y
         ora     f:BitOrTbl,x
         sta     $09d4,y
@@ -20999,7 +21226,7 @@ _c0ca21:
 
 _c0ca2f:
         phx
-        jsr     $ca49       ; get flag index
+        jsr     _c0ca49       ; get flag index
         lda     $0a14,y
         and     f:BitOrTbl,x
         plx
@@ -21011,7 +21238,7 @@ _c0ca2f:
 
 _c0ca3c:
         phx
-        jsr     $ca49       ; get flag index
+        jsr     _c0ca49       ; get flag index
         lda     $0a34,y
         and     f:BitOrTbl,x
         plx
@@ -21091,7 +21318,7 @@ _c0ca69:
 @cabf:  sta     $16a8
         lda     $06
         shorta
-        jsr     $cc52       ; update random number for random battles
+        jsr     _c0cc52       ; update random number for random battles
         cmp     $16a9
         bcs     @cb08       ; branch if no battle
         longa
@@ -21103,7 +21330,7 @@ _c0ca69:
         tax
         lda     $06
         shorta
-        jsr     $cc6d       ; update random number for battle group
+        jsr     _c0cc6d       ; update random number for battle group
         cmp     #$5a
         bcc     @caf6
         inx2
@@ -21214,7 +21441,7 @@ _c0cb11:
 @cbbe:  sta     $16a8
         lda     $06
         shorta
-        jsr     $cc52
+        jsr     _c0cc52
         cmp     $16a9
         bcs     @cc20
         lda     $0ad9
@@ -21241,7 +21468,7 @@ _c0cb11:
         tax
         lda     $06
         shorta
-        jsr     $cc6d
+        jsr     _c0cc6d
         cmp     #$5a
         bcc     @cc11
         inx2
@@ -21328,7 +21555,7 @@ _c0cc6d:
 
 _c0cc88:
 @cc88:  stz     $3f
-@cc8a:  jsr     $4e41       ; wait for vblank
+@cc8a:  jsr     WaitVBlank
         lda     $3f
         cmp     #$10
         bcs     @cc97
@@ -21351,7 +21578,7 @@ _c0cca9:
 @cca9:  stz     $420b
         stz     $420c
         stz     $3f
-@ccb1:  jsr     $4e41       ; wait for vblank
+@ccb1:  jsr     WaitVBlank
         lda     $3f
         and     #$3f
         asl
@@ -21378,9 +21605,9 @@ _c0ccdd:
         sta     $52
         lda     $53
         bne     @ccea
-        jsr     $cca9
+        jsr     _c0cca9
         bra     @cced
-@ccea:  jsr     $cc88
+@ccea:  jsr     _c0cc88
 @cced:  stz     $52
         rts
 
@@ -21392,7 +21619,7 @@ _ccf0:  ldx     $06
         stx     $16a8
         lda     #$6f
         jsr     PlaySfx
-        jsr     $ccdd
+        jsr     _c0ccdd
         stz     hMDMAEN
         stz     hHDMAEN
         lda     #0
@@ -21419,7 +21646,7 @@ _cd24:  lda     $013b
         beq     _cd46
         lda     #1
         sta     $0134
-        jsr     $454f
+        jsr     OpenMenuNoFade
 _cd46:  jsr     UpdateTopChar
         rts
 
