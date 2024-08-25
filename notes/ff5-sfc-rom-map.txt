@@ -17,13 +17,14 @@
 |    address    |                         description                       |
 +---------------+-----------------------------------------------------------+
 | C00000-C0CF00 | field/world code                                          |
-| C0CF00-       |                                                           |
-|               |                                                           |
+| C0CF00-C0D240 |                                                           |
+| C0D240-C0D340 |                                                           |
 | C0D340-C0D380 | menu window palette                                       |
 | C0D380-C0D980 | menu window graphics (4bpp)                               |
 | C0D980-C0D9B8 | pointers to ??? (+$C0D980)                                |
 | C0D9B8-C0DF00 | ???                                                       |
 | C0DF00-C0E600 | overlay sprite graphics (1bpp)                            |
+| C0E600-       | menu data                                                 |
 |               |                                                           |
 | C0E841-C0E861 | pointers to menu tutorial scripts                         |
 | C0E861-C0E8DF | menu tutorial scripts                                     |
@@ -80,7 +81,7 @@
 | CDFA40-CDFBA8 | map palette animation (15 items, 24 bytes each)           |
 | CDFBA8-CDFC00 | map palette animation colors                              |
 | CDFC00-CDFE00 | ???                                                       |
-| CDFE00-CE0000 | ??? graphics                                              |
+| CDFE00-CE0000 | timer font graphics                                       |
 | CE0000-CE0740 | pointers to npc scripts (+$CE0000)                        |
 | CE0740-CE2400 | npc scripts (928 items, variable size)                    |
 | CE2400-CE2800 | pointers to event triggers (+$CE2400)                     |
@@ -106,8 +107,7 @@
 | CFC540-CFC56E | pointers to map tile properties (+$CFC540)                |
 | CFC56E-CFD7CB | map tile properties (23 items, compressed)                |
 | CFD7CB-CFD800 | unused space (53 bytes)                                   |
-| CFD800-CFDC00 | minimap graphics (4bpp)                                   |
-| CFDC00-CFE000 |                                                           |
+| CFD800-CFE000 | minimap sprite graphics (4bpp)                            |
 | CFE000-CFEA00 | pointers to world tilemaps (+$C70000)                     |
 | CFEA00-CFF0C0 | world map tile properties (3 items, 576 bytes each)       |
 | CFF0C0-CFF9C0 | world map tilesets (3 items, 768 bytes each)              |

@@ -23,6 +23,14 @@
   ],
   "data": [
     {
+      "file_path": "src/field/unknown_c0cf00.dat",
+      "asset_range": "0xC0CF00-0xC0D23F"
+    },
+    {
+      "file_path": "src/field/unknown_c0d240.dat",
+      "asset_range": "0xC0D240-0xC0D33F"
+    },
+    {
       "file_path": "src/field/unknown_c0d980/unknown_c0d980_%s.dat.lz",
       "asset_range": "0xC0D9B8-0xC0DEFB",
       "ptr_range": "0xC0D980-0xC0D9B7",
@@ -69,6 +77,10 @@
       "asset_range": "0xCDFA40-0xCDFBA7"
     },
     {
+      "file_path": "src/gfx/timer_font.4bpp",
+      "asset_range": "0xCDFE00-0xCDFFFF"
+    },
+    {
       "file_path": "src/field/map_prop/map_prop_%s.dat",
       "asset_range": "0xCE9C00-0xCECFFF",
       "item_size": 26
@@ -84,6 +96,10 @@
       "asset_range": "0xCFC56E-0xCFD7CB",
       "ptr_range": "0xCFC540-0xCFC56D",
       "ptr_offset": "0xCFC540"
+    },
+    {
+      "file_path": "src/gfx/minimap_sprite.4bpp",
+      "asset_range": "0xCFD800-0xCFDFFF"
     },
     {
       "file_path": "src/field/world_tile_prop/%s.dat",
@@ -130,8 +146,32 @@
       "asset_range": "0xD07800-0xD079FF"
     },
     {
+      "file_path": "src/field/world_battle_grp.dat",
+      "asset_range": "0xD07A00-0xD07FFF"
+    },
+    {
+      "file_path": "src/field/sub_battle_grp.dat",
+      "asset_range": "0xD08000-0xD083FF"
+    },
+    {
+      "file_path": "src/field/world_battle_rate.dat",
+      "asset_range": "0xD08400-0xD084BF"
+    },
+    {
+      "file_path": "src/field/sub_battle_rate.dat",
+      "asset_range": "0xD084C0-0xD0853F"
+    },
+    {
       "file_path": "src/field/rand_battle_grp.dat",
       "asset_range": "0xD06800-0xD06FFF"
+    },
+    {
+      "file_path": "src/field/map_treasures.dat",
+      "asset_range": "0xD13000-0xD1320F"
+    },
+    {
+      "file_path": "src/field/treasure_prop.dat",
+      "asset_range": "0xD13210-0xD135FF"
     },
     {
       "file_path": "src/field/char_prop.dat",

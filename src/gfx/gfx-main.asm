@@ -50,6 +50,26 @@ BigFontGfx:
 
 ; ---------------------------------------------------------------------------
 
+.segment "timer_font_gfx"
+
+.export TimerFontGfx
+
+; cd/fe00
+TimerFontGfx:
+        .incbin "timer_font.4bpp"
+
+; ---------------------------------------------------------------------------
+
+.segment "minimap_sprite_gfx"
+
+.export MinimapSpriteGfx
+
+; cf/d800
+MinimapSpriteGfx:
+        .incbin "minimap_sprite.4bpp"
+
+; ---------------------------------------------------------------------------
+
 .export WorldTileAttr
 
 .segment "world_tile_attr"

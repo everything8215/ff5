@@ -35,10 +35,10 @@
 .import ShowCutscene_ext, Decomp_ext
 .import InitSound_ext, ExecSound_ext
 
-.import WindowPal, WindowGfx, BigFontGfx, KanjiGfx
+.import WindowPal, WindowGfx, BigFontGfx, KanjiGfx, TimerFontGfx
 .import MapBG3Gfx, MapBG3GfxPtrs, MapGfx, MapGfxPtrs
 .import MapPal, MapAnimGfx, MapSpritePal, MapOverlayGfx
-.import WorldPal, WorldTileAttr, WorldGfx
+.import WorldPal, WorldTileAttr, WorldGfx, MinimapSpriteGfx
 
 ; ===========================================================================
 
@@ -116,7 +116,7 @@ NewGame:
         lda     #$01
         sta     $57
         lda     #$81
-        sta     $4200
+        sta     hNMITIMEN
         cli
         jsr     ExecEvent
         stz     $57
@@ -287,7 +287,7 @@ _01fb:  jsr     _c0cb11
         jmp     _00ad
 _0220:  stz     $55
         lda     $03
-        and     #$40
+        and     #>JOY_Y
         beq     _0246
         lda     #$fb
         jsr     _c0ca3c                   ; get event flag $01xx
@@ -380,11 +380,11 @@ _02d1:  php
         stz     hMDMAEN
         stz     $40
         lda     $47
-        sta     $2131       ; addition/subtraction
+        sta     hCGADSUB       ; addition/subtraction
         lda     $49
-        sta     $212d       ; subscreen designation
-        jsr     _c04d67       ; copy color palettes to ppu
-        jsr     _c04d3e       ; copy sprite data to ppu
+        sta     hTS       ; subscreen designation
+        jsr     TfrPal
+        jsr     TfrSprites
         jsr     _c04a7a
         jsr     _c04653       ; update screen pixelation
         jsr     _c049ff       ; update fixed color
@@ -494,7 +494,7 @@ _0405:  jsr     _c0996d       ; copy map animation graphics to vram
 _0408:  jsr     _c05e8a
         jsr     _c05f3e
         lda     $5e         ; hdma enable
-        sta     $420c
+        sta     hHDMAEN
         jsr     _c09a00
         jsr     _c09799       ; update palette animation
         jsr     _c04931
@@ -688,7 +688,7 @@ _05a1:  cmp     #$f7                    ; $f7: if facing direction
 _05b1:  cmp     #$f6                    ; $f6: if button pressed
         bne     _05cb
         lda     $02
-        and     #$80
+        and     #JOY_A
         beq     _05e5
         lda     $10b8
         bne     _05e5
@@ -904,7 +904,7 @@ _0763:  ldy     $23
         cmp     #$14
         beq     _07a4
         lda     $02
-        and     #$80
+        and     #JOY_A
         beq     _07ed
         lda     $10b8
         bne     _07ed
@@ -954,7 +954,7 @@ _07ee:  dec
         bne     _07ed                   ; branch if vehicle can't land
         tyx
         lda     $02
-        and     #$80
+        and     #JOY_A
         beq     _07ed
         lda     $10b8
         bne     _07ed
@@ -1554,20 +1554,20 @@ _0ca2:  jsr     WaitVBlank
         jsr     _c0612b
         jsr     _c01e64
         lda     $03
-        and     #$80
+        and     #>JOY_B
         beq     _0cbd
         lda     #$80
         sta     $1697
         rts
 _0cbd:  lda     $02
-        and     #$80
+        and     #JOY_A
         beq     _0ccd
         lda     $10b8
         bne     _0ccd
         inc     $10b8
         bra     _0d3c
 _0ccd:  lda     $03
-        and     #$0c
+        and     #>(JOY_UP | JOY_DOWN)
         beq     _0ce1
         cmp     #$08
         bne     _0cdc
@@ -1634,7 +1634,7 @@ _0d3d:  lda     $61
         cmp     #$00
         bne     _0d63
         lda     $02
-        and     #$80
+        and     #JOY_A
         beq     _0d73       ; branch if the a button is not down
         lda     $10b8
         bne     _0d73       ;
@@ -1643,7 +1643,7 @@ _0d63:  jsr     CheckNPCEvents
         lda     $58
         bne     _0d73       ; branch if an event is running
         lda     $02
-        and     #$80
+        and     #JOY_A
         beq     _0d73       ; branch if the a button is not down
         jsr     CheckTreasure
 _0d73:  rts
@@ -1659,11 +1659,11 @@ _0d73:  rts
 _0d74:  longa
         lda     $0ad4
         tax
-        lda     $d13000,x               ; first treasure on this map
+        lda     f:MapTreasures,x        ; first treasure on this map
         and     #$00ff
         asl2
         sta     $23
-        lda     $d13001,x               ; first treasure on next map
+        lda     f:MapTreasures+1,x               ; first treasure on next map
         and     #$00ff
         asl2
         sta     $26
@@ -1685,10 +1685,10 @@ _0db0:  ldx     $23
         cpx     $26
         beq     _0dd2
         bcs     _0dd2
-        lda     $d13210,x               ; check x position
+        lda     f:TreasureProp,x               ; check x position
         cmp     $75
         bne     _0dca
-        lda     $d13211,x               ; check y position
+        lda     f:TreasureProp+1,x               ; check y position
         cmp     $76
         bne     _0dca
         bra     _0dd3
@@ -1712,11 +1712,11 @@ _0dd3:  longa
         stz     $ba
         ldx     $23
         phx
-        lda     $d13211,x
+        lda     f:TreasureProp+1,x
         longa
         asl6
         sta     $0d
-        lda     $d13210,x
+        lda     f:TreasureProp,x
         and     #$00ff
         clc
         adc     $0d
@@ -1739,9 +1739,9 @@ _0dd3:  longa
 _0e2e:  lda     #$68
         jsr     PlaySfx
 _0e33:  plx
-        lda     $d13212,x
+        lda     f:TreasureProp+2,x
         sta     $11
-        lda     $d13213,x
+        lda     f:TreasureProp+3,x
         sta     $12
         lda     $11
         jmi     _0ebc
@@ -1878,19 +1878,19 @@ _0f3d:  stz     $39
         asl
         tax
         lda     $12
-        sta     $4202
+        sta     hWRMPYA
         lda     f:_c00f78,x
-        sta     $4203
+        sta     hWRMPYB
         nop4
-        ldy     $4216
+        ldy     hRDMPYL
         sty     $37
         lda     $12
-        sta     $4202
+        sta     hWRMPYA
         lda     f:_c00f78+1,x
-        sta     $4203
+        sta     hWRMPYB
         nop3
         longa
-        lda     $4216
+        lda     hRDMPYL
         clc
         adc     $38
         sta     $38
@@ -1934,7 +1934,7 @@ _0fa7:  jsr     _c0104a
         and     #$0f
         jeq     _1003
         lda     $03
-        and     #$08
+        and     #>JOY_UP
         beq     _0fc7
         lda     #$01
         sta     $c4
@@ -1943,7 +1943,7 @@ _0fa7:  jsr     _c0104a
         beq     _1003
         jmp     _1006
 _0fc7:  lda     $03
-        and     #$01
+        and     #>JOY_RIGHT
         beq     _0fdb
         lda     #$02
         sta     $c4
@@ -1952,7 +1952,7 @@ _0fc7:  lda     $03
         beq     _1003
         jmp     _1006
 _0fdb:  lda     $03
-        and     #$04
+        and     #>JOY_DOWN
         beq     _0fef
         lda     #$03
         sta     $c4
@@ -1961,7 +1961,7 @@ _0fdb:  lda     $03
         beq     _1003
         jmp     _1006
 _0fef:  lda     $03
-        and     #$02
+        and     #>JOY_LEFT
         beq     _1006
         lda     #$04
         sta     $c4
@@ -2298,7 +2298,7 @@ _122c:  sta     $c9
         lsr     $c0         ; half speed
         bra     _127a
 _124f:  lda     $03
-        and     #$80
+        and     #>JOY_B
         beq     _127a       ; branch if b button is not pressed
         ldx     $06
 _1257:  lda     $0500,x     ; branch if character not present
@@ -2355,7 +2355,7 @@ _12d8:  lda     $03
         and     #$0f
         jeq     _1331       ; no move
         lda     $03         ; check up button
-        and     #$08
+        and     #>JOY_UP
         beq     _12f5
         lda     #$01        ; up
         sta     $c4
@@ -2364,7 +2364,7 @@ _12d8:  lda     $03
         beq     _1331
         jmp     _1336
 _12f5:  lda     $03         ; check right button
-        and     #$01
+        and     #>JOY_RIGHT
         beq     _1309
         lda     #$02        ; right
         sta     $c4
@@ -2373,7 +2373,7 @@ _12f5:  lda     $03         ; check right button
         beq     _1331
         jmp     _1336
 _1309:  lda     $03         ; check down button
-        and     #$04
+        and     #>JOY_DOWN
         beq     _131d
         lda     #$03        ; down
         sta     $c4
@@ -2382,7 +2382,7 @@ _1309:  lda     $03         ; check down button
         beq     _1331
         jmp     _1336
 _131d:  lda     $03         ; check left button
-        and     #$02
+        and     #>JOY_LEFT
         beq     _1336
         lda     #$04        ; left
         sta     $c4
@@ -3792,14 +3792,14 @@ _1d1e:  lda     $0ada       ; party graphic
 
 ; normal graphic
         lda     #$80
-        sta     $2115
-        stz     $420b
+        sta     hVMAINC
+        stz     hMDMAEN
         lda     #$01
-        sta     $4300
-        lda     #$18
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hVMDATAL
+        sta     hDMA0::HREG
         lda     #$da
-        sta     $4304
+        sta     hDMA0::ADDR_B
         lda     $57
         bne     _1d7c
         lda     $0ada
@@ -3837,7 +3837,7 @@ _1d7f:  asl
         tax
         longa
         lda     f:_c01e02,x
-        sta     $4302
+        sta     hDMA0::ADDR
         lda     #$6000
         sta     hVMADDL
         lda     $53
@@ -3845,11 +3845,11 @@ _1d7f:  asl
         lda     #$0200
         bra     _1d9c
 _1d99:  lda     #$0800
-_1d9c:  sta     $4305
+_1d9c:  sta     hDMA0::SIZE
         lda     $06
         shorta
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         lda     $53
         bne     _1dc2
         ldx     #$6100
@@ -3915,7 +3915,7 @@ _1e14:  lda     $a4
         tax
         longa
         lda     f:_c01e5a,x   ; pointer to graphics
-        sta     $4302
+        sta     hDMA0::ADDR
         lda     $06
         shorta
         lda     $53
@@ -3925,18 +3925,18 @@ _1e14:  lda     $a4
 _1e31:  ldx     #$6100      ; vram address = $6100 (world map)
 _1e34:  stx     hVMADDL
         lda     #$80
-        sta     $2115
-        stz     $420b
+        sta     hVMAINC
+        stz     hMDMAEN
         lda     #$01
-        sta     $4300
-        lda     #$18
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hVMDATAL
+        sta     hDMA0::HREG
         ldx     #$0800
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$db
-        sta     $4304
+        sta     hDMA0::ADDR_B
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
 _1e59:  rts
 
 ; pointer to alt. party sprite graphics (+db0000)
@@ -4791,7 +4791,7 @@ _c0256c:
 
 _c0257c:
 _257c:  lda     #$80
-        sta     $2115
+        sta     hVMAINC
         lda     $1114
         longa
         asl4
@@ -5626,11 +5626,11 @@ _c0324b:
 
 _c03289:
 @3289:  and     #$7f
-        sta     $4202
+        sta     hWRMPYA
         lda     #$14
-        sta     $4203
+        sta     hWRMPYB
         nop4
-        ldx     $4216
+        ldx     hRDMPYL
         rts
 
 ; ---------------------------------------------------------------------------
@@ -7085,17 +7085,17 @@ _c03eaa:
         lda     f:NPCPropPtrs+2,x
         sec
         sbc     f:NPCPropPtrs,x
-        sta     $4204
+        sta     hWRDIVL
         lda     $06
         shorta
         lda     #$07
-        sta     $4206
+        sta     hWRDIVB
         pha
         pla
         pha
         pla
         nop
-        lda     $4214
+        lda     hRDDIVL
         sta     $e6         ; number of objects
         bne     @3edc
         rts
@@ -7251,18 +7251,18 @@ _c04008:
         and     #$001f
         clc
         adc     $0d
-        sta     $4204
+        sta     hWRDIVL
         lda     $06
         shorta
         lda     #$03
-        sta     $4206
+        sta     hWRDIVB
         longa
         nop7
-        lda     $4214
+        lda     hRDDIVL
         asl5
-        ora     $4214
+        ora     hRDDIVL
         asl5
-        ora     $4214
+        ora     hRDDIVL
         sta     $0c00,y
         lda     $06
         shorta
@@ -7276,7 +7276,7 @@ _c04008:
 ; [  ]
 
 _c0406b:
-        sta     $4202
+        sta     hWRMPYA
         ldy     $06
 @4070:  longa
         lda     [$23],y
@@ -7296,22 +7296,22 @@ _c0406b:
         lda     $06
         shorta
         lda     $0d
-        sta     $4203
+        sta     hWRMPYB
         nop4
-        lda     $4217
+        lda     hRDMPYH
         sta     $13
         lda     $11
-        sta     $4203
+        sta     hWRMPYB
         nop4
-        lda     $4217
+        lda     hRDMPYH
         asl
         asl
         and     #$7c
         sta     $14
         lda     $0f
-        sta     $4203
+        sta     hWRMPYB
         nop4
-        lda     $4217
+        lda     hRDMPYH
         longa
         xba
         lsr3
@@ -7331,22 +7331,22 @@ _c0406b:
 
 _c040d8:
         lda     #$80
-        sta     $2115
-        stz     $420b
+        sta     hVMAINC
+        stz     hMDMAEN
         lda     #$01
-        sta     $4300
-        lda     #$18
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hVMDATAL
+        sta     hDMA0::HREG
         ldx     $16ad       ; vram destination
-        stx     $2116
+        stx     hVMADDL
         ldx     #$0800      ; size = $0800
-        stx     $4305
+        stx     hDMA0::SIZE
         ldx     #$7622      ; source = 7f/7622
-        stx     $4302
+        stx     hDMA0::ADDR
         lda     #$7f
-        sta     $4304
+        sta     hDMA0::ADDR_B
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         rts
 
 ; ---------------------------------------------------------------------------
@@ -7770,12 +7770,12 @@ _c044e3:
         ldx     #$0b00
         phx
         pld
-        stz     $420b
-        stz     $420c
+        stz     hMDMAEN
+        stz     hHDMAEN
         lda     #$8f
-        sta     $2100
+        sta     hINIDISP
         lda     #$00
-        sta     $4200
+        sta     hNMITIMEN
         lda     #$00
         xba
         jsr     InitInterrupts
@@ -7828,12 +7828,12 @@ OpenMenu:
         jsr     _c06081       ; fade out
 
 OpenMenuNoFade:
-        stz     $420b
-        stz     $420c
+        stz     hMDMAEN
+        stz     hHDMAEN
         lda     #$00
-        sta     $4200
+        sta     hNMITIMEN
         lda     #$80
-        sta     $2100
+        sta     hINIDISP
         sei
         jsl     ExecMenu_ext
         jsr     _c044e3       ; init map bank
@@ -8007,7 +8007,7 @@ _c04653:
         lda     $16ac
         tax
         lda     f:EventMosaicTbl,x
-@4686:  sta     $2106       ; pixelation register
+@4686:  sta     hMOSAIC
 @4689:  rts
 @468a:  lda     $57
         bne     @4689
@@ -8246,51 +8246,51 @@ _c04834:
         sta     $020f
         sta     $0213
         ldx     $0afc
-        stx     $4204
+        stx     hWRDIVL
         lda     #$3c
-        sta     $4206
+        sta     hWRDIVB
         pha
         pla
         pha
         pla
         nop
-        ldx     $4214
-        stx     $4204
+        ldx     hRDDIVL
+        stx     hWRDIVL
         lda     #$0a
-        sta     $4206
+        sta     hWRDIVB
         pha
         pla
         pha
         pla
         nop
-        lda     $4216
+        lda     hRDMPYL
         ora     #$40
         sta     $020e
-        ldx     $4214
-        stx     $4204
+        ldx     hRDDIVL
+        stx     hWRDIVL
         lda     #$06
-        sta     $4206
+        sta     hWRDIVB
         pha
         pla
         pha
         pla
         nop
-        lda     $4216
+        lda     hRDMPYL
         ora     #$40
         sta     $020a
-        ldx     $4214
-        stx     $4204
+        ldx     hRDDIVL
+        stx     hWRDIVL
         lda     #$0a
-        sta     $4206
+        sta     hWRDIVB
         pha
         pla
         pha
         pla
         nop
-        lda     $4216
+        lda     hRDMPYL
         ora     #$40
         sta     $0206
-        lda     $4214
+        lda     hRDDIVL
         ora     #$40
         sta     $0202
         lda     #$4f
@@ -8512,7 +8512,7 @@ _c049ff:
         lda     $4c         ; color components
         and     #$e0
         ora     $17
-        sta     $2132       ; fixed color
+        sta     hCOLDATA       ; fixed color
         rts
 
 ; ---------------------------------------------------------------------------
@@ -8594,7 +8594,7 @@ _c04a7a:
         sta     $45
 @4aa3:  lda     $45
         lsr4
-        sta     $2100
+        sta     hINIDISP
         rts
 
 ; ---------------------------------------------------------------------------
@@ -8636,18 +8636,18 @@ _c04ac1:
 ;  $35: tile count
 
 _c04ad5:
-        stz     $420b
+        stz     hMDMAEN
         lda     #$80
-        sta     $2115
+        sta     hVMAINC
         lda     #$08
-        sta     $4300
-        lda     #$19
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hVMDATAH
+        sta     hDMA0::HREG
         ldx     $33
-        stx     $2116
+        stx     hVMADDL
         ldx     #$0b06
-        stx     $4302
-        stz     $4304
+        stx     hDMA0::ADDR
+        stz     hDMA0::ADDR_B
         longa
         lda     $35
         asl3
@@ -8655,36 +8655,36 @@ _c04ad5:
         asl
         clc
         adc     $17
-        sta     $4305
+        sta     hDMA0::SIZE
         lda     $06
         shorta
         lda     #$01
-        sta     $420b
-        stz     $420b
+        sta     hMDMAEN
+        stz     hMDMAEN
         ldx     $30
-        stx     $4302
+        stx     hDMA0::ADDR
         lda     #$db
-        sta     $4304
-        lda     #$18
-        sta     $4301
+        sta     hDMA0::ADDR_B
+        lda     #<hVMDATAL
+        sta     hDMA0::HREG
         ldx     $33
-        stx     $2116
+        stx     hVMADDL
         ldy     $06
 @4b27:  lda     #$80
-        sta     $2115
+        sta     hVMAINC
         lda     #$01
-        sta     $4300
+        sta     hDMA0::CTRL
         ldx     #$0010
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
-        stz     $420b
-        stz     $2115
-        stz     $4300
+        sta     hMDMAEN
+        stz     hMDMAEN
+        stz     hVMAINC
+        stz     hDMA0::CTRL
         ldx     #$0008
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         iny
         cpy     $35
         bne     @4b27
@@ -8696,9 +8696,9 @@ _c04ad5:
 
 _c04b56:
         lda     #$80
-        sta     $2115
+        sta     hVMAINC
         ldx     $06
-        stx     $2116
+        stx     hVMADDL
         lda     $0ad6       ; map index
         tax
         lda     f:WorldTileAttrTbl,x
@@ -8725,11 +8725,11 @@ _c04b56:
         inx
         and     #$0f
         ora     $1873,y
-        sta     $2119
+        sta     hVMDATAH
         lda     $0a
         lsr4
         ora     $1873,y
-        sta     $2119
+        sta     hVMDATAH
         txa
         and     #$1f
         bne     @4b94
@@ -8805,29 +8805,29 @@ _c04bc0:
         lda     $06
         shorta
         lda     $17
-        sta     $210d
+        sta     hBG1HOFS
         lda     $18
-        sta     $210d
+        sta     hBG1HOFS
         lda     $19
-        sta     $210e
+        sta     hBG1VOFS
         lda     $1a
-        sta     $210e
+        sta     hBG1VOFS
         lda     $1b
-        sta     $210f
+        sta     hBG2HOFS
         lda     $1c
-        sta     $210f
+        sta     hBG2HOFS
         lda     $1d
-        sta     $2110
+        sta     hBG2VOFS
         lda     $1e
-        sta     $2110
+        sta     hBG2VOFS
         lda     $1f
-        sta     $2111
+        sta     hBG3HOFS
         lda     $20
-        sta     $2111
+        sta     hBG3HOFS
         lda     $21
-        sta     $2112
+        sta     hBG3VOFS
         lda     $22
-        sta     $2112
+        sta     hBG3VOFS
         longa
         lda     $17
         clc
@@ -8840,13 +8840,13 @@ _c04bc0:
         lda     $06
         shorta
         lda     $17
-        sta     $211f
+        sta     hM7X
         lda     $18
-        sta     $211f
+        sta     hM7X
         lda     $19
-        sta     $2120
+        sta     hM7Y
         lda     $1a
-        sta     $2120
+        sta     hM7Y
         rts
 
 ; ---------------------------------------------------------------------------
@@ -8895,22 +8895,22 @@ _c04cad:
 
 _c04cbc:
         lda     #$80
-        sta     $2115
-        stz     $420b
+        sta     hVMAINC
+        stz     hMDMAEN
         lda     #$01
-        sta     $4300
-        lda     #$18
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hVMDATAL
+        sta     hDMA0::HREG
         lda     $25
-        sta     $4304
+        sta     hDMA0::ADDR_B
         ldx     $2e
-        stx     $2116
+        stx     hVMADDL
         ldx     $23
-        stx     $4302
+        stx     hDMA0::ADDR
         ldx     $2c
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         rts
 
 ; ---------------------------------------------------------------------------
@@ -8918,12 +8918,12 @@ _c04cbc:
 ; [ disable interrupts ]
 
 _c04ce8:
-@4ce8:  stz     $420b
-        stz     $420c
+@4ce8:  stz     hMDMAEN
+        stz     hHDMAEN
         lda     #$80
-        sta     $2100
+        sta     hINIDISP
         lda     #$00
-        sta     $4200
+        sta     hNMITIMEN
         sei
         rts
 
@@ -8933,9 +8933,9 @@ _c04ce8:
 
 _c04cfa:
 @4cfa:  lda     #$81
-        sta     $4200
+        sta     hNMITIMEN
         lda     #$00
-        sta     $2100
+        sta     hINIDISP
         cli
         rts
 
@@ -8946,7 +8946,7 @@ _c04cfa:
 _c04d06:
         jsr     _c04ce8       ; disable interrupts
         stz     $0b6d
-        jsr     _c04d13       ; fill vram
+        jsr     FillVRAM
         jsr     _c04cfa       ; enable interrupts
         rts
 
@@ -8958,67 +8958,70 @@ _c04d06:
 ; +$2e: start address
 ;  $6d: fill value
 
-_c04d13:
-@4d13:  lda     #$80
-        sta     $2115
-        stz     $420b
+.proc FillVRAM
+        lda     #$80
+        sta     hVMAINC
+        stz     hMDMAEN
         lda     #$09
-        sta     $4300
-        lda     #$18
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hVMDATAL
+        sta     hDMA0::HREG
         ldx     $2e
-        stx     $2116
+        stx     hVMADDL
         ldx     #$0b6d
-        stx     $4302
-        stz     $4304
+        stx     hDMA0::ADDR
+        stz     hDMA0::ADDR_B
         ldx     $2c
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ copy sprite data to ppu ]
 
-_c04d3e:
+.proc TfrSprites
         lda     $5c
-        bne     @4d66
-        stz     $2102
-        stz     $420b
-        stz     $4300
-        lda     #$04
-        sta     $4301
+        bne     Done
+        stz     hOAMADDL
+        stz     hMDMAEN
+        stz     hDMA0::CTRL
+        lda     #<hOAMDATA
+        sta     hDMA0::HREG
         ldx     #$0200
-        stx     $4302
+        stx     hDMA0::ADDR
         lda     #$00
-        sta     $4304
+        sta     hDMA0::ADDR_B
         ldx     #$0220
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
-@4d66:  rts
+        sta     hMDMAEN
+Done:   rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ copy color palettes to ppu ]
 
-_c04d67:
-        stz     $420b
-        stz     $2121
+.proc TfrPal
+        stz     hMDMAEN
+        stz     hCGADD
         lda     #$02
-        sta     $4300
-        lda     #$22        ; -> $2122 (color palette address)
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hCGDATA
+        sta     hDMA0::HREG
         lda     #$00
-        sta     $4304
+        sta     hDMA0::ADDR_B
         ldx     #$0c00      ; source = 00/0c00
-        stx     $4302
+        stx     hDMA0::ADDR
         ldx     #$0200
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -9026,35 +9029,35 @@ _c04d67:
 
 _c04d8e:
         lda     $02
-        and     #$80
+        and     #JOY_A
         bne     @4d97
         stz     $10b8
 @4d97:  lda     $02
-        and     #$40
+        and     #JOY_X
         bne     @4da0
         stz     $10b4
 @4da0:  lda     $02
-        and     #$20
+        and     #JOY_L
         bne     @4da9
         stz     $10b6
 @4da9:  lda     $02
-        and     #$10
+        and     #JOY_R
         bne     @4db2
         stz     $10b7
 @4db2:  lda     $03
-        and     #$80
+        and     #>JOY_B
         bne     @4dbb
         stz     $10b9
 @4dbb:  lda     $03
-        and     #$40
+        and     #>JOY_Y
         bne     @4dc4
         stz     $10b5
 @4dc4:  lda     $03
-        and     #$20
+        and     #>JOY_SELECT
         bne     @4dcd
         stz     $10ba
 @4dcd:  lda     $03
-        and     #$10
+        and     #>JOY_START
         bne     @4dd6
         stz     $10bb
 @4dd6:  rts
@@ -9171,68 +9174,68 @@ _4e69:  lda     #$80
         stz     hOAMADDL
         stz     hOAMADDH
         lda     #$09
-        sta     $2105
-        stz     $2106
+        sta     hBGMODE
+        stz     hMOSAIC
         lda     #$00
-        sta     $210b
+        sta     hBG12NBA
         lda     #$04
-        sta     $210c
+        sta     hBG34NBA
         lda     #$80
-        sta     $2115
-        stz     $211a
-        stz     $211b
+        sta     hVMAINC
+        stz     hM7SEL
+        stz     hM7A
         lda     #$08
-        sta     $211b
-        stz     $211c
-        stz     $211c
-        stz     $211d
-        stz     $211d
-        stz     $211e
+        sta     hM7A
+        stz     hM7B
+        stz     hM7B
+        stz     hM7C
+        stz     hM7C
+        stz     hM7D
         lda     #$08
-        sta     $211e
+        sta     hM7D
         lda     #$80
-        sta     $211f
-        sta     $211f
-        sta     $2120
-        sta     $2120
-        sta     $2121
+        sta     hM7X
+        sta     hM7X
+        sta     hM7Y
+        sta     hM7Y
+        sta     hCGADD
         lda     #$bf
-        sta     $2123
+        sta     hW12SEL
         lda     #$0b
-        sta     $2124
+        sta     hW34SEL
         lda     #$bb
-        sta     $2125
+        sta     hWOBJSEL
         lda     #$08
-        sta     $2126
+        sta     hWH0
         lda     #$f7
-        sta     $2127
+        sta     hWH1
         lda     #$ff
-        sta     $2128
+        sta     hWH2
         lda     #$00
-        sta     $2129
+        sta     hWH3
         lda     #$01
-        sta     $212a
+        sta     hWBGLOG
         lda     #$00
-        sta     $212b
+        sta     hWOBJLOG
         lda     #$13
-        sta     $212c
+        sta     hTM
         lda     #$04
-        sta     $212d
+        sta     hTS
         lda     #$17
-        sta     $212e
-        stz     $212f
+        sta     hTMW
+        stz     hTSW
         lda     #$22
-        sta     $2130
+        sta     hCGSWSEL
         lda     #$e0
-        sta     $2132
+        sta     hCOLDATA
         lda     #$00
-        sta     $2133
+        sta     hSETINI
         lda     #$ff
-        sta     $4201
-        stz     $4207
-        stz     $4208
-        stz     $4209
-        stz     $420a
+        sta     hWRIO
+        stz     hHTIMEL
+        stz     hHTIMEH
+        stz     hVTIMEL
+        stz     hVTIMEH
         rts
 
 .endproc
@@ -9283,36 +9286,36 @@ _c04f48:
         tay
         lda     f:_c0505a,x
         bmi     @4f8e
-        sta     $4202
+        sta     hWRMPYA
         lda     $1a53
-        sta     $4203
+        sta     hWRMPYB
         nop3
         stz     $38
-        lda     $4217
+        lda     hRDMPYH
         sta     $37
         lda     $1a54
-        sta     $4203
+        sta     hWRMPYB
         nop2
         longa
         lda     $37
         clc
-        adc     $4216
+        adc     hRDMPYL
         bra     @4fb8
 @4f8e:  eor     #$1aff
-        sta     $4202
+        sta     hWRMPYA
         lda     $1a53
-        sta     $4203
+        sta     hWRMPYB
         nop3
         stz     $38
-        lda     $4217
+        lda     hRDMPYH
         sta     $37
         lda     $1a54
-        sta     $4203
+        sta     hWRMPYB
         nop2
         longa
         lda     $37
         clc
-        adc     $4216
+        adc     hRDMPYL
         eor     #$ffff
         inc
 @4fb8:  clc
@@ -9325,36 +9328,36 @@ _c04f48:
         iny
         lda     f:_c0505a+1,x
         bmi     @4ff2
-        sta     $4202
+        sta     hWRMPYA
         lda     $1a53
-        sta     $4203
+        sta     hWRMPYB
         nop3
         stz     $38
-        lda     $4217
+        lda     hRDMPYH
         sta     $37
         lda     $1a54
-        sta     $4203
+        sta     hWRMPYB
         nop2
         longa
         lda     $37
         clc
-        adc     $4216
+        adc     hRDMPYL
         bra     @501c
 @4ff2:  eor     #$1aff
-        sta     $4202
+        sta     hWRMPYA
         lda     $1a53
-        sta     $4203
+        sta     hWRMPYB
         nop3
         stz     $38
-        lda     $4217
+        lda     hRDMPYH
         sta     $37
         lda     $1a54
-        sta     $4203
+        sta     hWRMPYB
         nop2
         longa
         lda     $37
         clc
-        adc     $4216
+        adc     hRDMPYL
         eor     #$ffff
         inc
 @501c:  clc
@@ -9554,17 +9557,17 @@ _c054a7:
         stz     $16a6
 
 _c054f6:
-        stz     $420b
-        stz     $420c
+        stz     hMDMAEN
+        stz     hHDMAEN
         lda     #$80
-        sta     $2100
+        sta     hINIDISP
         lda     #$00
-        sta     $4200
+        sta     hNMITIMEN
         sei
         stz     $5e
         jsr     InitHardware
         jsr     _c04c95       ; clear sprite data
-        jsr     _c04d3e       ; copy sprite data to ppu
+        jsr     TfrSprites
         lda     #$70
         sta     $c5
         sta     $c6
@@ -9590,7 +9593,7 @@ _c05532:
         stz     $169a
         jsr     _c054a7
         lda     #$00
-        sta     $2107
+        sta     hBG1SC
         lda     #$10
         sta     $49
         sta     $4a
@@ -9682,9 +9685,9 @@ _c05532:
         iny
         cpy     #$0020
         bne     @5610
-        jsr     _c04d67       ; copy color palettes to ppu
+        jsr     TfrPal
         jsr     _c04c95       ; clear sprite data
-        jsr     _c04d3e       ; copy sprite data to ppu
+        jsr     TfrSprites
         lda     $0ad6       ; map index
         tax
         lda     f:WorldTilesetTbl,x
@@ -9759,7 +9762,7 @@ _c05532:
         jsr     _c01ec5
         jsr     _c061d7
         lda     #$07
-        sta     $2105
+        sta     hBGMODE
         jsr     _c0630a
         stz     $ba
         lda     $0adc
@@ -10046,7 +10049,7 @@ _c058db:
         sta     $0d7f,x
         dex
         bne     @5909
-        jsr     _c04d67       ; copy color palettes to ppu
+        jsr     TfrPal
         rts
 
 ; ---------------------------------------------------------------------------
@@ -10256,7 +10259,7 @@ _c0591a:
         ldx     #$0020
         stx     $2e
         stx     $2c
-        jsr     _c04d13       ; fill vram
+        jsr     FillVRAM
 @5ada:  rts
 
 ; ---------------------------------------------------------------------------
@@ -10266,15 +10269,15 @@ _c0591a:
 _c05adb:
 @5adb:  lda     $a4
         bne     @5af5
-        ldx     #$6400
+        ldx     #$6400                  ; vram $6400
         stx     $2e
-        ldx     #$0200
+        ldx     #$0200                  ; size
         stx     $2c
-        ldx     #$fe00      ; cdfe00
+        ldx     #near TimerFontGfx
         stx     $23
-        lda     #$cd
+        lda     #^TimerFontGfx
         sta     $25
-        jsr     _c04cbc       ; copy data to vram
+        jsr     _c04cbc                 ; copy data to vram
 @5af5:  rts
 
 ; ---------------------------------------------------------------------------
@@ -10283,13 +10286,13 @@ _c05adb:
 
 _c05af6:
 @5af6:  lda     $0ad4       ; map index
-        sta     $211b
+        sta     hM7A
         lda     $0ad5
-        sta     $211b
+        sta     hM7A
         lda     #$1a        ; 26 bytes each
-        sta     $211c
-        sta     $211c
-        ldx     $2134
+        sta     hM7B
+        sta     hM7B
+        ldx     hMPYL
         ldy     $06
 @5b0f:  lda     f:MapProp,x
         sta     $110c,y
@@ -10311,26 +10314,28 @@ _c05af6:
 
 _c05b2d:
 @5b2d:  lda     #$09
-        sta     $2105       ; 8x8 tiles, high priority bg3, mode 1
+        sta     hBGMODE                 ; 8x8 tiles, high priority bg3, mode 1
         lda     #$49
-        sta     $2107       ; 32x16 bg1 map at $4800
-        ldx     $0ad6       ; map index
+        sta     hBG1SC                  ; 32x16 bg1 map at $4800
+        ldx     $0ad6                   ; map index
         cpx     #$00dd
-        beq     @5b4b       ; branch if ???
+        beq     @5b4b                   ; branch if flying fortress
         lda     #$51
-        sta     $2108       ; 32x16 bg2 map at $5000
+        sta     hBG2SC                  ; 32x16 bg2 map at $5000
         lda     #$59
-        sta     $2109       ; 32x16 bg3 map at $5800
+        sta     hBG3SC                  ; 32x16 bg3 map at $5800
         bra     @5b55
+
+; flying fortress
 @5b4b:  lda     #$52
-        sta     $2108       ; 16x32 bg2 map at $5000
+        sta     hBG2SC                  ; 16x32 bg2 map at $5000
         lda     #$5a
-        sta     $2109       ; 16x32 bg3 map at $5800
+        sta     hBG3SC                  ; 16x32 bg3 map at $5800
 @5b55:  ldx     $0ad4
         cpx     #$00be
-        bne     @5b62       ; branch if ???
+        bne     @5b62                   ; branch if airship
         lda     #$23
-        sta     $2109       ; 32x32 bg3 map at $2000
+        sta     hBG3SC                  ; 32x32 bg3 map at $2000
 @5b62:  lda     $1110
         and     #$3f
         sta     $08
@@ -10346,17 +10351,17 @@ _c05b2d:
         sta     $47
 @5b7c:  lda     f:_c05bb8+2,x
         sta     $4a
-        sta     $212d       ; sub-screen designation
+        sta     hTS       ; sub-screen designation
         lda     f:_c05bb8+1,x
         and     #$01
         beq     @5b91
         lda     #$bf
         bra     @5b93
 @5b91:  lda     #$bc
-@5b93:  sta     $2123       ; window mask settings bg1/bg2
+@5b93:  sta     hW12SEL       ; window mask settings bg1/bg2
         lda     f:_c05bb8+1,x
         ora     #$01        ; bg1 always on
-        sta     $212c       ; main screen designation
+        sta     hTM       ; main screen designation
         lda     $44
         bne     @5ba7
         lda     $4a
@@ -10449,11 +10454,11 @@ _c05cbd:
         longa
         lda     $0ad4
         tax
-        lda     $d13000,x   ; pointer to treasure properties
+        lda     f:MapTreasures,x   ; pointer to treasure properties
         and     #$00ff
         asl2
         sta     $23
-        lda     $d13001,x   ; pointer to next map's treasure properties
+        lda     f:MapTreasures+1,x   ; pointer to next map's treasure properties
         and     #$00ff
         asl2
         sta     $26
@@ -10474,11 +10479,11 @@ _c05cbd:
         cmp     #$00
         beq     @5d25       ; skip if treasure hasn't been obtained
         ldx     $23
-        lda     $d13211,x
+        lda     f:TreasureProp+1,x
         longa
         asl6
         sta     $0d
-        lda     $d13210,x
+        lda     f:TreasureProp,x
         and     #$00ff
         clc
         adc     $0d
@@ -10648,27 +10653,27 @@ _c05d87:
 
 _c05e2b:
         lda     #$80
-        sta     $2115
+        sta     hVMAINC
         lda     #$01
-        sta     $4300
-        lda     #$18
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hVMDATAL
+        sta     hDMA0::HREG
         lda     #$7f
-        sta     $4304
+        sta     hDMA0::ADDR_B
         longa
         lda     #$7622      ; 7f/7622
-        sta     $4302
+        sta     hDMA0::ADDR
         lda     #$1000
-        sta     $4305
+        sta     hDMA0::SIZE
         lda     $73
         lsr
         clc
         adc     #$4800
-        sta     $2116
+        sta     hVMADDL
         lda     $06
         shorta
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         rts
 
 ; ---------------------------------------------------------------------------
@@ -10752,27 +10757,27 @@ _c05ee5:
         bne     @5ee7
         lda     #$00
         sta     $7f6d8c,x
-        stz     $420c
+        stz     hHDMAEN
         lda     #$42
-        sta     $4330
-        sta     $4350
+        sta     hDMA3::CTRL
+        sta     hDMA5::CTRL
         ldx     #$6d8c
-        stx     $4332
-        stx     $4352
+        stx     hDMA3::ADDR
+        stx     hDMA5::ADDR
         lda     #$7f
-        sta     $4334
-        sta     $4354
-        sta     $4337
-        sta     $4357
+        sta     hDMA3::ADDR_B
+        sta     hDMA5::ADDR_B
+        sta     hDMA3::HDMA_B
+        sta     hDMA5::HDMA_B
         lda     $53
         bne     @5f33
-        lda     #$0d
-        sta     $4331
+        lda     #<hBG1HOFS
+        sta     hDMA3::HREG
         rts
-@5f33:  lda     #$0f
-        sta     $4331
-        lda     #$11
-        sta     $4351
+@5f33:  lda     #<hBG2HOFS
+        sta     hDMA3::HREG
+        lda     #<hBG3HOFS
+        sta     hDMA5::HREG
         rts
 
 ; ---------------------------------------------------------------------------
@@ -10822,27 +10827,27 @@ _c05f8d:
         bne     @5f8f
         lda     #$00
         sta     $7f6db7,x
-        stz     $420c
+        stz     hHDMAEN
         lda     #$42
-        sta     $4340
-        sta     $4360
+        sta     hDMA4::CTRL
+        sta     hDMA6::CTRL
         ldx     #$6db7
-        stx     $4342
-        stx     $4362
+        stx     hDMA4::ADDR
+        stx     hDMA6::ADDR
         lda     #$7f
-        sta     $4344
-        sta     $4364
-        sta     $4347
-        sta     $4367
+        sta     hDMA4::ADDR_B
+        sta     hDMA6::ADDR_B
+        sta     hDMA4::HDMA_B
+        sta     hDMA6::HDMA_B
         lda     $53
         bne     @5fdb
-        lda     #$0e
-        sta     $4341
+        lda     #<hBG1VOFS
+        sta     hDMA4::HREG
         rts
-@5fdb:  lda     #$10
-        sta     $4341
-        lda     #$12
-        sta     $4361
+@5fdb:  lda     #<hBG2VOFS
+        sta     hDMA4::HREG
+        lda     #<hBG3VOFS
+        sta     hDMA6::HREG
         rts
 
 ; ---------------------------------------------------------------------------
@@ -10997,9 +11002,9 @@ _c06100:
         jsr     _c04a68
         stz     $42
         lda     #$81
-        sta     $4200
+        sta     hNMITIMEN
         lda     #$00
-        sta     $2100
+        sta     hINIDISP
         cli
 @6110:  jsr     WaitVBlank
         lda     $169e
@@ -11081,7 +11086,7 @@ _c061c7:
 
 _c061d7:
         lda     #$00
-        sta     $2105
+        sta     hBGMODE
         ldx     $06
         stx     $26
         stz     $08
@@ -11102,19 +11107,19 @@ _c061d7:
         shorta
         ldy     #$0100
 @61ff:  ldx     $23
-        lda     $cdfbe0,x
+        lda     f:SineTbl-32,x
         inx
         stx     $23
-        sta     $211b
-        stz     $211b
+        sta     hM7A
+        stz     hM7A
         lda     $08
-        sta     $211c
-        sta     $211c
+        sta     hM7B
+        sta     hM7B
         lda     $0ad6       ; map index
         cmp     #$03
         bcs     @6234
         longa
-        lda     $2134
+        lda     hMPYL
         lsr5
         clc
         adc     #$0100
@@ -11122,7 +11127,7 @@ _c061d7:
         sta     $7f4000,x
         jmp     @6249
 @6234:  longa
-        lda     $2134
+        lda     hMPYL
         lsr6
         clc
         adc     #$0080
@@ -11146,17 +11151,17 @@ _c061d7:
         stx     $23
 @6268:  phx
         ldx     $23
-        lda     $c0d240,x
+        lda     f:_c0d240,x
         inx
         stx     $23
         plx
-        sta     $211b
-        stz     $211b
+        sta     hM7A
+        stz     hM7A
         lda     $26
-        sta     $211c
-        sta     $211c
+        sta     hM7B
+        sta     hM7B
         longa
-        lda     $2134
+        lda     hMPYL
         xba
         and     #$00ff
         shorta
@@ -11206,17 +11211,17 @@ _c062bc:
         inx
         cpx     #$0010
         bne     @62e2
-        stz     $420c
+        stz     hHDMAEN
         lda     #$40
-        sta     $4370
+        sta     hDMA7::CTRL
         lda     #$00
-        lda     #$06
-        sta     $4371
+        lda     #<hMOSAIC
+        sta     hDMA7::HREG
         ldx     #$6a18
-        stx     $4372
+        stx     hDMA7::ADDR
         lda     #$7f
-        sta     $4374
-        sta     $4377
+        sta     hDMA7::ADDR_B
+        sta     hDMA7::HDMA_B
         rts
 
 ; ---------------------------------------------------------------------------
@@ -11224,46 +11229,46 @@ _c062bc:
 ; [  ]
 
 _c0630a:
-        stz     $211c
-        stz     $211c
-        stz     $211d
-        stz     $211d
+        stz     hM7B
+        stz     hM7B
+        stz     hM7C
+        stz     hM7C
         lda     #$f0
         sta     $7f6a00
         sta     $7f6a03
         lda     #$00
         sta     $7f6a06
-        stz     $420c
+        stz     hHDMAEN
         lda     #$42
-        sta     $4350
-        sta     $4360
-        lda     #$1b
-        sta     $4351
-        lda     #$1e
-        sta     $4361
+        sta     hDMA5::CTRL
+        sta     hDMA6::CTRL
+        lda     #<hM7A
+        sta     hDMA5::HREG
+        lda     #<hM7D
+        sta     hDMA6::HREG
         ldx     #$6a00
-        stx     $4352
-        stx     $4362
+        stx     hDMA5::ADDR
+        stx     hDMA6::ADDR
         lda     #$7f
-        sta     $4354
-        sta     $4364
-        sta     $4357
-        sta     $4367
+        sta     hDMA5::ADDR_B
+        sta     hDMA6::ADDR_B
+        sta     hDMA5::HDMA_B
+        sta     hDMA6::HDMA_B
         lda     #$ff
         sta     $7f6a0a
         sta     $7f6a0d
         lda     #$00
         sta     $7f6a10
-        stz     $420c
+        stz     hHDMAEN
         lda     #$40
-        sta     $4320
-        lda     #$32
-        sta     $4321
+        sta     hDMA2::CTRL
+        lda     #<hCOLDATA
+        sta     hDMA2::HREG
         ldx     #$6a07
-        stx     $4322
+        stx     hDMA2::ADDR
         lda     #$7f
-        sta     $4324
-        sta     $4327
+        sta     hDMA2::ADDR_B
+        sta     hDMA2::HDMA_B
         rts
 
 ; ---------------------------------------------------------------------------
@@ -11394,39 +11399,39 @@ _c06461:
 ; [  ]
 
 _c06465:
-        stz     $2115
+        stz     hVMAINC
         jsr     _c06de9
-        stz     $4300
+        stz     hDMA0::CTRL
         ldx     $7f
-        stx     $2116
+        stx     hVMADDL
         ldx     #$16f3
-        stx     $4302
+        stx     hDMA0::ADDR
         ldx     $7b
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         ldx     $81
-        stx     $2116
+        stx     hVMADDL
         ldx     $7d
         beq     @6494
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
 @6494:  ldx     $83
-        stx     $2116
+        stx     hVMADDL
         ldx     #$1773
-        stx     $4302
+        stx     hDMA0::ADDR
         ldx     $7b
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         ldx     $85
-        stx     $2116
+        stx     hVMADDL
         ldx     $7d
         beq     @64ba
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
 @64ba:  rts
 
 ; ---------------------------------------------------------------------------
@@ -11435,39 +11440,39 @@ _c06465:
 
 _c064bb:
         lda     #$03
-        sta     $2115
+        sta     hVMAINC
         jsr     _c06de9
-        stz     $4300
+        stz     hDMA0::CTRL
         ldx     $7f
-        stx     $2116
+        stx     hVMADDL
         ldx     #$16f3
-        stx     $4302
+        stx     hDMA0::ADDR
         ldx     $7b
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         ldx     $81
-        stx     $2116
+        stx     hVMADDL
         ldx     $7d
         beq     @64ec
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
 @64ec:  ldx     $83
-        stx     $2116
+        stx     hVMADDL
         ldx     #$1773
-        stx     $4302
+        stx     hDMA0::ADDR
         ldx     $7b
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         ldx     $85
-        stx     $2116
+        stx     hVMADDL
         ldx     $7d
         beq     @6512
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
 @6512:  rts
 
 ; ---------------------------------------------------------------------------
@@ -11630,38 +11635,38 @@ ShowMinimapNoFade:
         jsr     _c04ce8       ; disable interrupts
         stz     $5e
         lda     #$07
-        sta     $2105
+        sta     hBGMODE
         lda     #$80
-        sta     $211a
+        sta     hM7SEL
         lda     #$00
-        sta     $211b
+        sta     hM7A
         lda     #$08
-        sta     $211b
+        sta     hM7A
         lda     #$00
-        sta     $211e
+        sta     hM7D
         lda     #$08
-        sta     $211e
+        sta     hM7D
         lda     #$c0
-        sta     $210d
+        sta     hBG1HOFS
         lda     #$ff
-        sta     $210d
+        sta     hBG1HOFS
         lda     #$d0
-        sta     $210e
+        sta     hBG1VOFS
         lda     #$ff
-        sta     $210e
+        sta     hBG1VOFS
         lda     #$01
-        sta     $211f
+        sta     hM7X
         lda     #$00
-        sta     $211f
-        sta     $2120
-        sta     $2120
+        sta     hM7X
+        sta     hM7Y
+        sta     hM7Y
         lda     #$11
-        sta     $212c
+        sta     hTM
         lda     #$e0
-        sta     $2132
-        stz     $2115
+        sta     hCOLDATA
+        stz     hVMAINC
         ldx     $06
-        stx     $2116
+        stx     hVMADDL
         stx     $0d
         lda     #$1f
         sta     $76
@@ -11672,7 +11677,7 @@ ShowMinimapNoFade:
         lda     $7f0000,x
         tax
         lda     $7f6fa2,x
-        sta     $2118
+        sta     hVMDATAL
         ldx     $26
         inx2
         stx     $26
@@ -11695,9 +11700,9 @@ ShowMinimapNoFade:
         jsr     _c04c95       ; clear sprite data
         jsr     _c056f8
         jsr     _c06831
-        lda     #$cf
+        lda     #^MinimapSpriteGfx
         sta     $25
-        ldx     #$d800
+        ldx     #near MinimapSpriteGfx
         stx     $23
         ldx     #$7000
         stx     $2e
@@ -12376,15 +12381,15 @@ _c06c4a:
 
 _c06c6a:
         ldx     $0ad4
-        cpx     #$00be
+        cpx     #$00be                  ; airship deck map
         bne     @6c9c
         stz     $0b6d
         ldx     #$2000
         stx     $2e
         stx     $2c
-        jsr     _c04d13       ; fill vram
+        jsr     FillVRAM
         lda     #$80
-        sta     $2115
+        sta     hVMAINC
         ldy     #$2702
         jsr     _c06c9d
         ldy     #$2d82
@@ -12401,12 +12406,12 @@ _c06c6a:
 
 _c06c9d:
 @6c9d:  ldx     $06
-@6c9f:  sty     $2116
-@6ca2:  lda     $c0cf00,x
-        sta     $2118
+@6c9f:  sty     hVMADDL
+@6ca2:  lda     f:_c0cf00,x
+        sta     hVMDATAL
         inx
-        lda     $c0cf00,x
-        sta     $2119
+        lda     f:_c0cf00,x
+        sta     hVMDATAH
         inx
         txa
         and     #$1f
@@ -12434,12 +12439,12 @@ _c06c9d:
 
 _c06cd4:
 @6cd4:  ldx     #$01e0
-@6cd7:  sty     $2116
-@6cda:  lda     $c0cf00,x
-        sta     $2118
+@6cd7:  sty     hVMADDL
+@6cda:  lda     f:_c0cf00,x
+        sta     hVMDATAL
         inx
-        lda     $c0cf00,x
-        sta     $2119
+        lda     f:_c0cf00,x
+        sta     hVMDATAH
         inx
         txa
         and     #$1f
@@ -12573,10 +12578,10 @@ _c06d0c:
 ; [  ]
 
 _c06de9:
-@6de9:  stz     $420b
-        lda     #$18
-        sta     $4301
-        stz     $4304
+@6de9:  stz     hMDMAEN
+        lda     #<hVMDATAL
+        sta     hDMA0::HREG
+        stz     hDMA0::ADDR_B
         rts
 
 ; ---------------------------------------------------------------------------
@@ -12596,54 +12601,54 @@ _c06df5:
         lda     $06
         shorta
         lda     #$81        ; increment vertically
-        sta     $2115
+        sta     hVMAINC
         jsr     _c06de9
         lda     #$01
-        sta     $4300
+        sta     hDMA0::CTRL
         longa
         lda     $71
         xba
         asl3
         clc
         adc     #$16f3
-        sta     $4302
+        sta     hDMA0::ADDR
         lda     $06
         shorta
         ldx     $7f,y
-        stx     $2116
+        stx     hVMADDL
         ldx     $7b,y
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         ldx     $81,y
-        stx     $2116
+        stx     hVMADDL
         ldx     $7d,y
         beq     @6e46
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
 @6e46:  longa
         lda     $71
         xba
         asl3
         clc
         adc     #$1733
-        sta     $4302
+        sta     hDMA0::ADDR
         lda     $06
         shorta
         ldx     $83,y
-        stx     $2116
+        stx     hVMADDL
         ldx     $7b,y
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         ldx     $85,y
-        stx     $2116
+        stx     hVMADDL
         ldx     $7d,y
         beq     @6e79
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
 @6e79:  rts
 
 ; ---------------------------------------------------------------------------
@@ -12663,57 +12668,57 @@ _c06e7a:
         lda     $06
         shorta
         lda     #$80
-        sta     $2115
+        sta     hVMAINC
         jsr     _c06de9
         lda     #$01
-        sta     $4300
+        sta     hDMA0::CTRL
         ldx     $7f,y
-        stx     $2116
+        stx     hVMADDL
         longa
         lda     $71
         xba
         asl3
         clc
         adc     #$16f3      ; dma source
-        sta     $4302
+        sta     hDMA0::ADDR
         lda     $06
         shorta
         ldx     $7b,y
-        stx     $4305       ; dma size
+        stx     hDMA0::SIZE       ; dma size
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         ldx     $81,y
-        stx     $2116
-        stz     $420b
+        stx     hVMADDL
+        stz     hMDMAEN
         ldx     $7d,y
         beq     @6ece
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
 @6ece:  ldx     $83,y
-        stx     $2116
-        stz     $420b
+        stx     hVMADDL
+        stz     hMDMAEN
         longa
         lda     $71
         xba
         asl3
         clc
         adc     #$1733
-        sta     $4302
+        sta     hDMA0::ADDR
         lda     $06
         shorta
         ldx     $7b,y
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         ldx     $85,y
-        stx     $2116
-        stz     $420b
+        stx     hVMADDL
+        stz     hMDMAEN
         ldx     $7d,y
         beq     @6f07
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
 @6f07:  rts
 
 ; ---------------------------------------------------------------------------
@@ -13685,18 +13690,18 @@ DlgCmdTbl:
 
 _c08b53:
         lda     #$80
-        sta     $2115
+        sta     hVMAINC
         ldx     #$3000
-        stx     $2116
+        stx     hVMADDL
         longa
         ldx     #$0000
 @8b63:  lda     #$00ff
 .repeat 8
-        sta     $2118
+        sta     hVMDATAL
 .endrep
         lda     #$0000
 .repeat 8
-        sta     $2118
+        sta     hVMDATAL
 .endrep
         inx
         cpx     #$00d0
@@ -13711,22 +13716,22 @@ _c08b53:
 
 _c08ba4:
         lda     #$80
-        sta     $2115
-        stz     $420b
+        sta     hVMAINC
+        stz     hMDMAEN
         lda     #$08
-        sta     $4300
-        lda     #$19
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hVMDATAH
+        sta     hDMA0::HREG
         ldx     #$3000
-        stx     $2116
+        stx     hVMADDL
         stz     $6d
         ldx     #$0b6d
-        stx     $4302
-        stz     $4304
+        stx     hDMA0::ADDR
+        stz     hDMA0::ADDR_B
         ldx     #$0d00
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         rts
 
 ; ---------------------------------------------------------------------------
@@ -13788,14 +13793,14 @@ _c08be4:
 
 _c08c2e:
         lda     #$41
-        sta     $4310
-        lda     #$28
-        sta     $4311
+        sta     hDMA1::CTRL
+        lda     #<hWH2
+        sta     hDMA1::HREG
         ldx     #$6a8a
-        stx     $4312
+        stx     hDMA1::ADDR
         lda     #$7f
-        sta     $4314
-        sta     $4317
+        sta     hDMA1::ADDR_B
+        sta     hDMA1::HDMA_B
         ldx     #$6b8c
         stx     $23
         ldx     $06
@@ -13898,14 +13903,14 @@ _c08d0e:
         cpx     #$0010
         bne     @8d10
         lda     #$40
-        sta     $4320
-        lda     #$25
-        sta     $4321
+        sta     hDMA2::CTRL
+        lda     #<hWOBJSEL
+        sta     hDMA2::HREG
         ldx     #$6abb
-        stx     $4322
+        stx     hDMA2::ADDR
         lda     #$7f
-        sta     $4324
-        sta     $4327
+        sta     hDMA2::ADDR_B
+        sta     hDMA2::HDMA_B
         rts
 
 ; ---------------------------------------------------------------------------
@@ -14033,70 +14038,70 @@ _c08e1b:
 _c08e23:
         stz     $a7
         lda     #$80
-        sta     $2115
-        stz     $420b
+        sta     hVMAINC
+        stz     hMDMAEN
         lda     #$00
-        sta     $4300
-        lda     #$19
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hVMDATAH
+        sta     hDMA0::HREG
         lda     #$00
-        sta     $4304
+        sta     hDMA0::ADDR_B
         longa
         lda     $a9
         clc
         adc     #$0002
         sta     $a9
-        sta     $2116
+        sta     hVMADDL
         lda     $06
         shorta
         ldx     #$19a3
-        stx     $4302
+        stx     hDMA0::ADDR
         ldx     #$0006
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         longa
         lda     $a9
         clc
         adc     #$000e
         sta     $a9
-        sta     $2116
+        sta     hVMADDL
         lda     $06
         shorta
         ldx     #$19a9
-        stx     $4302
+        stx     hDMA0::ADDR
         ldx     #$0006
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         longa
         lda     $a9
         clc
         adc     #$0012
         sta     $a9
-        sta     $2116
+        sta     hVMADDL
         lda     $06
         shorta
         ldx     #$19af
-        stx     $4302
+        stx     hDMA0::ADDR
         ldx     #$0006
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         longa
         lda     $a9
         clc
         adc     #$000e
         sta     $a9
-        sta     $2116
+        sta     hVMADDL
         lda     $06
         shorta
         ldx     #$19b5
-        stx     $4302
+        stx     hDMA0::ADDR
         ldx     #$0006
-        stx     $4305
+        stx     hDMA0::SIZE
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         longa
         lda     $a9
         clc
@@ -14216,15 +14221,15 @@ _c08f78:
         asl3
         tax
         lda     #$00
-        sta     $2115
+        sta     hVMAINC
         lda     #$04
         sta     $19
         ldy     $1698
         sty     $1b
 @8f91:  ldy     $1b
-        sty     $2116
+        sty     hVMADDL
         lda     f:_c08fdd,x
-        sta     $2118
+        sta     hVMDATAL
         inx
         iny
         tya
@@ -14235,11 +14240,11 @@ _c08f78:
         sec
         sbc     #$0020
         eor     #$0400
-        sta     $2116
+        sta     hVMADDL
 @8fb2:  lda     $06
         shorta
         lda     f:_c08fdd,x
-        sta     $2118
+        sta     hVMDATAL
         inx
         longa
         lda     $1b
@@ -14606,22 +14611,22 @@ _c0928c:
         dec     $2c
         bne     @92bd
         tya
-        sta     $4202
+        sta     hWRMPYA
         lda     #$06
-        sta     $4203
+        sta     hWRMPYB
         nop4
         lda     #$60
         sec
-        sbc     $4216
-        sta     $4204
-        stz     $4205
+        sbc     hRDMPYL
+        sta     hWRDIVL
+        stz     hWRDIVH
         lda     #$10
-        sta     $4206
+        sta     hWRDIVB
         nop8
-        lda     $4216
+        lda     hRDMPYL
         sta     $a8
         longa
-        lda     $4214
+        lda     hRDDIVL
         asl6
         clc
         adc     #$3000
@@ -14858,20 +14863,20 @@ _c095f8:
 
 _c09618:
         lda     #$80
-        sta     $2115
+        sta     hVMAINC
         ldy     #$1880
-        sty     $2116
-        lda     $213a
+        sty     hVMADDL
+        lda     hRVMDATAH               ; read from VRAM
         ldx     $06
-@9628:  lda     $213a
+@9628:  lda     hRVMDATAH
         sta     $7f8622,x
         inx
         cpx     #$0080
         bne     @9628
         ldy     #$1c80
-        sty     $2116
-        lda     $213a
-@963e:  lda     $213a
+        sty     hVMADDL
+        lda     hRVMDATAH
+@963e:  lda     hRVMDATAH
         sta     $7f8622,x
         inx
         cpx     #$0100
@@ -14924,37 +14929,37 @@ _c09695:
         cmp     #$03
         bcs     @96f3
         lda     #$80
-        sta     $2115
-        stz     $420b
+        sta     hVMAINC
+        stz     hMDMAEN
         lda     #$00
-        sta     $4300
-        lda     #$19
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hVMDATAH
+        sta     hDMA0::HREG
         lda     #$7f
-        sta     $4304
+        sta     hDMA0::ADDR_B
         ldx     #$0080
-        stx     $4305
+        stx     hDMA0::SIZE
         ldx     #$8622
-        stx     $4302
+        stx     hDMA0::ADDR
         ldx     #$1880
-        stx     $2116
+        stx     hVMADDL
         lda     #$01
-        sta     $420b
-        stz     $420b
+        sta     hMDMAEN
+        stz     hMDMAEN
         lda     #$00
-        sta     $4300
-        lda     #$19
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hVMDATAH
+        sta     hDMA0::HREG
         lda     #$7f
-        sta     $4304
+        sta     hDMA0::ADDR_B
         ldx     #$0080
-        stx     $4305
+        stx     hDMA0::SIZE
         ldx     #$86a2
-        stx     $4302
+        stx     hDMA0::ADDR
         ldx     #$1c80
-        stx     $2116
+        stx     hVMADDL
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
 @96f3:  rts
 
 ; ---------------------------------------------------------------------------
@@ -14968,12 +14973,12 @@ _c096f4:
 
 _c09704:
         lda     #$80
-        sta     $2115
+        sta     hVMAINC
         ldy     #$21c0
-        sty     $2116
-        lda     $213a
+        sty     hVMADDL
+        lda     hRVMDATAH
         ldx     $06
-@9714:  lda     $213a
+@9714:  lda     hRVMDATAH
         sta     $7f8722,x
         inx
         cpx     #$0080
@@ -15023,22 +15028,22 @@ _c0975f:
         and     #$01
         bne     @9798
         lda     #$80
-        sta     $2115
-        stz     $420b
+        sta     hVMAINC
+        stz     hMDMAEN
         lda     #$00
-        sta     $4300
-        lda     #$19
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hVMDATAH
+        sta     hDMA0::HREG
         lda     #$7f
-        sta     $4304
+        sta     hDMA0::ADDR_B
         ldx     #$0080
-        stx     $4305
+        stx     hDMA0::SIZE
         ldx     #$8722
-        stx     $4302
+        stx     hDMA0::ADDR
         ldx     #$21c0
-        stx     $2116
+        stx     hVMADDL
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
 @9798:  rts
 
 ; ---------------------------------------------------------------------------
@@ -15142,7 +15147,7 @@ _c09838:
         sta     $30
         lda     $06
         shorta
-        lda     #$cd
+        lda     #^MapPalAnim
         sta     $32
         lda     $165c,y
         sec
@@ -15166,7 +15171,7 @@ _c09838:
 ; [  ]
 
 _c09865:
-@9865:  sta     $4202
+@9865:  sta     hWRMPYA
         ldy     $06
 @986a:  longa
         lda     [$30],y
@@ -15186,21 +15191,21 @@ _c09865:
         lda     $06
         shorta
         lda     $17
-        sta     $4203
+        sta     hWRMPYB
         nop4
-        lda     $4217
+        lda     hRDMPYH
         sta     $1d
         lda     $1b
-        sta     $4203
+        sta     hWRMPYB
         nop4
-        lda     $4217
+        lda     hRDMPYH
         asl2
         and     #$7c
         sta     $1e
         lda     $19
-        sta     $4203
+        sta     hWRMPYB
         nop4
-        lda     $4217
+        lda     hRDMPYH
         longa
         xba
         lsr3
@@ -15253,11 +15258,11 @@ _c0990d:
         bne     @9913
         rts
 @9913:  dec
-        sta     $4202
+        sta     hWRMPYA
         lda     #$18        ; 24 bytes each
-        sta     $4203
+        sta     hWRMPYB
         nop4
-        ldx     $4216
+        ldx     hRDMPYL
         ldy     $06
 @9925:  lda     f:MapPalAnim,x
         sta     $165a,y
@@ -15298,25 +15303,25 @@ _c0996d:
         bpl     @9973
         rts
 @9973:  lda     #$80
-        sta     $2115
+        sta     hVMAINC
         lda     #$01
-        sta     $4300
-        lda     #$18
-        sta     $4301
+        sta     hDMA0::CTRL
+        lda     #<hVMDATAL
+        sta     hDMA0::HREG
         ldy     $06
         ldx     #$2e00
 @9987:  lda     $1417,y
         bmi     @9990
-        lda     #$df        ; load from rom (bank $df)
+        lda     #^MapAnimGfx            ; load from rom (bank $df)
         bra     @9992
-@9990:  lda     #$7f        ; load from ram (bank $7f)
-@9992:  sta     $4304
+@9990:  lda     #$7f                    ; load from ram (bank $7f)
+@9992:  sta     hDMA0::ADDR_B
         longa
         lda     $141b,y     ; source address
-        sta     $4302
+        sta     hDMA0::ADDR
         lda     #$0080
-        sta     $4305
-        stx     $2116
+        sta     hDMA0::SIZE
+        stx     hVMADDL
         txa
         clc
         adc     #$0040
@@ -15324,28 +15329,28 @@ _c0996d:
         lda     $06
         shorta
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         tya
         clc
         adc     #$08        ; 8 tiles
         tay
         cpy     #$0040
         bne     @9987
-        lda     #$df
-        sta     $4304
+        lda     #^MapAnimGfx
+        sta     hDMA0::ADDR_B
         ldx     #$4780      ; bg3 animation graphics
 @99c7:  lda     $1417,y
         bmi     @99d0
-        lda     #$df
+        lda     #^MapAnimGfx
         bra     @99d2
 @99d0:  lda     #$7f
-@99d2:  sta     $4304
+@99d2:  sta     hDMA0::ADDR_B
         longa
         lda     $141b,y
-        sta     $4302
+        sta     hDMA0::ADDR
         lda     #$0040
-        sta     $4305
-        stx     $2116
+        sta     hDMA0::SIZE
+        stx     hVMADDL
         txa
         clc
         adc     #$0020
@@ -15353,7 +15358,7 @@ _c0996d:
         lda     $06
         shorta
         lda     #$01
-        sta     $420b
+        sta     hMDMAEN
         tya
         clc
         adc     #$08        ; 4 tiles
@@ -15442,11 +15447,11 @@ _c09a8e:
 
 _c09a96:
         lda     $1114       ; tileset
-        sta     $4202
+        sta     hWRMPYA
         lda     #$24        ; animation properties are 36 bytes long
-        sta     $4203
+        sta     hWRMPYB
         nop4
-        ldx     $4216
+        ldx     hRDMPYL
         stx     $13
         ldx     $06
         stx     $15
@@ -16479,7 +16484,7 @@ EventCmd_bf:
 
 EventCmd_bf1a:
 @a685:  lda     #$fb
-        sta     $2125
+        sta     hWOBJSEL
         longa
         lda     #$6200
         sta     $7f6a08
@@ -16521,7 +16526,7 @@ EventCmd_bf1a:
         bra     @a6f0
 @a6ec:  lda     $5e
         ora     #$04
-@a6f0:  sta     $420c
+@a6f0:  sta     hHDMAEN
         inc     $3d
         lda     $3d
         cmp     #$08
@@ -16535,13 +16540,13 @@ EventCmd_bf1a:
         jsr     WaitVBlank
         lda     $5e
         ora     #$04
-        sta     $420c
+        sta     hHDMAEN
         stz     $52
         lda     $5e
         and     #$fb
         sta     $5e
         lda     #$bb
-        sta     $2125
+        sta     hWOBJSEL
         jsr     _c08c7b
         jmp     IncEventPtr2
 
@@ -16606,9 +16611,9 @@ EventCmd_bf18:
         lda     #$1f
         sta     $0c00
         lda     #$03
-        sta     $212a
+        sta     hWBGLOG
         lda     #$00
-        sta     $212b
+        sta     hWOBJLOG
         jsr     _c06134
         lda     $3d
         lsr
@@ -16629,9 +16634,9 @@ EventCmd_bf18:
 
 _c0a7be:
 @a7be:  lda     #$00
-        sta     $2126
+        sta     hWH0
         lda     #$ff
-        sta     $2127
+        sta     hWH1
         rts
 
 ; ---------------------------------------------------------------------------
@@ -16647,9 +16652,9 @@ EventCmd_bf19:
         lda     #$1f
         sta     $0c00
         lda     #$03
-        sta     $212a
+        sta     hWBGLOG
         lda     #$00
-        sta     $212b
+        sta     hWOBJLOG
         lda     #$40
         sta     $3d
 @a7e9:  jsr     WaitVBlank
@@ -16925,10 +16930,10 @@ _c0aa0e:
         lda     #$10
         sec
         sbc     $08
-        sta     $4202
+        sta     hWRMPYA
         txa
         and     #$0f
-        sta     $4203
+        sta     hWRMPYB
         txa
         clc
         adc     $3f
@@ -16937,7 +16942,7 @@ _c0aa0e:
         lda     f:RNGTbl,x
         and     #$07
         plx
-        adc     $4216
+        adc     hRDMPYL
         sta     $0200,y
         txa
         and     #$f0
@@ -17089,12 +17094,12 @@ _c0abd5:
 ; [ event command $bf0f: show epilogue cutscene ]
 
 EventCmd_bf0f:
-@ac01:  stz     $420b
-        stz     $420c
+@ac01:  stz     hMDMAEN
+        stz     hHDMAEN
         lda     #$00
-        sta     $4200
+        sta     hNMITIMEN
         lda     #$80
-        sta     $2100
+        sta     hINIDISP
         sei
         jsl     _c10003     ; epilogue cutscene
         jsr     _c044e3       ; init map bank
@@ -17105,12 +17110,12 @@ EventCmd_bf0f:
 ; [ event command $bf10: show game stats (unknown cave psychic) ]
 
 EventCmd_bf10:
-@ac1c:  stz     $420b
-        stz     $420c
+@ac1c:  stz     hMDMAEN
+        stz     hHDMAEN
         lda     #$00
-        sta     $4200
+        sta     hNMITIMEN
         lda     #$80
-        sta     $2100
+        sta     hINIDISP
         sei
         jsl     _c10006     ; show game stats (unknown cave psychic)
         jsr     _c044e3       ; init map bank
@@ -17170,9 +17175,9 @@ EventCmd_bf0a:
 
 _c0ac80:
 @ac80:  lda     #$01
-        sta     $212a
+        sta     hWBGLOG
         lda     #$00
-        sta     $212b
+        sta     hWOBJLOG
         rts
 
 ; ---------------------------------------------------------------------------
@@ -17182,9 +17187,9 @@ _c0ac8b:
         sta     $3d
 @ac8f:  jsr     WaitVBlank
         lda     #$03
-        sta     $212a
+        sta     hWBGLOG
         lda     #$01
-        sta     $212b
+        sta     hWOBJLOG
         lda     $3d
         inc2
         sta     $169a
@@ -17202,9 +17207,9 @@ _c0acb1:
         sta     $3d
 @acb5:  jsr     WaitVBlank
         lda     #$03
-        sta     $212a
+        sta     hWBGLOG
         lda     #$01
-        sta     $212b
+        sta     hWOBJLOG
         lda     $3d
         inc2
         sta     $169a
@@ -17224,9 +17229,9 @@ _c0acdd:
         sta     $3d
 @ace1:  jsr     WaitVBlank
         lda     #$03
-        sta     $212a
+        sta     hWBGLOG
         lda     #$00
-        sta     $212b
+        sta     hWOBJLOG
         lda     $3d
         inc2
         sta     $169a
@@ -17243,9 +17248,9 @@ _c0ad01:
 @ad01:  stz     $3d
 @ad03:  jsr     WaitVBlank
         lda     #$03
-        sta     $212a
+        sta     hWBGLOG
         lda     #$01
-        sta     $212b
+        sta     hWOBJLOG
         lda     $3d
         inc2
         sta     $169a
@@ -17265,9 +17270,9 @@ _c0ad28:
         stz     $da
 @ad2c:  jsr     WaitVBlank
         lda     #$03
-        sta     $212a
+        sta     hWBGLOG
         lda     #$01
-        sta     $212b
+        sta     hWOBJLOG
         lda     $3d
         inc2
         sta     $169a
@@ -17288,9 +17293,9 @@ _c0ad54:
         sta     $3d
 @ad58:  jsr     WaitVBlank
         lda     #$03
-        sta     $212a
+        sta     hWBGLOG
         lda     #$00
-        sta     $212b
+        sta     hWOBJLOG
         lda     $3d
         inc2
         sta     $169a
@@ -17365,9 +17370,9 @@ _c0add6:
         stz     $3d
 @addc:  jsr     WaitVBlank
         lda     #$03
-        sta     $212a
+        sta     hWBGLOG
         lda     #$01
-        sta     $212b
+        sta     hWOBJLOG
         jsr     _c0ae32
         lda     $3d
         and     #$01
@@ -17393,9 +17398,9 @@ _c0ae0b:
         stz     $3d
 @ae11:  jsr     WaitVBlank
         lda     #$03
-        sta     $212a
+        sta     hWBGLOG
         lda     #$01
-        sta     $212b
+        sta     hWOBJLOG
         jsr     _c0ae32
         lda     $3d
         and     #$01
@@ -17787,9 +17792,9 @@ EventCmd_bf05:
         jsr     _c04a68
         stz     $3d
 @b1c7:  jsr     WaitVBlank
-        lda     #$df
+        lda     #^(MapSpritePal + $224)
         sta     $25
-        ldx     #$fe24
+        ldx     #near (MapSpritePal + $224)
         stx     $23
         ldx     #$0018
         stx     $2c
@@ -17948,13 +17953,13 @@ _c0b2ec:
 
 _c0b35c:
 @b35c:  lda     #$00
-        sta     $211b
+        sta     hM7A
         lda     #$02
-        sta     $211b
+        sta     hM7A
         lda     #$00
-        sta     $211e
+        sta     hM7D
         lda     #$02
-        sta     $211e
+        sta     hM7D
         rts
 
 ; ---------------------------------------------------------------------------
@@ -17984,13 +17989,13 @@ _c0b371:
         stz     $3d
 @b3a5:  jsr     WaitVBlank
         lda     $3d
-        sta     $211b
+        sta     hM7A
         lda     #$01
-        sta     $211b
+        sta     hM7A
         lda     $3d
-        sta     $211e
+        sta     hM7D
         lda     #$01
-        sta     $211e
+        sta     hM7D
         lda     $3d
         lsr4
         jsr     _c05c01
@@ -18389,19 +18394,19 @@ _c0b75e:
         lda     $06
         shorta
         lda     $0d
-        sta     $211b
+        sta     hM7A
         lda     $0e
-        sta     $211b
+        sta     hM7A
         lda     $0d
-        sta     $211e
+        sta     hM7D
         lda     $0e
-        sta     $211e
+        sta     hM7D
         lda     $3d
         bpl     @b790
         and     #$7f
         lsr4
         ora     #$e0
-        sta     $2132
+        sta     hCOLDATA
 @b790:  rts
 
 ; ---------------------------------------------------------------------------
@@ -18508,17 +18513,17 @@ _c0b854:
 @b85f:  jsr     WaitVBlank
         lda     $5e
         ora     #$80
-        sta     $420c
+        sta     hHDMAEN
         lda     $45
         eor     #$ff
         inc
-        sta     $4202
+        sta     hWRMPYA
         ldx     $06
 @b873:  jsr     Rand
         and     #$f0
-        sta     $4203
+        sta     hWRMPYB
         nop4
-        lda     $4217
+        lda     hRDMPYH
         ora     #$0f
         sta     $7f6a49,x
         inx
@@ -18527,10 +18532,10 @@ _c0b854:
         dec     $da
         bne     @b85f
         jsr     WaitVBlank
-        stz     $420c
+        stz     hHDMAEN
         stz     $52
         lda     #$00
-        sta     $2106
+        sta     hMOSAIC
         rts
 
 ; ---------------------------------------------------------------------------
@@ -18707,7 +18712,7 @@ EventCmd_e6:
 ; [ event command $e4: wait for spc-2 ]
 
 EventCmd_e4:
-@b9d5:  lda     $2142       ; wait for spc-2
+@b9d5:  lda     hAPUIO2                 ; wait for spc-2
         bne     @b9d5
         jmp     IncEventPtr1
 
@@ -18716,7 +18721,7 @@ EventCmd_e4:
 ; [ event command $e5: wait for spc-3 ]
 
 EventCmd_e5:
-@b9dd:  lda     $2143       ; wait for spc-3
+@b9dd:  lda     hAPUIO3                 ; wait for spc-3
         bne     @b9dd
         jmp     IncEventPtr1
 
@@ -18865,7 +18870,7 @@ _c0baae:
         shorta
         lda     #$20
         sta     $09
-@bacb:  lda     $dffe00,x   ; color palette
+@bacb:  lda     f:MapSpritePal + $200,x ; color palette
         sta     $0c00,y
         inx
         iny
@@ -19004,7 +19009,7 @@ EventCmd_ad:
         sta     $1697
 @bba7:  jsr     WaitVBlank
         lda     $03
-        and     #$0c
+        and     #>(JOY_UP | JOY_DOWN)
         beq     @bbbd
         cmp     #$08
         bne     @bbb8
@@ -19018,7 +19023,7 @@ EventCmd_ad:
         sta     $1697
         bra     @bbd6
 @bbc8:  lda     $02
-        and     #$80
+        and     #JOY_A
         beq     @bba7
         lda     $10b8
         bne     @bba7
@@ -19106,19 +19111,19 @@ EventCmd_c0:
         sta     $169a
         bne     @bc8a
         lda     #$bf
-        sta     $2123
+        sta     hW12SEL
         lda     #$0b
-        sta     $2124
+        sta     hW34SEL
         lda     #$01
-        sta     $212a
+        sta     hWBGLOG
         jsr     _c08c7b
         jmp     IncEventPtr2
 @bc8a:  lda     $df
         bpl     @bc99
         lda     #$ff
-        sta     $2123
-        sta     $2124
-        sta     $212a
+        sta     hW12SEL
+        sta     hW34SEL
+        sta     hWBGLOG
 @bc99:  jsr     _c05d30
         jmp     IncEventPtr2
 
@@ -19261,17 +19266,17 @@ EventCmd_e8:
         lda     $1124       ; map default battle background
 @bd67:  sta     $04f2
         inc     $55
-        stz     $420b
-        stz     $420c
+        stz     hMDMAEN
+        stz     hHDMAEN
         lda     #$00
-        sta     $4200
+        sta     hNMITIMEN
         lda     #$80
-        sta     $2100
+        sta     hINIDISP
         sei
         jsl     ExecBattle_ext
         jsr     _c044e3       ; init map bank
         lda     #$81
-        sta     $4200
+        sta     hNMITIMEN
         cli
         jmp     IncEventPtr3
 
@@ -19300,7 +19305,7 @@ EventCmd_bd:
         bmi     @bdb3
         jsr     _c06100       ; fade in
 @bdb3:  lda     #$81
-        sta     $4200
+        sta     hNMITIMEN
         cli
         jmp     IncEventPtr3
 
@@ -19320,7 +19325,7 @@ EventCmd_e2:
         bmi     @bdd3
         jsr     _c06100       ; fade in
 @bdd3:  lda     #$81
-        sta     $4200
+        sta     hNMITIMEN
         cli
         lda     $09c4
         and     #$01
@@ -19358,13 +19363,13 @@ _c0bde6:
         inc     $55
         lda     #$6f
         jsr     PlaySfx
-        jsr     _c0ccdd       ; battle blur
-        stz     $420b
-        stz     $420c
+        jsr     BattleBlur
+        stz     hMDMAEN
+        stz     hHDMAEN
         lda     #$00
-        sta     $4200
+        sta     hNMITIMEN
         lda     #$80
-        sta     $2100
+        sta     hINIDISP
         sei
         jsl     ExecBattle_ext
         jsr     _c044e3       ; init map bank
@@ -20075,7 +20080,7 @@ EventCmd_f0:
         sta     $1697
 @c308:  jsr     WaitVBlank
         lda     $03
-        and     #$0c
+        and     #>(JOY_UP | JOY_DOWN)
         beq     @c31e
         cmp     #$08
         bne     @c319
@@ -20089,7 +20094,7 @@ EventCmd_f0:
         sta     $1697
         bra     @c33f
 @c329:  lda     $02
-        and     #$80
+        and     #JOY_A
         beq     @c308
         lda     $10b8
         bne     @c308
@@ -20164,7 +20169,7 @@ EventCmd_d6:
         sta     $0ade,y
 @c3bf:  jsr     LoadWorldMap
         lda     #$81
-        sta     $4200
+        sta     hNMITIMEN
         cli
         jsr     WaitVBlank
         lda     #$04
@@ -20234,7 +20239,7 @@ EventCmd_e3:
         bra     @c42e
 @c42b:  jsr     LoadSubMap
 @c42e:  lda     #$81
-        sta     $4200
+        sta     hNMITIMEN
         cli
         jsr     WaitVBlank
         lda     #$06
@@ -20362,15 +20367,15 @@ _c51d:  lda     $e1
         and     #$0f
         inc
         sta     $2c
-        sta     $4202
+        sta     hWRMPYA
         lda     $e1
         lsr4
         inc
         sta     $2d
-        sta     $4203
+        sta     hWRMPYB
         nop4
         longa
-        lda     $4216
+        lda     hRDMPYL
         sta     $0d
         lda     $06
         shorta
@@ -20476,11 +20481,11 @@ EventCmd_d3:
 _c0c5e4:
 @c5e4:  and     #$7f
         sta     $e5         ; current object
-        sta     $4202
+        sta     hWRMPYA
         lda     #$14
-        sta     $4203
+        sta     hWRMPYB
         nop4
-        ldy     $4216
+        ldy     hRDMPYL
         jsr     _c03cf8       ; remove object from object layout
         rts
 
@@ -20493,12 +20498,12 @@ _c0c5e4:
 
 EventCmd_d1:
 @c5fb:  lda     $df
-        sta     $4202
+        sta     hWRMPYA
         lda     #$3c
-        sta     $4203
+        sta     hWRMPYB
         nop4
         longa
-        lda     $4216
+        lda     hRDMPYL
         inc
         sta     $0afc       ; timer counter
         lda     $e0
@@ -20518,12 +20523,12 @@ EventCmd_d1:
 
 EventCmd_d7:
 @c623:  lda     $df
-        sta     $4202
+        sta     hWRMPYA
         lda     #$f0
-        sta     $4203
+        sta     hWRMPYB
         nop4
         longa
-        lda     $4216
+        lda     hRDMPYL
         inc
         sta     $0afc
         lda     $e0
@@ -20562,7 +20567,7 @@ EventCmd_c5:
         sta     $4a
         stz     $49
 @c668:  lda     #$07
-        sta     $47         ; addition subtraction -> 2131
+        sta     $47         ; addition subtraction -> $2131 (hCGADSUB)
         lda     $df
         and     #$e0
         sta     $4c
@@ -20874,11 +20879,11 @@ _c0c7f9:
         sec
         sbc     #$80
         sta     $e5         ; object
-        sta     $4202
+        sta     hWRMPYA
         lda     #$14
-        sta     $4203
+        sta     hWRMPYB
         nop4
-        ldy     $4216       ; pointer to object data
+        ldy     hRDMPYL       ; pointer to object data
         lda     $df
 
 ; object action $05: jump 1 tile
@@ -21300,7 +21305,7 @@ _c0ca69:
         tax
         lda     $06
         shorta
-        lda     $d084c0,x   ; battle probability (2 bits per map)
+        lda     f:SubBattleRate,x
         cpy     #$0000
         beq     @caac
 @caa7:  lsr2
@@ -21325,7 +21330,7 @@ _c0ca69:
         lda     $0ad4       ; map index
         asl
         tax
-        lda     $d08000,x   ; map battle group
+        lda     f:SubBattleGrp,x
         asl3
         tax
         lda     $06
@@ -21421,7 +21426,7 @@ _c0cb11:
         clc
         adc     $0d
         tax
-        lda     $d08400,x   ; battle probability
+        lda     f:WorldBattleRate,x
         ldy     $11
         beq     @cba7
 @cba2:  lsr2
@@ -21463,7 +21468,7 @@ _c0cb11:
         clc
         adc     $0f
         tax
-        lda     $d07a00,x   ; world map battle groups
+        lda     f:WorldBattleGrp,x   ; world map battle groups
         asl3
         tax
         lda     $06
@@ -21553,63 +21558,66 @@ _c0cc6d:
 
 ; [ battle blur (normal map) ]
 
-_c0cc88:
-@cc88:  stz     $3f
-@cc8a:  jsr     WaitVBlank
+.proc BattleBlurSub
+        stz     $3f
+Loop:   jsr     WaitVBlank
         lda     $3f
         cmp     #$10
-        bcs     @cc97
-        and     #$07
-        bra     @cc99
-@cc97:  and     #$0f
-@cc99:  asl4
+        bcs     :+
+        and     #%111
+        bra     :++
+:       and     #%1111
+:       asl4
         ora     #$0f
-        sta     $2106
+        sta     hMOSAIC
         lda     $3f
         cmp     #$20
-        bne     @cc8a
+        bne     Loop
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ battle blur (world map) ]
 
-_c0cca9:
-@cca9:  stz     $420b
-        stz     $420c
+.proc BattleBlurWorld
+        stz     hMDMAEN
+        stz     hHDMAEN
         stz     $3f
-@ccb1:  jsr     WaitVBlank
+Loop:   jsr     WaitVBlank
         lda     $3f
         and     #$3f
         asl
         tax
         lda     f:_c0cd4a,x
-        sta     $211b
+        sta     hM7A
         lda     f:_c0cd4a+1,x
-        sta     $211b
+        sta     hM7A
         lda     f:_c0cd4a,x
-        sta     $211e
+        sta     hM7D
         lda     f:_c0cd4a+1,x
-        sta     $211e
+        sta     hM7D
         lda     $3f
         cmp     #$20
-        bne     @ccb1
+        bne     Loop
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ battle blur ]
 
-_c0ccdd:
-@ccdd:  lda     #$01
+.proc BattleBlur
+        lda     #$01
         sta     $52
         lda     $53
         bne     @ccea
-        jsr     _c0cca9
+        jsr     BattleBlurWorld
         bra     @cced
-@ccea:  jsr     _c0cc88
+@ccea:  jsr     BattleBlurSub
 @cced:  stz     $52
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -21619,7 +21627,7 @@ _ccf0:  ldx     $06
         stx     $16a8
         lda     #$6f
         jsr     PlaySfx
-        jsr     _c0ccdd
+        jsr     BattleBlur
         stz     hMDMAEN
         stz     hHDMAEN
         lda     #0
@@ -21749,6 +21757,22 @@ RNGTbl:
 
 ; ===========================================================================
 
+.segment "unknown_c0cf00"
+
+; c0/cf00
+_c0cf00:
+        .incbin "unknown_c0cf00.dat"
+
+; ===========================================================================
+
+.segment "unknown_c0d240"
+
+; c0/d240
+_c0d240:
+        .incbin "unknown_c0d240.dat"
+
+; ===========================================================================
+
 .scope _c0d980
         ARRAY_LENGTH = 28
         Start = _c0d980Ptrs
@@ -21822,10 +21846,19 @@ MapPalAnim:
         fixed_block $01c0
         .incbin "map_pal_anim.dat"
 
+; cd/fba8
 ; palette animation colors
         .word   $017d,$029d,$4f7e,$009d,$0073,$273f,$129f,$0e1d
         .word   $0d9d,$0cfa,$0cf3,$0cac,$25af
         end_fixed_block 0
+
+; ===========================================================================
+
+.segment "sine_tbl"
+
+; cd/fc00
+SineTbl:
+        .incbin "sine_tbl.dat"
 
 ; ===========================================================================
 
@@ -21985,6 +22018,54 @@ CharProp:
 ; d0/7800
 EventBattleGrp:
         .incbin "event_battle_grp.dat"
+
+; ===========================================================================
+
+.segment "world_battle_grp"
+
+; d0/7a00
+WorldBattleGrp:
+        .incbin "world_battle_grp.dat"
+
+; ===========================================================================
+
+.segment "sub_battle_grp"
+
+; d0/8000
+SubBattleGrp:
+        .incbin "sub_battle_grp.dat"
+
+; ===========================================================================
+
+.segment "world_battle_rate"
+
+; d0/8400
+WorldBattleRate:
+        .incbin "world_battle_rate.dat"
+
+; ===========================================================================
+
+.segment "sub_battle_rate"
+
+; d0/84c0
+SubBattleRate:
+        .incbin "sub_battle_rate.dat"
+
+; ===========================================================================
+
+.segment "map_treasures"
+
+; d1/3000
+MapTreasures:
+        .incbin "map_treasures.dat"
+
+; ===========================================================================
+
+.segment "treasure_prop"
+
+; d1/3210
+TreasureProp:
+        .incbin "treasure_prop.dat"
 
 ; ===========================================================================
 
