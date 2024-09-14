@@ -1,0 +1,465 @@
+address start,address end,type,notes
+000000,000F77,????,????
+000F78,000F83,Data,"Lookup Table (LUT) used for Gil multiplier for treasures (6 * 2 bytes). The default values are 1, 10, 100, 1000, 10000 & 34464 (bug)"
+000F84,002A96,????,????
+002A97,002F95,Data,Map Sprite Frame
+002F96,005BB7,????,????
+005BB8,005BF4,Data,Map Color Math Properties
+005BF5,008540,????,????
+008541,00858E,Data,(Japanese Script) Dictionary entries sizes (78)
+00858F,0087F6,Data,(Japanese Script) Dictionary Lo bytes (78 * 8 bytes)
+0087F7,008A66,Data,(Japanese Script) Dictionary Hi bytes (78 * 8 bytes) (0 = Normal ; 1 = 1E Kanji ; 2 = 1F Kanji)
+008A67,009D9A,????,????
+009D9B,00A18B,Data,Map Animation Properties
+00A18C,00CB08,????,????
+00CB09,00CB10,Data,Dungeon danger table for random battle encounters (2*4)
+00CB11,00CB2B,????,????
+00CB2C,00CC20,ASM,Monster party selection process ( common1 < 90 / common2 < 180 / uncommon < 240 / rare < 256)
+00CC21,00CC49,????,????
+00CC4A,00CC51,Data,Wold danger table for random battle encounters (2*4)
+00CC52,00D37F,ASM,"Process to determine random monster battles, and more (???)"
+00D380,00D97F,Data,"Field message symbols: Windows, 8x16 numbers, Finger icon, 16x16 Yes, No; 4bpp 8x8"
+00D980,00DEFF,????,????
+00DF00,00E7FF,Data,Shape masks 1bpp 8x8
+00E800,00F40F,????,????
+00F410,00F459,Text,Main character naming screen
+00F45A,00F986,????,????
+00F987,00FA9D,Data,Menu texts offsets (at 172F00 in RPGe) (2bytes * 139)
+00FAC0,00FEBF,Text,(Japanese) Menu texts (139 variable sized texts)
+00FEC0,00FFBF,Data,Lookup Table (LUT) used in RNG stuff
+00FFC0,00FFFF,Data,SNES Header
+010000,01001E,ASM,Entry function for C1 Bank (jumps to one of fifteen general C1 functions)
+010020,01003E,Data,C1 function lookup table (15 locations; see entry fxn)
+010040,01754C,????,????
+01754D,017575,ASM,Enemy death palette fade animation (lighter pink) (from 0176D1)
+017576,0175AB,ASM,Enemy death palette fade animation step (from 01755E)
+0175AC,017623,ASM,????
+017624,01763C,ASM,Set enemy palette to pink on death (from 0176CE)
+01763D,01765D,ASM,Find enemies that are still alive (from 0176D4)
+01765E,0176FD,ASM,????
+0176FE,01772B,ASM,Prepare enemies for dissolve animation (from 0176EE)
+01772C,017789,ASM,Enemy dissolve animation (from 017725)
+01778A,01781C,ASM,Partial dissolve step (from 01775C)
+01781D,017863,ASM,"Add pixels during ""dissolve in"" animation (from 0177FB, called twice)"
+017864,0178AA,ASM,"Remove pixels during ""dissolve out"" animation (from 0177F3, called twice)"
+0178AB,018B68,????,????
+018B69,018B7C,ASM,"Battle Command Animation (11 branches, see below)"
+018B7D,018B92,Data,LUT for command animations (11 entries)
+018B93,018BA8,????,????
+018BA9,018BA9,ASM,"No Animation (from 018B7A, X = 8)"
+018BAA,018BCF,ASM,"Item Animation Function (from 018B7A, X = 9)"
+018BD0,018BE3,????,????
+018BE4,018C34,ASM,"Banner Display Function (from 018B7A, X = 4)"
+018C35,018C36,????,????
+018C37,018C6C,ASM,"Battle Message Display Function (ie, Steal/Mug, etc) (from 018B7A, X = 5)"
+018C6D,018CF0,????,????
+018CF1,018D13,ASM,"Animals Animation Function (from 018B7A, X = 2 or X = 3)"
+018D14,018D5E,????,????
+018D5F,018D73,ASM,"Ability Animation Function (from 018B7A, X = 1)"
+018D74,018D87,????,????
+018D88,018E19,Data,"LUT for ability animation (based on ability number, 73 entries)"
+018E1A,0196EB,????,????
+0196EC,019708,ASM,Run Character Animation (from numerous places)
+019709,01B31B,????,????
+01B31C,01B38B,Data,"Spell Animation Shape Table (2 bytes * 63 entries; width, height in tiles)"
+01B38C,01B676,????,????
+01B677,01B69B,ASM,"Spell Animation Function (from 018B7A, X = 0)"
+01B69C,01B73F,ASM,Run Spell Animation (from numerous places)
+01B740,01FD1C,????,????
+01FD1D,01FD21,ASM,Wait for NMI
+01FD22,01FF2D,????,????
+01FF2E,01FF87,Data,[P] Hexadecimal to Decimal converter (4 digits)
+01FF88,01FFFF,????,????
+0216FA,024A93,ASM,"Display Message, plus ???"
+024A94,024AE9,Data,Pointers for Command adjustments (2 byte * ??? )
+024AEA,0256D3,???,?
+0256D4,0256EB,ASM,Monster item drop routine?
+0256EC,0262BA,???,?
+0262BB,02714F,ASM,Time-Quick Bug routine? plus ???
+027150,0271B8,ASM,Can steal from enemy routine?
+0271B9,029207,???,?
+029208,0292A4,ASM,Item to steal from enemy routine?
+0292A5,029409,???,?
+02940A,029426,ASM,9999 Max damage delimiter?
+029427,02F587,???,?
+02F588,02FFFF,ASM,"16-Bit SRAM Checksum with carry, plus ???"
+030000,030052,ASM,???? ASM ????
+030053,03016D,ASM,Decompression subroutine
+03016E,0302B2,????,????
+0302B3,030367,Data,???? (0x0200 bytes after decompress) (Type 02 headed compression)
+030368,031176,????,????
+031177,031242,Data,(0x041A bytes after decompress) (Type 02 headed compression)
+031243,031C64,Data,FFV Title? (0x1000 bytes after decompress) (Type 02 headed compression)
+031C65,031C8A,Data,???? (0x____ bytes after decompress) (Type 01 headed compression)
+031C69,031C8A,Data,???? (0x____ bytes after decompress) (Type 01 headed compression)
+031C8B,031D24,????,????
+031D25,031D47,Data,???? (0x0020 bytes after decompress) (Type 00 headed compression)
+031D48,031DFD,Data,???? (0x0231 bytes after decompress) (Type 02 headed compression)
+031DFE,031E82,Data,???? (0x0174 bytes after decompress) (Type 02 headed compression)
+031E83,032D21,Data,Chocobo riders (0x1B00 bytes after decompress) (Type 02 headed compression); 4bpp
+032D22,03331E,Data,Dragon of the main screen (0x1200 bytes after decompress) (Type 02 compression); 4bpp
+03331F,033341,Data,???? (0x0020 bytes after decompress) (Type 00 headed compression)
+033342,0333F5,Data,OAM data (Title dragon) (0x0120 bytes after decompress) (Type 02 headed compression)
+0333F6,03362A,Data,Staff font (Type 02 headed compression); 4bpp
+03362B,03383B,Text,Staff (Type 02 headed compression)
+03383C,033908,Data,???? (0x0151 bytes after decompress) (Type 02 headed compression)
+033908,037B91,????,????
+037B92,037E4A,Text,Credits (Type 02 headed compression)
+037E4B,03A06E,ASM,Title screen (uncompressed at 7F8000-7FC7FF) (Type 02 headed compression)
+03A06F,03A2FF,????,????
+03A300,03B9FF,Data,Menu drawing data
+03BA00,03BAFF,????,????
+03BB00,03E5FF,Data,"Locations background palettes [15-bit RGB, 2 bytes per color] [2bytes * 43 sets * 128 colors]"
+03E600,03EAFF,????,????
+03EB00,03EF7F,Data,Mp Hp & Japanese characters (Japanese font) 1bpp 8x12
+03EF80,03FFFF,Data,"Some western, arrows, and Cº (Field font) 1bpp 8x12"
+040000,04064C,ASM,Sound Program
+04064D,041E3E,SPC,SPC Engine
+041E3F,041F4E,Data,Sound Effect Audio Samples (BRR)
+041F4F,041F70,Data,(SPC Pointers) Sound Effect Audio Samples (BRR) [4 Bytes * 8]
+041F71,041F82,Data,ADSR for Sound Effect Samples [2 Bytes * 8]
+041F83,041F94,Data,Sample Rate for Sound Effect Samples [2 Bytes * 8]
+041F95,043B96,Data,Sound Effects (SPC Pointers + Song data)
+043B97,043C6E,Data,(Pointers) BGM Songs [3 Bytes * 72]
+043C6F,043CD7,Data,(Pointers) Instruments [3 Bytes * 35]
+043CD8,043D1D,Data,Instrument Loop Start Positions [2 Bytes * 35]
+043D1E,043D63,Data,Instrument Sample Rate [2 Bytes * 35]
+043D64,043DA9,Data,Instrument ADSR [2 Bytes * 35]
+043DAA,0446A9,Data,Instrument indexes for each song [2 Bytes * 16] [32 Bytes * 72]
+0446AA,05E5E7,Data,Instruments Audio Samples (BRR); See below for full list
+0446AA,045137,Data,[Instrument 01] Kick Drum
+045138,045D12,Data,[Instrument 02] Snare Drum 1
+045D13,046EA8,Data,[Instrument 03] Snare Drum 2 (Hard)
+046EA9,047CF9,Data,[Instrument 04] Cymbals (Loop)
+047CFA,0492F4,Data,[Instrument 05] Conga Drum
+0492F5,04975B,Data,[Instrument 06] Hi-Hat (closed)
+04975C,04A8F1,Data,[Instrument 07] Hi-Hat (opened)
+04A8F2,04BA87,Data,[Instrument 08] Tom
+04BA88,04C4FA,Data,[Instrument 09] Xylophone (Metal)
+04C4FB,04C7BA,Data,[Instrument 0A] Xylophone (Wooden)
+04C7BB,04E73C,Data,[Instrument 0B] Strings
+04E73D,04F518,Data,[Instrument 0C] Chorus
+04F519,04F883,Data,[Instrument 0D] Harp
+04F884,050014,Data,[Instrument 0E] Trumpet
+050015,05028C,Data,[Instrument 0F] Oboe
+05028D,05085B,Data,[Instrument 10] Flute
+05085C,051379,Data,[Instrument 11] Church Organ
+05137A,052488,Data,[Instrument 12] Harpsichord
+052489,052670,Data,[Instrument 13] Bassoon
+052671,052C00,Data,[Instrument 14] Bass Guitar
+052C01,053301,Data,[Instrument 15] Grand Piano
+053302,053EAF,Data,[Instrument 16] Music Box
+053EB0,055045,Data,[Instrument 17] Huh! (Voice)
+055046,0570BA,Data,[Instrument 18] Electric Guitar
+0570BB,058772,Data,[Instrument 19] Synth Chorus
+058773,059290,Data,[Instrument 1A] Distortion Guitar
+059291,05A2BE,Data,[Instrument 1B] Bass Guitar
+05A2BF,05B8DD,Data,[Instrument 1C] French Horn
+05B8DE,05BC48,Data,[Instrument 1D] Guitar
+05BC49,05C808,Data,[Instrument 1F] Steel Guitar
+05C809,05D095,Data,[Instrument 20] Maracas
+05D096,05DA78,Data,[Instrument 21] Shaker
+05DA79,05E5E7,Data,[Instrument 23] Clap
+05E5E8,06FE75,Data,BGM (Songs); See below for full list
+05E5E8,05EB79,Data,[BGM:00] Ahead on Our way
+05EB7A,05F1B3,Data,[BGM:01] The Fierce Battle
+05F1B4,05FA56,Data,[BGM:02] A Presentiment
+05FA57,05FF1C,Data,[BGM:03] Go Go Boco!
+05FF1D,060394,Data,[BGM:04] Pirates Ahoy!
+060395,06074D,Data,[BGM:05] Tenderness in the Air
+06074E,060BCC,Data,[BGM:06] Fate in Haze
+060BCD,060EE2,Data,[BGM:07] Critter Tripper Fritter!
+060EE3,0612D7,Data,[BGM:08] The Prelude
+0612D8,061E9C,Data,[BGM:09] The Last Battle
+061E9D,061F9E,Data,[BGM:0A] Requiem
+061F9F,062180,Data,[BGM:0B] Reminiscence
+062181,0625C1,Data,[BGM:0C] Cursed Earths
+0625C2,06287C,Data,[BGM:0D] Lenna's Theme
+06287D,062AFC,Data,[BGM:0E] Victory's Fanfare
+062AFD,062CE3,Data,[BGM:0F] Deception
+062CE4,062F70,Data,[BGM:10] Nostalgia
+062F71,062F8C,Data,[BGM:11] (Nothing)
+062F8D,063256,Data,[BGM:12] Exdeath's Castle
+063257,063646,Data,"[BGM:13] My Home, Sweet Home"
+063647,063CE5,Data,[BGM:14] Waltz Suomi
+063CE6,0641A1,Data,[BGM:15] Sealed Away
+0641A2,06453E,Data,[BGM:16] The Four Warriors of Dawn
+06453F,064780,Data,[BGM:17] Danger!
+064781,064AB8,Data,[BGM:18] The Fired Powered Ship
+064AB9,064CD8,Data,"[BGM:19] As I Feel, You Feel"
+064CD9,065111,Data,[BGM:1A] Mambo de Chocobo
+065112,0652AF,Data,[BGM:1B] Music Box
+0652B0,065903,Data,[BGM:1C] Intension of the Earth
+65904,065CC0,Data,[BGM:1D] The Dragon Spreads its Wings
+065CC1,066078,Data,[BGM:1E] Beyond the Deep Blue Sea
+066079,0665F9,Data,[BGM:20] Searching the Light
+0665FA,066E3A,Data,[BGM:21] Harvest
+066E3B,067860,Data,[BGM:22] Battle with Gilgamesh
+067861,067E52,Data,[BGM:23] Four Valiant Hearts
+067E53,067FC3,Data,[BGM:25] What?
+067FC4,0685A2,Data,[BGM:27] Unknown Lands
+0685A3,068AB4,Data,[BGM:28] The Airship
+068AB5,068BB6,Data,[BGM:29] Fanfare 1 (short)
+068BB7,068D59,Data,[BGM:2A] Fanfare 2 (long)
+068D5A,069073,Data,[BGM:2C] Walking the Snowy Mountains
+069074,069489,Data,[BGM:2D] The Evil Lord Exdeath
+06948A,06990C,Data,[BGM:2E] The Castle in Dawn
+06990D,069A9E,Data,[BGM:2F] I'm a Dancer
+069A9F,069CDF,Data,[BGM:30] The Day Will Come
+069CE0,06A1A9,Data,[BGM:31] Run!
+06A1AA,06A4A2,Data,[BGM:32] The Ancient Library
+06A4A3,06A7BD,Data,[BGM:26] Hurry! Hurry!
+06A7BE,06ACF5,Data,[BGM:33] Royal Palace
+06ACF6,06AD7A,Data,[BGM:34] Good Night!
+06AD7B,06AE4A,Data,[BGM:36] Piano Lesson 2
+06AE4B,06B02F,Data,[BGM:38] Piano Lesson 4
+06B030,06B1CA,Data,[BGM:3B] Piano Lesson 7
+06B1CB,06B363,Data,[BGM:3C] Piano Lesson 8
+06B364,06B40D,Data,[BGM:35] Piano Lesson 1
+06B40E,06B4E1,Data,[BGM:37] Piano Lesson 3
+06B4E2,06B602,Data,[BGM:3A] Piano Lesson 6
+06B603,06B70F,Data,[BGM:39] Piano Lesson 5
+06B710,06BA95,Data,[BGM:24] The Book of Sealings
+06BA96,06BC97,Data,[BGM:3D] Musica Machina
+06BC98,06C031,Data,[BGM:1F] Prelude of Empty Skies
+06C032,06C58A,Data,[BGM:2B] The Battle
+06C58B,06C7AD,Data,[BGM:3E] (Exdeath destroyed)
+06C7AE,06CD41,Data,[BGM:3F] The Land Unknown
+06CD42,06DB7A,Data,[BGM:40] The Decisive Battle
+06DB7B,06E1C4,Data,[BGM:42] Dear Friends
+06E1C5,06E843,Data,[BGM:43] Final Fantasy
+06E844,06FCF1,Data,[BGM:44] A New Origin
+06FCF2,06FDC3,Data,[BGM:45] (Night scene)
+06FDC4,06FDFD,Data,[BGM:46] (Waves against the shore)
+06FDFE,06FE75,Data,[BGM:47] (Meteor landing)
+06FE76,06FFFF,Data,"(Blank) (0x18A bytes, 394 bytes)"
+070000,08221F,Data,World Map Tilemaps (custom compression)
+082220,08331F,Text,(Japanese) Speech offset [2 Bytes * 2160]
+083320,0849DE,Data,Extended Event data offsets [3 Bytes * 1940]
+0849DF,09FFFF,Data,Extended Event data [x Bytes * 1940]
+0A0000,0AFFFF,Text,Speech (Japanese)
+0B0000,0B028F,Data,Tilemaps offsets (Location maps) [2bytes * 0x0148]
+0B0290,0DFA01,Data,Tilemaps (Location maps) (Type 02 unheaded compression) [64 * 64 bytes (after decompressing)]
+0DFA02,0DFA3F,Data,(Blank)
+0DFA40,0DFDFF,Data,Unknown data (used by ASM function at 009913)
+0DFE00,0DFFFF,Data,"Row 8x8 numbers and "":"" (Menu/Battle hex numbers) 4bpp 8x8"
+0E0000,0E073F,Data,NPC Actions data offsets [2Bytes * 928 entries]
+0E0740,0E2293,Data,NPC Actions data
+0E2294,0E23FF,Data,(Blank)
+0E2400,0E27FF,Data,Event places offset [2Bytes * 512]
+0E2800,0E365F,Data,"Event places [4 Bytes * 920] (2B: Coordinates, 2B Event id (in table 18E080))"
+0E3660,0E36BF,Data,(Blank)(Sure?)
+0E36C0,0E3ABF,Data,Location and World Maps Exits Offsets [2 Bytes * 512]
+0E3AC0,0E58CF,Data,"Location and World Maps Exits [6 Bytes *] (2B: Origin Coordinates, 2B: Destiny Map ID, 2B: Destiny Coordinates)"
+0E58D0,0E59BF,Data,(Blank)(Sure?)
+0E59C0,0E5DC1,Data,NPCs offsets [2Bytes * 512 + 2 bytes EOF]
+0E5DC2,0E9BFF,Data,NPCs (Non Playable Characters) [7 Bytes each]
+0E9C00,0ECFFF,Data,Locations entries (Map Descriptors) [26 Bytes * 512]
+0ED000,0EE12F,Data,Monster battle palettes [8 (or 16) Bytes * 550]
+0EE130,0EFFFF,????,????
+0F0000,0F0037,Data,Tile blocks offset
+0F0038,0FC53F,Data,Tile blocks (Type 02 unheaded compression)
+0FC502,0FC53F,Data,(Blank)
+0FC540,0FC56D,Data,Tile properties offsets [2bytes * 23]
+0FC56E,0FD7FF,Data,Tile properties (Type 02 unheaded compression) [2 bytes * 256 after decompressed]
+0FD800,0FDBFF,Data,World Map (background) 4bpp 8x8
+0FDC00,0FDFFF,Data,(Blank)
+0FE000,0FE9FF,Data,World map tilemap offsets [2bytes * 256 * 5 worlds] (Every offset points to a horizontal line of 256 tiles stored in banks C7 and C8)
+0FEA00,0FF0BF,Data,World map tile block properties [3Bytes * 192 * 3]
+0FF0C0,0FF9BF,Data,World map tile blocks [1Byte * 192 * 4 * 3]
+0FF9C0,0FFABF,Data,World map tileset color masks (first and third worlds) [1Byte * 16 * 16]
+0FFAC0,0FFBBF,Data,World map tileset color masks (second world) [1Byte * 16 * 16]
+0FFBC0,0FFCBF,Data,World map tileset color masks (underwater) [1Byte * 16 * 16]
+0FFCC0,0FFDBF,Data,World map tileset palette (first and third worlds) [2Bytes * 128]
+0FFDC0,0FFEBF,Data,World map tileset palette (second world) [2Bytes * 128]
+0FFEC0,0FFFBF,Data,World map tileset palette (underwater) [2Bytes * 128]
+0FFFC0,0FFFFF,Data,(Blank)
+100000,102FFF,Data,Monster Stats
+103000,104FFF,Data,Monster Encounter (512*16)
+105000,1055FF,Data,Monster Drops/Steals
+105600,105BFF,Data,Monster Control Actions
+105C00,1067FF,Text,(Japanese) Monster names
+106800,106FFF,Data,Monster groups (256 * 4*2bytes indices to Monster Encounter)
+107000,1071FF,Data,Location names offsets (2 bytes * 164) (At 170000 in RPGe)
+107200,1077FF,Text,(Japanese) Location names
+107800,10797F,Data,Event encounters
+107980,1079BF,Data,Monster-in-a-box encounters
+1079C0,1079FF,????,Unused space?
+107A00,107BFF,Data,Monster zones in World 1 (4*2 * 8*8)
+107C00,107DFF,Data,Monster zones in World 2 (4*2 * 8*8)
+107E00,107FFF,Data,Monster zones in World 3 (4*2 * 8*8)
+108000,1083FF,Data,Monster zones in dungeons (512*2 indices to Monster groups)
+108400,10843F,Data,World 1 - Table related to zone danger
+108440,10847F,Data,World 2 - Table related to zone danger
+108480,1084BF,Data,World 3 - Table related to zone danger
+1084C0,1085FF,Data,Dungeons - Table related to danger calculations in rooms
+108600,1088FF,Data,Monster Release actions
+108900,1098FF,Data,Monster formation coordinates in battle
+109900,109BFF,Data,Monster Specialty data
+109C00,109EFF,ASM,Monster AI scripts offsets
+109F00,10B272,ASM,Monster AI scripts
+10B273,10C7FF,ASM,Bosses AI scripts
+10C800,10CFFF,????,(8*256 ?)
+10D000,10D003,Data,Offsets to monster bitmap tile tables (8x8 tiles and 16x16 tiles) respectively
+10D004,10D333,Data,Monster 8x8 bitmap tile tables
+10D334,10DC33,Data,Monster 16x16 bitmap tile tables
+10DC34,10E002,Data,Unknown data
+10E003,10E162,Data,"Monster Mini, Toad and shadow graphics; 4bpp"
+10E163,10E4C9,????,(Graphics?)
+10E4CB,10EBE4,Data,The End (Type 02 unheaded compression); 4bpp
+10EBE5,10EBFF,????,????
+10EC00,10EFFF,Data,Game engine constants
+10F000,10F1D3,Text,Battle speech offsets (2 bytes)
+10F1D4,10FFDF,Text,(Japanese) Battle speech
+10FFE0,10FFFF,Data,Some other info about monster groups
+110000,1105FF,Data,Items data - Weapons
+110600,110A7F,Data,Items data - Armor
+110A80,110B7F,Data,Items data - Usables
+110B80,11137F,Data,Magic data
+111380,111C7F,Text,Items names (menu)
+111C80,111E89,Text,Magic names (field menu)
+111E8A,11247F,Text,Magic names2
+112480,11257F,Data,"Item Equipment type definitions (64x4 bytes, 2B weapon, 2B armor)"
+112580,1126BF,Data,"Item Armor Element defense (5B - absorb, evade, immunity, half, weakness)"
+1126C0,11287F,Data,"Item Armor Status defense (7B - 4B Initial, 3B Immune)"
+112880,11288F,Data,Item stat change definitions
+112890,1128B5,????,???? (pointer table?)
+1128B6,112975,Text,Status names (battle menu)
+112976,1129FF,????,???? (fragmented data)
+112A00,112CFF,Data,Item /magic prices
+112D00,112D3F,Text,Shops names [1Byte * 8 * 8]
+112D40,112FFF,Data,Shop data
+113000,113200,Data,Treasure boxes offsets (1byte * 4 + 113210)
+113201,11320F,Data,15 bytes unused
+113210,1135FF,Data,Treasure chests/boxes/pots (252 x 4 bytes)
+113600,1139A8,????,???? (fragmented values)
+1139A9,113BA8,Text,Battle messages offsets
+113BA9,113FFF,Text,(Japanese) Battle messages
+114000,1140FF,Text,Offset Items descriptions
+114100,114FFF,Text,Item descriptions (1143FC to 114FFF; 3076 free bytes at the end)
+115000,115128,Data,Experience table (3 bytes * 99)
+115129,1151EE,Data,Base HP table (2 bytes * 99)
+1151EF,1152B4,Data,Base MP table (2 bytes * 99)
+1152B5,1152BF,Data,Unknown data
+1152C0,1152E9,Data,"Pointer to the first ability slot by job, Freelancer not included (2*21)"
+1152EA,1152FF,Data,"Number of abilities by job, including Freelancer (1*22)"
+115300,11542B,Data,List of abilities (ABP + ID) by job (2Byte + 1Byte)*(#abilities)
+11542C,1154FF,Data,??? (More Job-related data?)
+115500,11551D,Text,Character names
+11551E,115531,Data,Character stat bonuses
+115532,1155FF,Data,???? Unknown data!
+115600,1156AF,Text,Job names
+1156B0,115707,Data,Job base stats (22 * 4bytes)
+115708,11575F,Data,Job default equipment (22 * 4bytes)
+115760,1157B7,Data,Job default commands ID (22 * 4bytes)
+1157B8,1157E3,Data,Job default innate abilities (22 * 2bytes)
+1157E4,1157FF,Data,??? Unknown data!
+115800,1159DF,Text,Ability data/names (support) (menu) + (Japanese)
+1159E0,115CDF,Data,Abilities actions (96 * 8 byte)
+115CE0,115DFF,Data,???? Unknown data!
+115E00,1161FF,Data,Battle Command Stat Bonuses
+116200,116307,Text,Menu abilities texts
+116308,11638B,Data,Innate Ability Stat Bonuses
+11638C,1166FF,Data,???? Unknown data!
+116700,116AB0,Text,Special abilities texts
+116AB1,116DF8,Data,"Ability effect data (Animals, Mix, Terrain actions)"
+116DF9,116FFF,????,"(rising, varying values) (Pointers?)"
+117000,11713F,Data,Character initial data
+117140,117249,Text,Job/ability descriptions offsets
+11724A,117F9F,Text,Job/ability descriptions (& Empty Space)
+117FA0,11879F,Data,Attack Tilemap 1
+1187A0,118F9F,Data,Attack Tilemap 2
+118FA0,11979F,Data,Attack Tilemap 3
+1197A0,119B9F,Data,Attack Tilemap 6
+119BA0,11A39F,Data,Attack Tilemap 4
+11A3A0,11A81F,Data,Color Palettes - Weapons (9 bytes * 128 entries)
+11A820,11AB9F,????,????
+11ABA0,11BDFF,Data,Attack Graphics 5 (Misc. spell effects); 4bpp 8x8
+11BE00,11BFFF,Data,Attack Tilemap 5
+11C000,11D7FF,Data,Attack Graphics 6 (Terrain spell effects?); 2bpp 8x8
+11D800,11EFFF,Data,Attack Graphics 4
+11F000,11FFFF,Data,Menu Font (1 page 2bpp 8x8); 2bpp 8x8
+120000,1493FF,Data,Character battle sprites;4bpp
+149400,1497BF,Data,Character battle sprites (Dead); 4bpp
+1497C0,14A3BF,Data,Misc. battle sprites; 3bpp
+14A3C0,14B17F,Data,Job Palettes (32*5*22)
+14B180,14B8FF,Data,Monster battle sprites data [5 Bytes * 384]
+14B900,14BA20,????,????
+14BA21,14BB30,Data,Battle Background Properties
+14BB31,14C5B0,Data,Battle Background Palette
+14C5B1,14C735,????,????
+14C736,14C747,Data,Battle Background Tile Flip Pointer Table
+14C748,14C86C,Data,Battle Background Tile Flip
+14C86D,14C8A4,Data,Battle Background Layout Pointer Table
+14C8A5,14EFF1,Data,Battle Background Layout
+14EFF2,14FFFF,????,????
+150000,182FFF,Data,Monster battle sprites; 4bpp & 3bpp
+183000,1838EB,????,????
+1838EC,184156,Data,"Playing effects Master Table [5 bytes * ?](Effect Sprite, Color, Routine, Special, Sound); plus ???"
+184157,184195,Data,Battle background graphics offset
+184196,1841D4,Data,Pointers to Battle background tilesets [3bytes * 21 entries]
+1841D5,18DE35,Data,Battle background tilesets [x bytes * 9 entries] (Compressed unheaded type02); 4bpp
+18DE36,18E07F,????,????
+18E080,18E5DF,Data,Event data offsets [2 Bytes * 687 (0x2AF)]
+18E5E0,18FFFF,Data,Event data [x Bytes * 687 (0x2AF)] (Links to Extended Event data in table 083320)
+190000,192EC7,Data,Attack Graphics animations 1; 3bpp
+192EC8,19575F,Data,Attack Graphics animations 2; 3bpp
+195760,197C4F,Data,Attack Graphics animations 3; 3bpp
+197C50,197CCF,Data,Attack animations?; 3bpp
+197CD0,199754,????,????
+199755,199774,Data,Monster Palette (Underwater)
+199775,19A033,????,????
+19A034,19A093,Table,Weapon Routine Table (2 byte * 48); All addresses refer to the D9 bank.
+19A064,19FFFF,????,????
+1A0000,1B39FF,Data,NPCs sprites; 4bpp
+1B3A00,1B4D7F,Data,Overworld / World map sprites; 3bpp
+1B4D80,1B7FFF,Data,Overworld sprites; 3bpp
+1B8000,1B9FFF,Data,World map tileset (first and third worlds); 8bpp Mode 7 (Compressed)
+1BA000,1BBFFF,Data,World map tileset (second world); 8bpp Mode 7 (Compressed)
+1BC000,1BCFFF,Data,World map tileset (underwater); 8bpp Mode 7 (Compressed)
+1BD000,1BF7FF,Data,Kanji; 1bpp
+1BF800,1BFFFF,????,????
+1C0000,1C0023,Data,World Map and Locations 8x8 Background/Foreground tiles offsets (2 bytes)
+1C0024,1C2D83,Data,World Map and Locations 8x8 Background/Foreground tiles; 2bpp
+1C2D84,1C2E23,Data,World Map and Locations 8x8 Background graphics offsets (4 bytes to add to 00DC2E24)
+1C2E24,1FFBFF,Data,World Map and Locations 8x8 Background graphics; 4bpp
+1FFC00,1FFC7F,Data,World Map and Locations Sprite palette [2bytes * 4 sets * 16 (0x10) colors]
+1FFC80,1FFFBF,????,????
+1FFFC0,1FFFFF,Data,???? Palettes ????
+200000,200F4F,Text,Monster names
+200F50,200F6F,ASM,ASM
+200F70,20114F,Data,Multiply by 7/5
+201150,2013EF,Text,Ability names (commands)
+2013F0,202D3F,????,????
+202D40,202F4D,ASM,ASM
+202F4E,2030FF,????,????
+203100,203140,Text,Misc. menu text fields
+203140,2031A7,????,????
+2031A8,2031B1,ASM,ASM
+2031B2,203224,????,????
+203225,203324,Data,Texts font characters widths (Speech and battle messages)
+203325,203424,Data,Texts font characters widths (Crystal prophecy)
+203425,203723,????,????
+203724,204AA4,Data,Crystal prophecy font; 1bpp
+204AA5,204C24,????,????
+204C25,20FFFF,Blank,Blank data
+210000,26FFFF,Text,Game script
+270000,2708FF,Text,Area headings
+270900,270F8F,Text,Effect names
+270F90,27177F,Text,Magic names (57-FF) (battle menu) (Song)
+271780,27275F,Text,Magic names (57-FF) (battle message)
+272760,272CA9,Text,Battle messages
+272CAA,272EFF,????,????
+272F00,2733FF,Text,Menu/shop text
+273400,27355F,????,????
+273560,2736FF,Text,Rare item names
+273700,273AF0,Text,Monster Specialty names
+273B00,2750FF,Text,Battle dialog
+275100,2751FF,Text,Item descriptions pointer table
+275200,2757FF,Text,Item descriptions
+275800,27585F,Text,Battle record text
+275860,27705F,Text,Item names (battle message)
+277060,27739F,Text,Ability names (support) (battle message)
+2773A0,27751F,Data,Crystal prophecy; 1bpp 8x12
+277520,27FAD8,????,????
+27FAD9,27FFFF,Text,Misc. menu text fields

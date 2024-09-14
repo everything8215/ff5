@@ -1,6 +1,24 @@
 import json
+import csv
 
-# Semi-complete opcode dictionary for the 65816 architecture
+### Load CSV Classifier Data into a List of Dictionaries
+def load_csv_ranges(csv_path):
+    ranges = []
+    with open(csv_path, 'r') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            # Convert hex string to integers
+            address_start = int(row['address start'], 16)
+            address_end = int(row['address end'], 16)
+            type_info = row['type']
+            ranges.append({
+                'start': address_start,
+                'end': address_end,
+                'type': type_info
+            })
+    return ranges
+
+### Semi-complete opcode dictionary for the 65816 architecture
 opcode_dict_65816 = {
     0x00: "BRK",
     0x01: "ORA (dp,X)",
@@ -165,65 +183,151 @@ opcode_dict_65816 = {
     0xFE: "INC abs,X"
 }
 
-# Function to detect end of ASM function block based on control flow instructions
+### Get the Type of a Given Address
+def get_address_type(address, ranges):
+    for range_item in ranges:
+        if range_item['start'] <= address <= range_item['end']:
+            return range_item['type']
+    return 'Unknown'
+
+### Detect End of ASM Function
 def is_function_end(opcode):
-    end_opcodes = ["RTS", "RTI", "RTL", "JMP", "BRA", "BPL", "BMI", "BEQ", "BNE"]
-    return opcode in end_opcodes
+    return opcode in [0x10, 0x30, 0x40, 0x4C, 0x60, 0x6B, 0x80, 0xD0, 0xF0] 
+# Above are: BPL, BMI, RTI, JMP, RTS, RTL, BRA, BNE, BEQ
 
-# Modify this to calculate HiROM address (for HiROM, $00:8000 corresponds to $C00000 in CPU address)
-def calculate_hirom_address(offset):
-    return 0xC00000 + offset
+### Parsing Logic: Now with Byte Classification from CSV Data!
+def parse_opcodes(file_bytes, ranges_list):
+    functions = []
+    current_function = None
+    current_data_block = None  # Track the current data block
+    current_other_block = None  # Track the current other block
 
-def parse_opcodes(file_bytes):
-    functions = {}
-    current_function = []
-    function_start = 0
+    for address, byte in enumerate(file_bytes):
+        # Convert byte to its hex representation
+        opcode = f"{int(byte, 16):02X}" if isinstance(byte, str) else f"{byte:02X}"
+        address_str = f"{address:06X}"
 
-    i = 0
-    while i < len(file_bytes):
-        # Calculate the HiROM address
-        address = calculate_hirom_address(i)
-        opcode = file_bytes[i]
-        instruction = opcode_dict_65816.get(opcode, f"{opcode:02X}")
+        # Determine type based on CSV ranges
+        byte_type = get_address_type(address, ranges_list)
+        
+        if byte_type == "ASM":
+            # Ensure opcode is an integer
+            if isinstance(opcode, str):
+                opcode = int(opcode, 16)
 
-        # Debugging: print the current opcode and instruction
-        print(f"Address: {hex(address)}, Opcode: {opcode:02X}, Instruction: {instruction}")
+            # Fetch the opcode's instruction designator from the dictionary
+            opcode_instruction = opcode_dict_65816.get(opcode, None)
 
-        # If this is the start of a new function
-        if not current_function:
-            function_start = address
+            # Create the instruction string with the designator and hex value
+            if opcode_instruction:
+                instruction = f"{opcode_instruction} ({opcode:02X})" # hex formatted value
+            else:
+                instruction = f"Unknown opcode ({opcode:02X})"
 
-        current_function.append(instruction)
+            # Convert opcode to string if it's not already, and handle it for the function end check
+            opcode_hex = f"{opcode:02X}" if isinstance(opcode, int) else opcode
 
-        # If the opcode ends a function
-        if is_function_end(instruction):
-            # Debugging: print when a function ends
-            print(f"Function ends at: {hex(function_start)}")
-            # Store the function with its starting HiROM address
-            functions[hex(function_start)] = current_function
-            current_function = []
+            # Check if the instruction is a function end
+            if is_function_end(int(opcode_hex, 16)):
+                # Append the final instruction to the current function
+                if current_function is not None:
+                    current_function["instructions"].append(f"{address_str}: {instruction}")
+                    functions.append(current_function)
+                current_function = None
+            else:
+                # Regular ASM opcode
+                if current_function is None:
+                    current_function = {
+                        "name": f"Function_{address_str}",
+                        "type": "ASM",
+                        "instructions": []
+                    }
+                current_function["instructions"].append(f"{address_str}: {instruction}")
 
-        # Move to the next byte or instruction, handling 2-byte operands if necessary
-        i += 1
+            # End current data block if it's in progress
+            if current_data_block is not None:
+                functions.append(current_data_block)
+                current_data_block = None
+
+            # End current other block if it's in progress
+            if current_other_block is not None:
+                functions.append(current_other_block)
+                current_other_block = None
+
+        elif byte_type == "Data":
+            instruction = f"data: {opcode}"
+
+            # Start accumulating data bytes
+            if current_data_block is None:
+                current_data_block = {
+                    "type": "Data",
+                    "instructions": []
+                }
+            current_data_block["instructions"].append(f"{address_str}: {instruction}")
+
+            # End the current function if it's in progress
+            if current_function is not None:
+                functions.append(current_function)
+                current_function = None
+
+            # End current other block if it's in progress
+            if current_other_block is not None:
+                functions.append(current_other_block)
+                current_other_block = None
+
+        else:  # byte_type == "Other"
+            instruction = f"{opcode}"
+
+            # Start accumulating other bytes
+            if current_other_block is None:
+                current_other_block = {
+                    "type": "Other",
+                    "instructions": []
+                }
+            current_other_block["instructions"].append(f"{address_str}: {instruction}")
+
+            # End the current function if it's in progress
+            if current_function is not None:
+                functions.append(current_function)
+                current_function = None
+
+            # End current data block if it's in progress
+            if current_data_block is not None:
+                functions.append(current_data_block)
+                current_data_block = None
+
+    # Append the last function or data block or other block if they exist
+    if current_function is not None:
+        functions.append(current_function)
+    if current_data_block is not None:
+        functions.append(current_data_block)
+    if current_other_block is not None:
+        functions.append(current_other_block)
 
     return functions
 
 
-# Function to save functions to a file
-# def save_functions_to_file(functions, output_path):
-#     with open(output_path, "w") as f:
-#         for idx, function in enumerate(functions):
-#             f.write(f"Function {idx + 1}:\n")
-#             f.write("\n".join(function))
-#             f.write("\n\n")
-# Save the functions to a JSON file
-def save_to_json(output_path, functions):
-    with open(output_path, 'w') as json_file:
-        json.dump(functions, json_file, indent=4)
 
-# Example use of the modified functions
-with open('rom.sfc', 'rb') as f:
-    file_bytes = f.read()
+# Save the Output to JSON
+def save_to_json(filename, data):
+    with open(filename, 'w') as json_file:
+        json.dump(data, json_file, indent=2)
 
-output = parse_opcodes(file_bytes)
-save_to_json('functions_output.json', output)
+### MAIN EXECUTION
+if __name__ == "__main__":
+    # Path to your ROM file and CSV file
+    rom_path = 'rom.sfc'
+    csv_path = 'rom_data_banks.csv'
+    
+    # Read ROM bytes
+    with open(rom_path, 'rb') as rom_file:
+        rom_bytes = rom_file.read()
+    
+    # Load the CSV file
+    ranges_list = load_csv_ranges(csv_path)
+    
+    # Parse the ROM bytes
+    output = parse_opcodes(rom_bytes, ranges_list)
+    
+    # Save the output to a JSON file
+    save_to_json('classified_output.json', output)
