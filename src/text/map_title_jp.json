@@ -1,6 +1,7 @@
 {
   "asset_label": "MapTitle",
   "inc_path": "include/text/map_title_jp.inc",
+  "is_sequential": true,
   "char_tables": [
     "big_symbols_jp",
     "kana",

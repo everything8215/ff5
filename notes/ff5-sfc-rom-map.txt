@@ -21,8 +21,8 @@
 | C0D240-C0D340 |                                                           |
 | C0D340-C0D380 | menu window palette                                       |
 | C0D380-C0D980 | menu window graphics (4bpp)                               |
-| C0D980-C0D9B8 | pointers to ??? (+$C0D980)                                |
-| C0D9B8-C0DF00 | ???                                                       |
+| C0D980-C0D9B8 | pointers to overlay properties (+$C0D980)                 |
+| C0D9B8-C0DF00 | overlay properties (compressed)                           |
 | C0DF00-C0E600 | overlay sprite graphics (1bpp)                            |
 | C0E600-       | menu data                                                 |
 |               |                                                           |

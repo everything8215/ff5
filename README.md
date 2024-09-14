@@ -116,7 +116,7 @@ uncompressed counterpart with an appropriate extension added at the end (e.g.
 
 ### File Organization
 
-Tge `src` directory contains all of the assembly code and game data. The
+The `src` directory contains all of the assembly code and game data. The
 `include` directory contains all of the include files.
 
 Each of the modules described above is in a separate subdirectory within the

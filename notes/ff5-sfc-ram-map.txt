@@ -487,7 +487,7 @@
 |             |                                                             |
 |             |       $40 irq flag                                          |
 |             |       $41                                                   |
-|             |                                                             |
+|             |       $42                                                   |
 |             |       $43 fade speed                                        |
 |             |       $44 fixed color speed                                 |
 |             |       $45 screen brightness -> $2100                        |
@@ -508,7 +508,7 @@
 |             |       $53 on a world map ???                                |
 |             |                                                             |
 |             |       $55 random battle flag                                |
-|             |       $56 step counter                                      |
+|             |       $56 step counter (enable random battle check)         |
 |             |       $57 dialog window open ??? / event is running ???     |
 |             |       $58 event is running                                  |
 |             |       $59 map loaded                                        |
@@ -615,6 +615,8 @@
 |       $1088 | x position                                                  |
 |       $1089 | y position                                                  |
 |             |                                                             |
+|       $108C |                                                             |
+|             |                                                             |
 |      +$1098 | bg2 h-offset ???                                            |
 |      +$109A | bg2 v-offset ???                                            |
 |      +$109C | bg3 h-offset ???                                            |
@@ -692,9 +694,18 @@
 | $110C-$1125 | map properties                                              |
 |             |        +$110C map id (usually matches map index)            |
 |             |         $110E title                                         |
-|             |         $110F ?xxp??yy                                      |
-|             |                 x:                                          |
+|             |         $110F -hhpccyy flags                                |
+|             |                 h: hdma channels enabled                    |
+|             |                      0: #1, #2                              |
+|             |                      1: #1, #2, #6                          |
+|             |                      1: #1, #2, #3, #4, #5, #6              |
+|             |                      0: #1, #2                              |
 |             |                 p: use alt. palette for low-priority sprites|
+|             |                 c: window mask circle diameter              |
+|             |                      0: 0                                   |
+|             |                      1: 63                                  |
+|             |                      2: 16                                  |
+|             |                      3: 63                                  |
 |             |                 y: enable warp/teleport ???                 |
 |             |         $1110 abcccccc                                      |
 |             |                 a: disable map animation                    |
@@ -703,9 +714,9 @@
 |             |         $1111 tile properties                               |
 |             |         $1112 bpsssddd                                      |
 |             |                 b: enable random battles                    |
-|             |                 p: floor damage causes poison               |
-|             |                 s: floor damage sound effect (always $94)   |
-|             |                 d: floor damage value                       |
+|             |                 p: tile causes poison                       |
+|             |                 s: tile sound effect (always sfx $94)       |
+|             |                 d: tile damage value                        |
 |             |                      0: 0                                   |
 |             |                      1: 50                                  |
 |             |                      2: 50                                  |
@@ -819,7 +830,10 @@
 |      +$1698 |                                                             |
 |       $169A | window mask circle diameter                                 |
 |             |                                                             |
-|       $169E |                                                             |
+|       $169E | entrance trigger animation                                  |
+|             |   0: none                                                   |
+|             |   1: unused (no effect)                                     |
+|             |   2: pitfall trap                                           |
 |       $169F | hiryuu flag (npc 0 and 1 are hiryuu body and head)          |
 |       $16A0 | enable map title                                            |
 |             |                                                             |
@@ -834,6 +848,8 @@
 |             |                                                             |
 | $16F3-$1732 | tile data buffer 1                                          |
 | $1733-$1772 | tile data buffer 2                                          |
+|             |                                                             |
+| $1873-$1972 | overlay properties (sub-map only)                           |
 |             |                                                             |
 | $19D3-      | dialog text buffer                                          |
 |             |                                                             |
@@ -1740,6 +1756,17 @@ $7F1000-$7F1FFF bg2 map layout
 $7F2000-$7F2FFF bg3 map layout
 $7F3000-$7F3FFF object layout
 
+$7F6A8B-        ??? hdma table
+
+$7F6AEC-        ??? hdma data
+
+$7F6B6C-$7F6D6B window mask hdma data
+$7F6D6C-$7F6D7B ??? hdma data
+$7F6D7C-$7F6D8B ??? hdma data
+$7F6D8C-$7F6DB6 ??? hdma table
+$7F6DB7-$7F6DE1 ??? hdma table
+$7F6DE2-$7F6E01
+$7F6E02-$7F6E21
 $7F6E22-$7F7621 tileset
 
 $7F8622-$7FE621 animation graphics buffer

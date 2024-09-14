@@ -35,6 +35,7 @@ rip:
 
 clean:
 	$(RM) -rf $(ROM_DIR) $(OBJ_DIR)
+	$(RM) -f src/text/*.dat
 
 distclean: clean
 	python3 tools/clean_assets.py
@@ -73,14 +74,27 @@ endef
 
 $(foreach M, $(MODULES), $(eval $(call MAKE_MODULE,$(M))))
 
+# list of all text files
+TEXT_JSON_JP = $(wildcard src/text/*jp.json)
+TEXT_JSON_EN = $(wildcard src/text/*en.json)
+TEXT_DAT_JP = $(TEXT_JSON_JP:json=dat)
+TEXT_DAT_EN = $(TEXT_JSON_EN:json=dat)
+
+text_jp: $(TEXT_DAT_JP)
+text_en: $(TEXT_DAT_EN)
+text: text_jp text_en
+
+src/text/%.dat: src/text/%.json
+	python3 tools/encode_text.py $<
+
 # rules for making ROM files
-$(FF5_JP_PATH): cfg/ff5-jp.cfg $(OBJ_FILES_JP)
+$(FF5_JP_PATH): cfg/ff5-jp.cfg text_jp $(OBJ_FILES_JP)
 	@mkdir -p $(ROM_DIR)
 	$(LINK) $(LINKFLAGS) --dbgfile $(@:sfc=dbg) -m $(@:sfc=map) -o $@ -C $< $(OBJ_FILES_JP)
 	@$(RM) -rf $(LZ_DIR)
 	$(FIX_CHECKSUM) $@
 
-$(FF5_EN_PATH): cfg/ff5-en.cfg $(OBJ_FILES_EN)
+$(FF5_EN_PATH): cfg/ff5-en.cfg text_en $(OBJ_FILES_EN)
 	@mkdir -p $(ROM_DIR)
 	$(LINK) $(LINKFLAGS) --dbgfile $(@:sfc=dbg) -m $(@:sfc=map) -o $@ -C $< $(OBJ_FILES_EN)
 	@$(RM) -rf $(LZ_DIR)

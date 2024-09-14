@@ -31,7 +31,7 @@
       "asset_range": "0xC0D240-0xC0D33F"
     },
     {
-      "file_path": "src/field/unknown_c0d980/unknown_c0d980_%s.dat.lz",
+      "file_path": "src/field/overlay_prop/overlay_prop_%s.dat.lz",
       "asset_range": "0xC0D9B8-0xC0DEFB",
       "ptr_range": "0xC0D980-0xC0D9B7",
       "ptr_offset": "0xC0D980"
@@ -98,7 +98,7 @@
       "ptr_offset": "0xCFC540"
     },
     {
-      "file_path": "src/gfx/minimap_sprite.4bpp",
+      "file_path": "src/gfx/minimap.4bpp",
       "asset_range": "0xCFD800-0xCFDFFF"
     },
     {
@@ -187,7 +187,15 @@
     },
     {
       "file_path": "src/gfx/map_sprite.4bpp",
-      "asset_range": "0xDA0000-0xDB7FFF"
+      "asset_range": "0xDA0000-0xDB39FF"
+    },
+    {
+      "file_path": "src/gfx/vehicle.3bpp",
+      "asset_range": "0xDB3A00-0xDB4D7F"
+    },
+    {
+      "file_path": "src/gfx/world_sprite.4bpp",
+      "asset_range": "0xDB4D80-0xDB7FFF"
     },
     {
       "file_path": "src/gfx/world_gfx/%s.4bpp",

@@ -38,7 +38,8 @@
 .import WindowPal, WindowGfx, BigFontGfx, KanjiGfx, TimerFontGfx
 .import MapBG3Gfx, MapBG3GfxPtrs, MapGfx, MapGfxPtrs
 .import MapPal, MapAnimGfx, MapSpritePal, MapOverlayGfx
-.import WorldPal, WorldTileAttr, WorldGfx, MinimapSpriteGfx
+.import MapSpritePal_8, VehiclePal, MapSpritePal_bf05
+.import WorldPal, WorldTileAttr, WorldGfx, MinimapGfx
 
 ; ===========================================================================
 
@@ -47,8 +48,7 @@
 ; ---------------------------------------------------------------------------
 
 .proc Start
-
-_0000:  sei
+        sei
         clc
         xce
         longi
@@ -77,14 +77,16 @@ _0000:  sei
         jsr     ShowCutscene
         jsr     InitHardware
         jsr     _c0490a
-        lda     #3
+        lda     #3                      ; game load menu
         sta     $0134
-        jsl     ExecMenu_ext            ; game load menu
+        jsl     ExecMenu_ext
         jsr     _c044e3
         jsr     InitHardware
         jsr     InitInterrupts
         lda     $0139
         beq     NewGame
+
+; restore saved game
         jsr     _c0491d                 ; reset ram $0b00-$1d00
         lda     $0af9
         sta     $0b60
@@ -100,7 +102,7 @@ _0000:  sei
         lda     $0ad9                   ; y position
         sta     $1089
         jsr     LoadMapNoFade
-        jmp     Main
+        jmp     FieldLoop
 
 NewGame:
         jsr     _c048fa                 ; init character data (new game)
@@ -122,51 +124,59 @@ NewGame:
         stz     $57
         stz     $58
         stz     $55
-        jmp     Main
-
+        jmp     FieldLoop
 .endproc
 
 ; ---------------------------------------------------------------------------
 
-; [ map main loop ]
+; [ field main loop ]
 
-.proc Main
+.proc FieldLoop
+        jsr     WaitVBlank
 
-_00ad:  jsr     WaitVBlank
+; check if the menu button is pressed
         lda     $02
         and     #JOY_X
-        beq     _00be
+        beq     :+
         lda     $53
-        beq     _00c1
+        beq     CheckMenu
         lda     $5d
-        beq     _00c1
-_00be:  jmp     _0147
-_00c1:  lda     $0b61
+        beq     CheckMenu
+:       jmp     NoMenu
+
+CheckMenu:
+        lda     $0b61
         and     #$1f
-        bne     _0147                   ; branch if partially scrolled
+        bne     NoMenu                  ; branch if partially scrolled
         lda     $0b63                   ; bg1 y position
         and     #$1f
-        bne     _0147                   ; branch if partially scrolled
+        bne     NoMenu                  ; branch if partially scrolled
         lda     #$00
         sta     $0135
         lda     $0adc
-        bne     _00ef                   ; branch if in a vehicle ???
+        bne     CheckWarp               ; branch if in a vehicle ???
         ldx     $0ad6                   ; map index
         cpx     #$0005
-        bcc     _00ea                   ; branch if not on a world map
+        bcc     EnableSave              ; branch if not on a world map
         lda     #$fd
-        jsr     _c0ca3c                   ; get event flag $01xx
+        jsr     _c0ca3c                 ; get event flag $01xx
         cmp     #$00
-        beq     _00ef
-_00ea:  lda     #$80                    ; enable tent/cabin/save
+        beq     CheckWarp
+
+EnableSave:
+        lda     #$80                    ; enable tent/cabin/save
         sta     $0135
-_00ef:  stz     $08
+
+CheckWarp:
+        stz     $08
         lda     $53
-        beq     _00fc
+        beq     :+
         lda     $110f                   ; enable warp/teleport ???
         and     #$03
         sta     $08
-_00fc:  lda     $0135
+
+; open the menu
+:       lda     $0135
         ora     $08
         sta     $0135
         lda     #$00                    ; menu command $00 (main menu)
@@ -179,188 +189,226 @@ _00fc:  lda     $0135
         lda     $0ad9
         sta     $1089
         jsr     ReloadMap
+
+; check if an item was used in the menu
         lda     $0139                   ; item used in menu
         cmp     #$f0
-        bne     _012b                   ; branch if not tent
+        bne     :+                      ; branch if not tent
         ldx     #$0022
-        bra     _013b
-_012b:  cmp     #$f1
-        bne     _0134                   ; branch if not cabin
+        bra     DoMenuEvent
+:       cmp     #$f1
+        bne     :+                      ; branch if not cabin
         ldx     #$0024
-        bra     _013b
-_0134:  cmp     #$3e                    ; judgment staff ???
-        bne     _013e
+        bra     DoMenuEvent
+:       cmp     #$3e                    ; judgment staff ???
+        bne     :+
         ldx     #$0032
-_013b:  jsr     ExecTriggerScript
-_013e:  stz     $16aa
-        jsr     PoisonMosaic                   ; pixelate screen (poison)
-        jmp     _00ad
-_0147:  jsr     CheckTriggers
+
+DoMenuEvent:
+        jsr     ExecTriggerScript
+:       stz     $16aa
+        jsr     PoisonMosaic
+        jmp     FieldLoop
+
+; check triggers and timer
+NoMenu:
+        jsr     CheckTriggers
         jsr     _c0a18b                   ; update timer
         lda     $58
-        beq     _0156
+        beq     :+
         stz     $58
-        jmp     _00ad
-_0156:  lda     $6e
-        beq     _0160
+        jmp     FieldLoop
+
+:       lda     $6e
+        beq     :+
         jsr     LoadMap
-        jmp     _00ad
-_0160:  ldx     $0ad6                   ; map index
+        jmp     FieldLoop
+
+:       ldx     $0ad6                   ; map index
         cpx     #$0005
-        jcs     _0262
-        jsr     _c0073e
+        jcs     SubMapLoop
+
+; world map
+
+; check if boarding or landing a vehicle
+        jsr     CheckVehicle
         lda     $58
-        beq     _0177
+        beq     :+
         stz     $58
-        jmp     _00ad
-_0177:  lda     $61
+        jmp     FieldLoop
+
+; check events
+:       lda     $61
         and     #$1f
-        bne     _01fb
+        bne     NoWorldEvent
         lda     $63
         and     #$1f
-        bne     _01fb
+        bne     NoWorldEvent
         lda     $0ad6                   ; map index
         cmp     #$01
-        bne     _01a1
+        bne     :+
         lda     $0ad9
         cmp     #$a1
-        bne     _01a1
+        bne     :+
         lda     $0ad8
         cmp     #$9f
-        bcc     _01a1
+        bcc     :+
         cmp     #$a2
-        bcs     _01a1
+        bcs     :+
         ldx     #$0012
-        bra     _01ef
-_01a1:  lda     $0ad6                   ; map index
-        bne     _01c8
+        bra     DoWorldEvent
+
+:       lda     $0ad6                   ; map index
+        bne     :+
         lda     $0adc
         cmp     #$06
-        bne     _01c8
+        bne     :+
         lda     $0ad8
         cmp     #$3d
-        bcc     _01c8
+        bcc     :+
         cmp     #$43
-        bcs     _01c8
+        bcs     :+
         lda     $0ad9
         cmp     #$9e
-        bcc     _01c8
+        bcc     :+
         cmp     #$a5
-        bcs     _01c8
+        bcs     :+
         ldx     #$0020
-        bra     _01ef
-_01c8:  lda     $0ad6                   ; map index
+        bra     DoWorldEvent
+
+:       lda     $0ad6                   ; map index
         cmp     #$02
-        bne     _01fb
+        bne     :+
         lda     $0adc
         cmp     #$05
-        bcc     _01fb
+        bcc     :+
         lda     $0ad8
         cmp     #$b6
-        bcc     _01fb
+        bcc     :+
         cmp     #$ba
-        bcs     _01fb
+        bcs     :+
         lda     $0ad9
         cmp     #$87
-        bcc     _01fb
+        bcc     :+
         cmp     #$8b
-        bcs     _01fb
+        bcs     :+
         ldx     #$0018
-_01ef:  jsr     ExecTriggerScript
+
+DoWorldEvent:
+        jsr     ExecTriggerScript
         lda     $58
-        beq     _01fb
+        beq     :+
         stz     $58
-        jmp     _00ad
-_01fb:  jsr     _c0cb11
+        jmp     FieldLoop
+
+; check random battle
+NoWorldEvent:
+:       jsr     _c0cb11
         lda     $55
-        beq     _0220
+        beq     :+
         lda     #$ff
         jsr     _c0ca3c                   ; get event flag $01xx
         cmp     #$00
-        bne     _0220
+        bne     :+
         jsr     RandomBattle
         lda     $0ad8
         sta     $1088
         lda     $0ad9
         sta     $1089
         jsr     ReloadMap
-        jmp     _00ad
-_0220:  stz     $55
+        jmp     FieldLoop
+
+; check minimap
+:       stz     $55
         lda     $03
         and     #>JOY_Y
-        beq     _0246
+        beq     :+
         lda     #$fb
         jsr     _c0ca3c                   ; get event flag $01xx
         cmp     #$00
-        beq     _0246
+        beq     :+
         jsr     ShowMinimap
         lda     $0ad8
         sta     $1088
         lda     $0ad9
         sta     $1089
         jsr     ReloadMap
-        jmp     _00ad
-_0246:  jsr     _c00f8c
+        jmp     FieldLoop
+
+:       jsr     CheckPlayerMoveWorld
         jsr     _c01a1d
-        jsr     _c04c95                   ; clear sprite data
+        jsr     ResetSprites
         jsr     _c02137
         jsr     _c0612b
         jsr     _c01ec5
         jsr     _c01e64
         jsr     _c0420a
-        jmp     _00ad
-        rts                 ; unused rts
-_0262:  jsr     _c00d3d
+        jmp     FieldLoop
+        rts                             ; unused rts
+
+; sub-map
+SubMapLoop:
+
+; check activated NPCs and treasures
+        jsr     _c00d3d
         lda     $58
-        beq     _026e
+        beq     :+
         stz     $58
-        jmp     _00ad
-_026e:  lda     $10fb       ; tile properties byte 2
+        jmp     FieldLoop
+
+; check map exit
+:       lda     $10fb                   ; tile properties byte 2
         cmp     #$00
-        bne     _0281       ; branch if not a map exit
+        bne     :+                      ; branch if not a map exit
         jsr     LoadParentMap
         ldx     #$001c
         jsr     ExecTriggerScript
-        jmp     _00ad
-_0281:  jsr     _c0ca69       ;
+        jmp     FieldLoop
+
+; check random battles
+:       jsr     _c0ca69       ;
         lda     $55
-        beq     _029a
+        beq     :+
         lda     #$ff
         jsr     _c0ca3c       ; get event flag $01ff (disable random battles)
         cmp     #$00
-        bne     _029a
+        bne     :+
         jsr     RandomBattle
         jsr     ReloadMap
-        jmp     _00ad
-_029a:  stz     $55
-        jsr     _c032ab       ; update objects
-        jsr     _c011c2
-        lda     $6e
-        beq     _02ac
-        jsr     LoadMap
-        jmp     _00ad
-_02ac:  lda     $58
-        beq     _02b5
-        stz     $58
-        jmp     _00ad
-_02b5:  jsr     _c01ae4
-        jsr     _c03bac
-        jsr     _c04c95       ; clear sprite data
-        jsr     _c04834
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
-        jsr     _c02842
-        jsr     _c0420a
-        jmp     _00ad
-        rts                 ; unused rts
+        jmp     FieldLoop
 
+;
+:       stz     $55
+        jsr     _c032ab       ; update objects
+        jsr     CheckPlayerMoveSub
+        lda     $6e
+        beq     :+
+        jsr     LoadMap
+        jmp     FieldLoop
+
+; loop if an event is running
+:       lda     $58
+        beq     :+
+        stz     $58
+        jmp     FieldLoop
+
+; do updates if no events are running
+:       jsr     _c01ae4
+        jsr     _c03bac
+        jsr     ResetSprites
+        jsr     _c04834
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
+        jsr     DrawOverlaySprites
+        jsr     _c0420a
+        jmp     FieldLoop
+        rts                 ; unused rts
 .endproc
 
 ; ---------------------------------------------------------------------------
 
 .proc FieldNMI
-
-_02d1:  php
+        php
         longa
         pha
         phx
@@ -389,10 +437,10 @@ _02d1:  php
         jsr     _c04653       ; update screen pixelation
         jsr     _c049ff       ; update fixed color
         lda     $a3
-        beq     _0314
+        beq     :+
         stz     $a3
         jsr     _c040d8       ; copy data to vram
-_0314:  lda     $52
+:       lda     $52
         jne     _041f
         jsr     _c04bc0       ; update scrolling registers
         lda     $53
@@ -428,22 +476,25 @@ _0360:  lda     $a0
         jsr     _c05e2b       ; copy tile layout to vram ???
         jmp     _0408
 _036c:  lda     $a5
-        beq     _0378
+        beq     :+
         stz     $a5
         jsr     _c08ba4
         jmp     _0408
-_0378:  lda     $a6
-        beq     _038b
+
+:       lda     $a6
+        beq     :+
         stz     $a6
         ldx     $06
         stx     $71
         jsr     _c06e7a
         jsr     _c08be4
         jmp     _03f9
-_038b:  lda     $a7
-        beq     _0392
+
+:       lda     $a7
+        beq     :+
         jsr     _c08e23
-_0392:  jsr     _c08f78       ; draw yes/no indicator
+
+:       jsr     _c08f78       ; draw yes/no indicator
         lda     $9f
         beq     _03ed
         stz     $9f
@@ -499,7 +550,7 @@ _0408:  jsr     _c05e8a
         jsr     _c09799       ; update palette animation
         jsr     _c04931
         jsr     _c047aa
-_041f:  jsr     _c04c90
+_041f:  jsr     UpdateCtrl
         jsr     _c04d8e
         inc     $094a
         bne     _0437
@@ -525,8 +576,7 @@ _0437:  inc     $3f
 ; ---------------------------------------------------------------------------
 
 .proc FieldIRQ
-
-_0446:  php
+        php
         longa
         pha
         phx
@@ -551,16 +601,16 @@ _0446:  php
         pla
         plp
         rti
-
 .endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ execute trigger script ]
 
-.proc ExecTriggerScript
+; +X: trigger script index * 2
 
-_046a:  longa
+.proc ExecTriggerScript
+        longa
         lda     f:EventCondPtrs,x
         sta     $23
         lda     f:EventCondPtrs+2,x
@@ -715,7 +765,7 @@ _05e7:  inx
         inx3
         stx     $23
         cpx     $26
-        beq     _0617
+        beq     NoEvent
         jmp     _047c
 _05fc:  lda     #$01
         sta     $57
@@ -727,11 +777,12 @@ _05fc:  lda     #$01
         lda     $06
         shorta
         ldx     $ce
-        beq     _0617
+        beq     NoEvent
         jsr     ExecEvent
-_0617:  stz     $57
-        rts
 
+NoEvent:
+        stz     $57
+        rts
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -739,14 +790,13 @@ _0617:  stz     $57
 ; [ check triggers ]
 
 .proc CheckTriggers
-
 _061a:  lda     $53
         bne     _0633
         lda     $0adc
         beq     _0633
-        cmp     #$01
+        cmp     #$01                    ; chocobo
         beq     _0633
-        cmp     #$05
+        cmp     #$05                    ; ship
         beq     _0633
         ldx     $0ad6                   ; map index
         cpx     #$0003
@@ -858,15 +908,13 @@ _0737:  inc     $6e
 _0739:  lda     $06
         shorta
         rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ check if boarding or landing a vehicle ]
 
-.proc _c0073e
-
+.proc CheckVehicle
 _073e:  lda     $61
         and     #$1f
         bne     _074a
@@ -905,9 +953,9 @@ _0763:  ldy     $23
         beq     _07a4
         lda     $02
         and     #JOY_A
-        beq     _07ed
+        beq     Done
         lda     $10b8
-        bne     _07ed
+        bne     Done
         inc     $10b8
 _07a4:  sty     $169c
         tya
@@ -935,13 +983,17 @@ _07a4:  sty     $169c
         lda     #$01
         sta     $58
         jmp     ($0b26)
+
+; next vehicle
 _07df:  lda     $23
         clc
         adc     #$04
         sta     $23
         cmp     #$18
         jne     _0763
-_07ed:  rts
+Done:   rts
+
+; check if landing a vehicle
 _07ee:  dec
         asl2
         tay
@@ -950,16 +1002,18 @@ _07ee:  dec
         lsr2
         tax
         lda     $10fb                   ; world tile properties byte 2
-        and     f:_c00890,x
-        bne     _07ed                   ; branch if vehicle can't land
+        and     f:VehicleCanLandTbl,x
+        bne     Done                    ; branch if vehicle can't land
         tyx
         lda     $02
         and     #JOY_A
-        beq     _07ed
+        beq     Done
         lda     $10b8
-        bne     _07ed
+        bne     Done
         inc     $10b8
         ldy     $06
+
+; can't land if another vehicle is already there
 _0814:  tya
         lsr2
         inc
@@ -987,13 +1041,11 @@ _0832:  iny4
         lda     #$01
         sta     $58
         jmp     ($0b26)
-
 .endproc
 
 ; ---------------------------------------------------------------------------
 
 .proc _c00853
-
 _0853:  ldy     $169c
         lda     $0ad8
         sta     $0adf,y
@@ -1017,15 +1069,15 @@ _0853:  ldy     $169c
         ldx     #$0240
         jsr     ExecTriggerScript
 _088f:  rts
-
 .endproc
 
 _c0088f := _c00853::_088f
 
 ; ---------------------------------------------------------------------------
 
-_c00890:
-_0890:  .byte $00,$10,$20,$40,$00,$00,$80
+; tile properties bitmask indicating which vehicles can land
+VehicleCanLandTbl:
+        .byte $00,$10,$20,$40,$00,$00,$80
 
 ; board vehicle subroutines
 BoardVehicleTbl:
@@ -1054,26 +1106,28 @@ _08b3:  .byte $02,$04,$04,$04,$04,$04,$10
 
 ; [ get on chocobo ]
 
-BoardChoco:
-_08ba:  rts
+.proc BoardChoco
+        rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ get off chocobo ]
 
-LandChoco:
-_08bb:  stz     $0adc
+.proc LandChoco
+        stz     $0adc
         jmp     _c00853
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ get on black chocobo ]
 
-BoardBlackChoco:
-_08c1:  lda     #$00
+.proc BoardBlackChoco
+        lda     #$00
         sta     $3d
-_08c5:  jsr     WaitVBlank
-        jsr     _c04c95       ; clear sprite data
+:       jsr     WaitVBlank
+        jsr     ResetSprites
         ldy     $169c
         lda     $3d
         tax
@@ -1087,18 +1141,19 @@ _08c5:  jsr     WaitVBlank
         inc     $3d
         lda     $3d
         cmp     #$40
-        bne     _08c5
+        bne     :-
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ get on hiryuu ]
 
-BoardHiryuu:
-_08ef:  lda     #$00
+.proc BoardHiryuu
+        lda     #$00
         sta     $3d
-_08f3:  jsr     WaitVBlank
-        jsr     _c04c95       ; clear sprite data
+:       jsr     WaitVBlank
+        jsr     ResetSprites
         ldy     $169c
         lda     $3d
         tax
@@ -1112,20 +1167,21 @@ _08f3:  jsr     WaitVBlank
         inc     $3d
         lda     $3d
         cmp     #$40
-        bne     _08f3
+        bne     :-
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ land black chocobo ]
 
-LandBlackChoco:
-_091d:  lda     #$03
+.proc LandBlackChoco
+        lda     #$03
         sta     $0adb
         lda     #$3f
         sta     $3d
-_0926:  jsr     WaitVBlank
-        jsr     _c04c95       ; clear sprite data
+:       jsr     WaitVBlank
+        jsr     ResetSprites
         ldy     $169c
         lda     $3d
         tax
@@ -1139,21 +1195,22 @@ _0926:  jsr     WaitVBlank
         dec     $3d
         lda     $3d
         cmp     #$ff
-        bne     _0926
+        bne     :-
         stz     $0adc
         jmp     _c00853
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ land hiryuu ]
 
-LandHiryuu:
-_0955:  lda     #$03
+.proc LandHiryuu
+        lda     #$03
         sta     $0adb
         lda     #$3f
         sta     $3d
-_095e:  jsr     WaitVBlank
-        jsr     _c04c95       ; clear sprite data
+:       jsr     WaitVBlank
+        jsr     ResetSprites
         ldy     $169c
         lda     $3d
         tax
@@ -1167,51 +1224,55 @@ _095e:  jsr     WaitVBlank
         dec     $3d
         lda     $3d
         cmp     #$ff
-        bne     _095e
+        bne     :-
         stz     $0adc
         jmp     _c00853
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ get on submarine ]
 
-BoardSubmarine:
-_098d:  rts
+.proc BoardSubmarine
+        rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ get off submarine ]
 
-LandSubmarine:
-_098e:  lda     #$03
+.proc LandSubmarine
+        lda     #$03
         sta     $0adb
-        ldx     $0ad6       ; map index
+        ldx     $0ad6                   ; map index
         cpx     #$0003
-        bcc     _09b9       ; branch if not underwater
-        lda     $10fa       ; world tile properties byte 1
-        bpl     _09b8       ; return if submarine can't surface
+        bcc     :+                      ; branch if not underwater
+        lda     $10fa                   ; world tile properties byte 1
+        bpl     Done                    ; return if submarine can't surface
         jsr     _c009c6
         ldx     #$002a
         jsr     ExecTriggerScript
-        jsr     _c04a68
+        jsr     InitFadeIn
         lda     #$01
         sta     $bd
         lda     #$28
         sta     $169b
         jsr     _c022fb
-_09b8:  rts
-_09b9:  jsr     _c009f7
+Done:   rts
+
+; not underwater
+:       jsr     _c009f7
         ldx     #$0028
         jsr     ExecTriggerScript
         jsr     _c00a11
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [  ]
 
 .proc _c009c6
-
 _09c6:  lda     #$80
         sta     $3d
         stz     $0d
@@ -1235,7 +1296,6 @@ _09e4:  lda     $3d
 _09f2:  inc     $3d
         bne     _09cc
         rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -1255,7 +1315,6 @@ _09f7:  lda     #$01
         jsr     _c022fb
         stz     $5b
         rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -1263,7 +1322,6 @@ _09f7:  lda     #$01
 ; [  ]
 
 .proc _c00a11
-
 _0a11:  lda     #$08
         sta     $43
         stz     $45
@@ -1290,37 +1348,38 @@ _0a46:  dec     $3d
         lda     $3d
         bmi     _0a2e
         rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ board ship ]
 
-BoardShip:
-_0a4d:  ldx     #$01fc
+.proc BoardShip
+        ldx     #$01fc
         jsr     ExecTriggerScript
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ get off ship ]
 
-LandShip:
-_0a54:  stz     $58
+.proc LandShip
+        stz     $58
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ board airship ]
 
-BoardAirship:
-_0a57:  jsr     _c04798
+.proc BoardAirship
+        jsr     _c04798
         lda     #$00
         sta     $3d
 _0a5e:  jsr     WaitVBlank
         jsr     _c05bf8
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         ldy     $169c
         lda     $3d
         tax
@@ -1347,13 +1406,14 @@ _0a8e:  jsr     _c02137
         cmp     #$40
         bne     _0a5e
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ land airship ]
 
-LandAirship:
-_0aa3:  lda     #$03
+.proc LandAirship
+        lda     #$03
         sta     $0adb
         lda     $0af1
         and     #$03
@@ -1372,7 +1432,7 @@ _0ac5:  lda     $10fa       ; world tile properties byte 1
         jsr     _c009c6
         ldx     #$002e
         jsr     ExecTriggerScript
-        jsr     _c04a68
+        jsr     InitFadeIn
         lda     #$01
         sta     $bd
         lda     #$28
@@ -1436,7 +1496,7 @@ _0b5c:  lda     #$2f
         sta     $3d
 _0b60:  jsr     WaitVBlank
         jsr     _c05bf8
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         ldy     $169c
         lda     $3d
         tax
@@ -1531,6 +1591,7 @@ _0c1f:  lda     #$10
         jsr     ExecTriggerScript
         jsr     _c00a11
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -1546,10 +1607,9 @@ _c00c4f:
 ; [  ]
 
 .proc _c00c9f
-
 _0c9f:  stz     $1697
 _0ca2:  jsr     WaitVBlank
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         jsr     _c02137
         jsr     _c0612b
         jsr     _c01e64
@@ -1615,13 +1675,13 @@ _0d18:  ldy     $169c
         sta     $0207
 _0d39:  jmp     _0ca2
 _0d3c:  rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
 
-.proc _c00d3d
+; [  ]
 
+.proc _c00d3d
 _0d3d:  lda     $61
         and     #$1f
         bne     _0d73
@@ -1647,7 +1707,6 @@ _0d63:  jsr     CheckNPCEvents
         beq     _0d73       ; branch if the a button is not down
         jsr     CheckTreasure
 _0d73:  rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -1655,8 +1714,7 @@ _0d73:  rts
 ; [ check treasure chests ]
 
 .proc CheckTreasure
-
-_0d74:  longa
+        longa
         lda     $0ad4
         tax
         lda     f:MapTreasures,x        ; first treasure on this map
@@ -1673,12 +1731,12 @@ _0d74:  longa
         tax
         lda     $0ad8
         clc
-        adc     f:_c00f84,x
+        adc     f:TreasureDirOffsetX,x
         and     #$3f
         sta     $75
         lda     $0ad9
         clc
-        adc     f:_c00f88,x
+        adc     f:TreasureDirOffsetY,x
         and     #$3f
         sta     $76
 _0db0:  ldx     $23
@@ -1732,9 +1790,9 @@ _0dd3:  longa
         stx     $73
         ldx     #$0101
         stx     $2c
-        lda     #$12
+        lda     #$12                    ; open treasure chest
         sta     $16b3
-        jsr     _c06f08
+        jsr     ModBGTilemap
         bra     _0e33
 _0e2e:  lda     #$68
         jsr     PlaySfx
@@ -1749,7 +1807,7 @@ _0e33:  plx
         bne     _0e63
         jsr     CalcGil
         jsr     GiveGil
-        jsr     _c04dd7
+        jsr     HexToDec
         ldx     #$0003
         stx     $af
         jsr     ShowDlg
@@ -1760,7 +1818,7 @@ _0e63:  cmp     #$20                    ; spell
         bne     _0e7e
 _0e67:  lda     $12
         sta     $16a3
-        jsr     _c0c9a5                   ; give magic
+        jsr     _c0c9a5                 ; give magic
         ldx     #$0004
         stx     $af
         jsr     ShowDlg
@@ -1821,7 +1879,6 @@ _0ee4:  jsr     ReloadMap
         jeq     _0e7e                   ; item
         jmp     _0e67                   ; spell
 _0efd:  rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -1831,7 +1888,6 @@ _0efd:  rts
 ; ++$37: gil
 
 .proc GiveGil
-
 _0efe:  lda     $0947                   ; current gp
         clc
         adc     $37
@@ -1859,7 +1915,6 @@ _0f31:  ldx     #$9896
         lda     #$7f
         sta     $0947
 _0f3c:  rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -1871,22 +1926,21 @@ _0f3c:  rts
 ; ++$37: value (out)
 
 .proc CalcGil
-
-_0f3d:  stz     $39
+        stz     $39
         lda     $11
         and     #$07
         asl
         tax
         lda     $12
         sta     hWRMPYA
-        lda     f:_c00f78,x
+        lda     f:Pow10Tbl,x
         sta     hWRMPYB
         nop4
         ldy     hRDMPYL
         sty     $37
         lda     $12
         sta     hWRMPYA
-        lda     f:_c00f78+1,x
+        lda     f:Pow10Tbl+1,x
         sta     hWRMPYB
         nop3
         longa
@@ -1897,42 +1951,46 @@ _0f3d:  stz     $39
         lda     $06
         shorta
         rts
-
 .endproc
 
-_c00f78:
-@0f78:  .addr   1,10,100,1000,10000,100000
+Pow10Tbl:
+        .addr 1,10,100,1000,10000,100000
 
-_c00f84:
-@0f84:  .word   $0100, $ff00
+; facing direction X-offset
+TreasureDirOffsetX:
+        .lobytes 0,1,0,-1
 
-_c00f88:
-@0f88:  .word   $00ff, $0001
+; facing direction Y-offset
+TreasureDirOffsetY:
+        .lobytes -1,0,1,0
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ check player movement (world map) ]
 
-.proc _c00f8c
-
-_0f8c:  lda     $ba
-        bne     _0f92
+.proc CheckPlayerMoveWorld
+        lda     $ba
+        bne     :+
         stz     $41
-_0f92:  lda     $61
+:       lda     $61
         and     #$1f
-        bne     _0f9e
+        bne     :+
         lda     $63
         and     #$1f
-        beq     _0f9f
-_0f9e:  rts
-_0f9f:  lda     $57
-        beq     _0fa7
+        beq     CheckMove
+:       rts
+
+CheckMove:
+        lda     $57
+        beq     :+
         ldx     $3b
         stx     $02
-_0fa7:  jsr     _c0104a
+:       jsr     _c0104a
         lda     $03
         and     #$0f
-        jeq     _1003
+        jeq     CantMove
+
+; move up
         lda     $03
         and     #>JOY_UP
         beq     _0fc7
@@ -1940,8 +1998,10 @@ _0fa7:  jsr     _c0104a
         sta     $c4
         jsr     _c01055
         lda     $c4
-        beq     _1003
-        jmp     _1006
+        beq     CantMove
+        jmp     StartMove
+
+; move right
 _0fc7:  lda     $03
         and     #>JOY_RIGHT
         beq     _0fdb
@@ -1949,8 +2009,10 @@ _0fc7:  lda     $03
         sta     $c4
         jsr     _c01055
         lda     $c4
-        beq     _1003
-        jmp     _1006
+        beq     CantMove
+        jmp     StartMove
+
+; move down
 _0fdb:  lda     $03
         and     #>JOY_DOWN
         beq     _0fef
@@ -1958,22 +2020,28 @@ _0fdb:  lda     $03
         sta     $c4
         jsr     _c01055
         lda     $c4
-        beq     _1003
-        jmp     _1006
+        beq     CantMove
+        jmp     StartMove
+
+; move left
 _0fef:  lda     $03
         and     #>JOY_LEFT
-        beq     _1006
+        beq     StartMove
         lda     #$04
         sta     $c4
         jsr     _c01055
         lda     $c4
-        jne     _1006
-_1003:  stz     $ba
+        jne     StartMove
+
+CantMove:
+        stz     $ba
         rts
-_1006:  sta     $ba
+
+StartMove:
+        sta     $ba
         lda     $0ad9
         sta     $76
-        jsr     _c069a1
+        jsr     LoadWorldTilemap
         lda     $0ad9
         sta     $76
         lda     $0ad8
@@ -1983,15 +2051,14 @@ _1006:  sta     $ba
         stz     $59
         stz     $16aa
         lda     $0adc
-        bne     _102c
+        bne     :+
         jsr     DoPoisonDmg
-_102c:  jsr     _c0103a
+:       jsr     _c0103a
         lda     #$fc
         jsr     _c0c796
         lda     #$fd
         jsr     _c0c796
         rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -1999,16 +2066,14 @@ _102c:  jsr     _c0103a
 ; [  ]
 
 .proc _c0103a
-
-_103a:  lda     $ca
-        beq     _1049
-        lda     $ba         ; movement direction
+        lda     $ca
+        beq     :+
+        lda     $ba                     ; movement direction
         tax
-        lda     f:_11b8,x   ; pointer to tile in  movement direction
+        lda     f:_c011b8,x             ; pointer to tile in  movement direction
         tax
-        jsr     _c0119a       ; get world tile transparent/underwater flags
-_1049:  rts
-
+        jsr     _c0119a                 ; get world tile transparent/underwater flags
+:       rts
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -2016,13 +2081,11 @@ _1049:  rts
 ; [  ]
 
 .proc _c0104a
-
-_104a:  lda     $ca
-        bne     _1054
-        ldx     #$0008      ; tile at party location
-        jsr     _c0119a       ; get world tile transparent/underwater flags
-_1054:  rts
-
+        lda     $ca
+        bne     :+
+        ldx     #$0008                  ; tile at party location
+        jsr     _c0119a                 ; get world tile transparent/underwater flags
+:       rts
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -2030,7 +2093,6 @@ _1054:  rts
 ; [  ]
 
 .proc _c01055
-
 _1055:  lda     $c4         ; movement direction
         dec
         sta     $0adb       ; party facing direction
@@ -2057,12 +2119,12 @@ _1055:  lda     $c4         ; movement direction
         beq     _1092       ; branch if ship
         bra     _109d
 _1087:  lda     $10fb       ; world tile properties byte 2
-        and     f:_11bd,x
+        and     f:_c011bd,x
         beq     _10c4       ; branch if not passable in that direction
         bra     _109d
 _1092:  lda     $10fb       ; world tile properties byte 2
         eor     #$0f
-        and     f:_11bd,x
+        and     f:_c011bd,x
         beq     _10c4       ; branch if ship/sub can't land there
 _109d:  lda     $0adc
         beq     _10ad
@@ -2073,11 +2135,11 @@ _109d:  lda     $0adc
         and     #$1c
         lsr2
 _10ad:  tax
-        lda     f:_11b0,x   ; bit mask
+        lda     f:_c011b0,x   ; bit mask
         sta     $0d
         lda     $c4
         tax
-        lda     f:_11b8,x   ; pointer to tile properties in facing direction
+        lda     f:_c011b8,x   ; pointer to tile properties in facing direction
         tay
         lda     $10f2,y     ; world tile properties byte 1
         and     $0d
@@ -2085,7 +2147,6 @@ _10ad:  tax
 _10c3:  rts
 _10c4:  jsr     _c010c8
         rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -2093,7 +2154,6 @@ _10c4:  jsr     _c010c8
 ; [  ]
 
 .proc _c010c8
-
 _10c8:  ldx     $0ad6       ; map index
         cpx     #$0003
         bcs     _112a       ; branch if not a world map
@@ -2111,7 +2171,7 @@ _10c8:  ldx     $0ad6       ; map index
         bne     _112a
 _10e8:  lda     $c4
         tax
-        lda     f:_11b8,x
+        lda     f:_c011b8,x
         tax
         lda     $10f2,x     ; world tile properties byte 1
         and     #$01
@@ -2137,7 +2197,6 @@ _10e8:  lda     $c4
         rts
 _112a:  stz     $c4
         rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -2148,7 +2207,6 @@ _112a:  stz     $c4
 ; $23 is a pointer to vehicle data
 
 .proc _c0112d
-
 _112d:  lda     $0adc
         bne     _118f
         lda     $c4
@@ -2156,11 +2214,11 @@ _112d:  lda     $0adc
         tax
         lda     $0ad8
         clc
-        adc     f:_1192,x
+        adc     f:VehicleDirOffsetX,x
         sta     $75
         lda     $0ad9
         clc
-        adc     f:_1196,x
+        adc     f:VehicleDirOffsetY,x
         sta     $76
         ldy     $06
         sty     $23         ; pointer to vehicle data (+$0add)
@@ -2196,8 +2254,13 @@ _1184:  lda     $23         ; next vehicle
 _118f:  lda     #$00
         rts
 
-_1192:  .byte   $00,$01,$00,$ff
-_1196:  .byte   $ff,$00,$01,$00
+; facing direction X-offset
+VehicleDirOffsetX:
+        .lobytes 0,1,0,-1
+
+; facing direction Y-offset
+VehicleDirOffsetY:
+        .lobytes -1,0,1,0
 
 .endproc
 
@@ -2206,7 +2269,6 @@ _1196:  .byte   $ff,$00,$01,$00
 ; [ get world tile transparent/underwater flags ]
 
 .proc _c0119a
-
 _119a:  lda     $10be,x     ; get tile index * 3
         longa
         asl
@@ -2218,37 +2280,42 @@ _119a:  lda     $10be,x     ; get tile index * 3
         shorta
         sta     $ca
         rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
 
-_11b0:  .byte   $01,$02,$04,$08,$10,$20,$40,$80
-_11b8:  .byte   $00,$02,$0a,$0e,$06
-_11bd:  .byte   $00,$08,$01,$04,$02
+; bitmask for vehicle
+_c011b0:  .byte   $01,$02,$04,$08,$10,$20,$40,$80
+
+; offset of local tile properties in facing direction
+_c011b8:  .byte   $00,$02,$0a,$0e,$06
+
+; tile properties passability mask for each vehicle (can't pass if bit set)
+_c011bd:  .byte   $00,$08,$01,$04,$02
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ check player movement (sub-map) ]
 
-.proc _c011c2
-
-_11c2:  lda     $ba
-        bne     _11c8       ; branch if party is moving
+.proc CheckPlayerMoveSub
+        lda     $ba
+        bne     :+       ; branch if party is moving
         stz     $41
-_11c8:  lda     $61         ; bg1 x position
+:       lda     $61         ; bg1 x position
         and     #$1f
-        bne     _11d4       ; return if partway between tiles
+        bne     :+       ; return if partway between tiles
         lda     $63         ; bg1 y position
         and     #$1f
-        beq     _11d5
-_11d4:  rts
-_11d5:  lda     $57
-        beq     _11df       ; branch if an event is running
+        beq     CheckMove
+:       rts
+
+CheckMove:
+        lda     $57
+        beq     :+       ; branch if an event is running
         ldx     $3b         ; override pressed buttons with ???
         stx     $02
         bra     _11fc
-_11df:  jsr     _c0151d       ; update party sprite priority (current tile)
+:       jsr     UpdateCurrPriority       ; update party sprite priority (current tile)
         lda     $10fb       ; map tile properties byte 2
         and     #$40
         beq     _11f6       ; branch if not forced facing direction
@@ -2284,7 +2351,7 @@ _1212:  lda     $10fa       ; map tile properties byte 1
         bra     _122c
 _122a:  lda     #$01        ; use upstairs tile damage properties
 _122c:  sta     $c9
-        jsr     _c013a6       ; update party z-level (current tile)
+        jsr     UpdateCurrZLevel
         jsr     _c016b7
         lda     $10fb       ; map tile properties byte 2
         and     #$30
@@ -2338,67 +2405,83 @@ _127a:  lda     $1120
         sta     $1086
         stz     $1087
         lda     $10fb       ; map tile properties byte 2
-        bpl     _12c5       ; branch if not an auto-move tile
+        bpl     :+       ; branch if not an auto-move tile
         and     #$0f
         tax
-        lda     f:_c0172a,x
-        jmp     _1336
-_12c5:  lda     $57
-        bne     _12d8       ; branch if an event is running
+        lda     f:_c0172a,x     ; forced facing direction
+        jmp     StartMove
+
+; tile/poison damage
+:       lda     $57
+        bne     :+       ; branch if an event is running
         lda     $5d
-        beq     _12d8       ; branch if party is already moving
+        beq     :+       ; branch if party is already moving
         stz     $5d
         stz     $16aa
         jsr     DoTileDmg
         jsr     DoPoisonDmg
-_12d8:  lda     $03
+
+; check directional buttons
+:       lda     $03
         and     #$0f
-        jeq     _1331       ; no move
+        jeq     CantMove       ; no move
+
+; move up
         lda     $03         ; check up button
         and     #>JOY_UP
-        beq     _12f5
+        beq     :+
         lda     #$01        ; up
         sta     $c4
-        jsr     _c0163a       ; check if party can move
+        jsr     CheckPartyCanMove
         lda     $c4
-        beq     _1331
-        jmp     _1336
-_12f5:  lda     $03         ; check right button
+        beq     CantMove
+        jmp     StartMove
+
+; move right
+:       lda     $03         ; check right button
         and     #>JOY_RIGHT
-        beq     _1309
+        beq     :+
         lda     #$02        ; right
         sta     $c4
-        jsr     _c0163a       ; check if party can move
+        jsr     CheckPartyCanMove
         lda     $c4
-        beq     _1331
-        jmp     _1336
-_1309:  lda     $03         ; check down button
+        beq     CantMove
+        jmp     StartMove
+
+; move down
+:       lda     $03         ; check down button
         and     #>JOY_DOWN
-        beq     _131d
+        beq     :+
         lda     #$03        ; down
         sta     $c4
-        jsr     _c0163a       ; check if party can move
+        jsr     CheckPartyCanMove
         lda     $c4
-        beq     _1331
-        jmp     _1336
-_131d:  lda     $03         ; check left button
+        beq     CantMove
+        jmp     StartMove
+
+; move left
+:       lda     $03         ; check left button
         and     #>JOY_LEFT
-        beq     _1336
+        beq     StartMove
         lda     #$04        ; left
         sta     $c4
-        jsr     _c0163a       ; check if party can move
+        jsr     CheckPartyCanMove
         lda     $c4
-        jne     _1336
-_1331:  stz     $ba         ; no move
-        jmp     _1367
+        jne     StartMove
+
+; tried to move, but couldn't for some reason
+CantMove:
+        stz     $ba         ; no move
+        jmp     Done
 
 ; start move
-_1336:  sta     $ba         ; set facing/moving direction
+StartMove:
+        sta     $ba         ; set facing/moving direction
         sta     $bf
         lda     #$01
         sta     $5d
         stz     $59
-        jsr     _c01372       ; update party z-level (destination tile)
+        jsr     UpdateDestZLevel
         lda     $57
         bne     _134e       ; branch if an event is running
         lda     $10fb       ; map tile properties byte 2
@@ -2407,84 +2490,81 @@ _1336:  sta     $ba         ; set facing/moving direction
 _134e:  lda     $ba
         dec
         sta     $0adb       ; set facing direction
-_1354:  jsr     _c01538       ; update party sprite priority (destination tile)
+_1354:  jsr     UpdateDestPriority       ; update party sprite priority (destination tile)
         lda     #$fc
         jsr     _c0c796       ;
         lda     #$fd
         jsr     _c0c796       ;
-        jsr     _c0155b
-        jsr     _c015ac
-_1367:  jsr     _c02973
-        lda     $58
-        bne     _1371
-        jsr     _c016da
-_1371:  rts
+        jsr     CheckDoor
+        jsr     CheckFindPits
 
+; do this whether the player moved or not
+Done:   jsr     UpdateOverlay
+        lda     $58
+        bne     :+
+        jsr     _c016da         ; update player position in object map
+:       rts
 .endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ update party z-level (destination tile) ]
 
-.proc _c01372
-
-_1372:  lda     $ba         ; movement direction
+.proc UpdateDestZLevel
+        lda     $ba                     ; movement direction
         tax
-        lda     f:_c01720,x   ; pointer to tile properties
+        lda     f:_c01720,x             ; pointer to tile properties
         tax
         lda     $ca
-        bne     _1385
-        lda     $10f2,x     ; map tile properties byte 1
+        bne     :+
+        lda     $10f2,x                 ; map tile properties byte 1
         and     #$0c
         sta     $ca
-_1385:  lda     $cb         ; return if party sprite is not hidden
-        beq     _13a5
-        lda     $10f2,x     ; map tile properties byte 1
+:       lda     $cb                     ; return if party sprite is not hidden
+        beq     Done
+        lda     $10f2,x                 ; map tile properties byte 1
         and     #$04
-        beq     _139a       ; branch if not a bridge tile
-        lda     $c3         ; party z-level
+        beq     :+                      ; branch if not a bridge tile
+        lda     $c3                     ; party z-level
         and     #$01
-        beq     _139a       ; branch if not on upper z-level
-        stz     $cb         ; show party sprite
-        bra     _13a5
-_139a:  lda     $10f2,x     ; map tile properties byte 1
+        beq     :+                      ; branch if not on upper z-level
+        stz     $cb                     ; show party sprite
+        bra     Done
+:       lda     $10f2,x                 ; map tile properties byte 1
         and     #$10
         lsr4
-        sta     $cb         ; show/hide party sprite
-_13a5:  rts
-
+        sta     $cb                     ; show/hide party sprite
+Done:   rts
 .endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ update party z-level (current tile) ]
 
-.proc _c013a6
-
-_13a6:  lda     $10fa       ; map tile properties byte 1
+.proc UpdateCurrZLevel
+        lda     $10fa                   ; map tile properties byte 1
         and     #$03
         ora     #$04
-        sta     $c2         ; set passable z-levels
+        sta     $c2                     ; set passable z-levels
         lda     $ca
-        beq     _13ba       ;
-        lda     $10fa       ; map tile properties byte 1
+        beq     :+                      ;
+        lda     $10fa                   ; map tile properties byte 1
         and     #$0c
         sta     $ca
-_13ba:  lda     $cb
-        bne     _13d6       ; return if party sprite is already hidden
-        lda     $10fa       ; map tile properties byte 1
+:       lda     $cb
+        bne     Done                    ; return if party sprite is already hidden
+        lda     $10fa                   ; map tile properties byte 1
         and     #$10
-        beq     _13d6       ; return if tile doesn't hide party sprite
-        lda     $10fa       ; map tile properties byte 1
+        beq     Done                    ; return if tile doesn't hide party sprite
+        lda     $10fa                   ; map tile properties byte 1
         and     #$04
-        beq     _13d2       ; hide party sprite if not a bridge tile
+        beq     :+                      ; hide party sprite if not a bridge tile
         lda     $c3
         and     #$01
-        bne     _13d6       ; return if on upper z-level
-_13d2:  lda     #$01        ; hide party sprite
+        bne     Done                    ; return if on upper z-level
+:       lda     #$01                    ; hide party sprite
         sta     $cb
-_13d6:  rts
-
+Done:   rts
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -2493,69 +2573,81 @@ _13d6:  rts
 
 .proc DoTileDmg
 
-_13d7:  ldx     $06
-_13d9:  lda     $0500,x
+; check if any characters have the floor damage ability
+        ldx     $06
+Loop1:  lda     $0500,x
         and     #$40
-        bne     _13ea       ; skip empty character slots
+        bne     :+                      ; skip empty character slots
         lda     $0520,x
         and     #$04
-        jne     _1474       ; no damage if any character has floor damage ability
-_13ea:  longa
-        txa                 ; next character
+        jne     Done                    ; player has floor damage ability
+:       longa
+        txa                             ; next character
         clc
         adc     #$0050
         tax
         lda     $06
         shorta
         cpx     #$0140
-        bne     _13d9
+        bne     Loop1
+
+; apply damage to each character
         ldy     $06
-_13fd:  lda     $0500,y
+Loop2:  lda     $0500,y
         and     #$40
-        bne     _1463       ; skip empty character slots
+        bne     NextChar                ; skip empty character slots
         lda     $051a,y
         and     #$c8
-        bne     _1463       ; skip dead/petrified/float characters
-        lda     $c9
+        bne     NextChar                ; skip dead/petrified/float characters
+
+; inflict poison
+        lda     $c9                     ; upstairs/downstairs tile
         tax
         lda     $1112,x
         and     #$40
-        beq     _141d
-        lda     $051a,y     ; inflict poison
+        beq     :+
+        lda     $051a,y
         ora     #$04
         sta     $051a,y
-_141d:  lda     $c9
+
+; inflict tile damage
+:       lda     $c9
         tax
-        lda     $1112,x     ; tile damage
+        lda     $1112,x
         and     #$07
         asl
         tax
-        beq     _144e
+        beq     PlayTileSfx
         longa
         lda     $0506,y
-        beq     _143c
+        beq     :+
         sec
-        sbc     f:TileDmgTbl,x   ; subtract hp
-        beq     _1439
-        bcs     _143c
-_1439:  lda     #$0001
-_143c:  sta     $0506,y
+        sbc     f:TileDmgTbl,x          ; subtract hp
+        beq     OneHP
+        bcs     :+
+OneHP:  lda     #1                      ; minimum of 1 hp
+:       sta     $0506,y
         lda     $06
         shorta
         lda     #$8f
         sta     $16aa
         ldx     #$1e00
         stx     $16ab
-_144e:  lda     $c9
+
+; play sound effect for this tile
+PlayTileSfx:
+        lda     $c9
         tax
-        lda     $1112,x     ; tile damage sound effect
+        lda     $1112,x
         lsr3
         and     #$07
-        beq     _1463
+        beq     NextChar
         tax
-        lda     f:TileDmgSfxTbl-1,x
+        lda     f:TileSfxTbl-1,x
         jsr     PlaySfx
-_1463:  longa
+
+NextChar:
+        longa
         tya
         clc
         adc     #$0050
@@ -2563,41 +2655,38 @@ _1463:  longa
         lda     $06
         shorta
         cpy     #$0140
-        bne     _13fd
-_1474:  rts
+        bne     Loop2
+Done:   rts
+
+; tile sound effect
+TileSfxTbl:
+        .byte   $94, $94, $94, $94, $94, $94, $94, $94
+
+; tile damage values
+TileDmgTbl:
+        .word   0, 50, 50, 100, 300, 400, 500, 1000
 
 .endproc
-
-; ---------------------------------------------------------------------------
-
-; tile damage sound effect
-TileDmgSfxTbl:
-@1475:  .byte   $94, $94, $94, $94, $94, $94, $94, $94
-
-; tile damage values (0, 50, 50, 100, 300, 400, 500, 1000)
-TileDmgTbl:
-@147d:  .word   0, 50, 50, 100, 300, 400, 500, 1000
 
 ; ---------------------------------------------------------------------------
 
 ; [ poison damage ]
 
 .proc DoPoisonDmg
-
-_148d:  lda     $57
-        bne     _14e8       ; return if an event is running
+        lda     $57
+        bne     Done                    ; return if an event is running
         ldy     $06
-_1493:  lda     $0500,y
+Loop:   lda     $0500,y
         and     #$40
-        bne     _14d7       ; branch if character slot is empty
+        bne     NextChar                ; branch if character slot is empty
         lda     $051a,y
         and     #$c0
-        bne     _14d7       ; skip dead/petrified characters
+        bne     NextChar                ; skip dead/petrified characters
         lda     $051a,y
         and     #$04
-        beq     _14d7       ; skip characters that are not poisoned
+        beq     NextChar                ; skip characters that are not poisoned
         lda     #$8f
-        sta     $16aa       ; pixelate screen
+        sta     $16aa                   ; pixelate screen
         longa
         lda     #$1e00
         sta     $16ab
@@ -2606,16 +2695,18 @@ _1493:  lda     $0500,y
         inc
         sta     $0d
         lda     $0506,y
-        beq     _14d0
+        beq     :+
         sec
         sbc     $0d
-        beq     _14cd
-        bcs     _14d0
-_14cd:  lda     #$0001
-_14d0:  sta     $0506,y
+        beq     OneHP
+        bcs     :+
+OneHP:  lda     #1                      ; set hp to 1
+:       sta     $0506,y
         lda     $06
         shorta
-_14d7:  longa
+
+NextChar:
+        longa
         tya
         clc
         adc     #$0050
@@ -2623,9 +2714,8 @@ _14d7:  longa
         lda     $06
         shorta
         cpy     #$0140
-        bne     _1493
-_14e8:  rts
-
+        bne     Loop
+Done:   rts
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -2633,22 +2723,21 @@ _14e8:  rts
 ; [ pixelate screen (poison) ]
 
 .proc PoisonMosaic
-
-_14e9:  ldy     $06
-_14eb:  lda     $0500,y
+        ldy     $06
+Loop:   lda     $0500,y
         and     #$40
-        bne     _150b
+        bne     :+
         lda     $051a,y
         and     #$c0
-        bne     _150b
+        bne     :+
         lda     $051a,y
         and     #$04
-        beq     _150b
+        beq     :+
         lda     #$8f        ;
         sta     $16aa
         ldx     #$1e00      ;
         stx     $16ab
-_150b:  longa
+:       longa
         tya
         clc
         adc     #$0050
@@ -2656,117 +2745,114 @@ _150b:  longa
         lda     $06
         shorta
         cpy     #$0140
-        bne     _14eb
+        bne     Loop
         rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ update party sprite priority (current tile) ]
 
-.proc _c0151d
-
-_151d:  ldx     $c7         ; party sprite priority
+.proc UpdateCurrPriority
+        ldx     $c7                     ; party sprite priority
         cpx     #$01e8
-        bne     _1537       ; return if not currently low priority
-        lda     $10fa       ; map tile properties byte 1
+        bne     Done                    ; return if not currently low priority
+        lda     $10fa                   ; map tile properties byte 1
         and     #$40
-        bne     _1537       ; return if a low priority tile
-        lda     $10fa       ; map tile properties byte 1
+        bne     Done                    ; return if a low priority tile
+        lda     $10fa                   ; map tile properties byte 1
         and     #$04
-        bne     _1537       ; return if a bridge tile
-        ldx     #$0110      ; change to normal priority
+        bne     Done                    ; return if a bridge tile
+        ldx     #$0110                  ; change to normal priority
         stx     $c7
-_1537:  rts
-
+Done:   rts
 .endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ update party sprite priority (destination tile) ]
 
-.proc _c01538
-
-_1538:  lda     $ba         ; party moving direction
+.proc UpdateDestPriority
+        lda     $ba                     ; party moving direction
         tax
-        lda     f:_c01720,x   ; pointer to tile properties
+        lda     f:_c01720,x             ; pointer to tile properties
         tax
-        lda     $10f2,x     ; map tile properties byte 1
+        lda     $10f2,x                 ; map tile properties byte 1
         and     #$40
-        bne     _1555       ; branch if a low priority tile
+        bne     :+                      ; branch if a low priority tile
         ldy     $c7
         cpy     #$0110
-        bne     _155a       ; return if currently normal priority
-        lda     $10f2,x     ; map tile properties byte 1
+        bne     Done                    ; return if currently normal priority
+        lda     $10f2,x                 ; map tile properties byte 1
         and     #$04
-        beq     _155a       ; return if not a bridge tile
-_1555:  ldx     #$01e8      ; change to low priority
+        beq     Done                    ; return if not a bridge tile
+:       ldx     #$01e8                  ; change to low priority
         stx     $c7
-_155a:  rts
-
+Done:   rts
 .endproc
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ check for door ]
 
-.proc _c0155b
+.proc CheckDoor
+        lda     $0adb
+        lsr
+        bcs     Done
+        lsr
+        bcs     FacingDown
 
-_155b:  lda     $0adb
-        lsr
-        bcs     _15ab
-        lsr
-        bcs     _1575
+; facing up
         lda     $10c0
-        cmp     #$13
-        bne     _15ab
+        cmp     #$13                    ; check for closed door tile
+        bne     Done
         lda     $0ad9
         sec
         sbc     #$02
         sta     $76
-        bra     _1581
-_1575:  lda     $10cc
+        bra     :+
+
+FacingDown:
+        lda     $10cc
         cmp     #$13
-        bne     _15ab
+        bne     Done
         lda     $0ad9
         sta     $76
-_1581:  ldx     $06
+
+:       ldx     $06
         stx     $73
         lda     $0ad8
         sta     $75
         ldx     #$0201
         stx     $2c
-        lda     #$04
+        lda     #$04                    ; open door
         sta     $16b3
         lda     #$14
         sta     $16b4
-        jsr     _c06f08
+        jsr     ModBGTilemap
         lda     #$8e
         jsr     PlaySfx
         lda     #$01
         sta     $58
         lda     $57
-        bne     _15ab
+        bne     Done
         stz     $ba
-_15ab:  rts
-
+Done:   rts
 .endproc
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ pitfalls/find pits ability ]
 
-.proc _c015ac
-
-_15ac:  ldx     $06
-_15ae:  lda     $0500,x
+.proc CheckFindPits
+        ldx     $06
+Loop:   lda     $0500,x
         and     #$40
-        bne     _15bc
+        bne     :+                      ; skip if character slot is empty
         lda     $0520,x
         and     #$02
-        bne     _15cf
-_15bc:  longa
+        bne     HasFindPits
+:       longa
         txa
         clc
         adc     #$0050
@@ -2774,51 +2860,50 @@ _15bc:  longa
         lda     $06
         shorta
         cpx     #$0140
-        bne     _15ae
-        bra     _1612
-_15cf:  lda     $0adb
+        bne     Loop
+        bra     Done
+
+HasFindPits:
+        lda     $0adb
         tax
-        lda     f:_c0161b,x
+        lda     f:FindPitsLocalOffset,x
         tay
         lda     $10be,y
-        cmp     #$05
-        bne     _1612
+        cmp     #$05                    ; check for pitfall tile (bg1 tile $05)
+        bne     Done
         lda     $0ad8
         clc
-        adc     f:_c01617,x
+        adc     f:FindPitsOffsetX,x
         sta     $75
         lda     $0ad9
         clc
-        adc     f:_c01613,x
+        adc     f:FindPitsOffsetY,x
         sta     $76
         ldx     $06
         stx     $73
-        ldx     #$0101
+        ldx     #$0101                  ; 1x1 tile
         stx     $2c
-        lda     #$15
+        lda     #$15                    ; replace with bg1 tile $15 (hole)
         sta     $16b3
-        jsr     _c06f08
+        jsr     ModBGTilemap
         lda     #$01
         sta     $57
-        ldx     #$000b      ; event $0b
+        ldx     #$000b                  ; event $0b (found a trap)
         stx     $ce
         jsr     ExecEvent
         stz     $57
-_1612:  rts
+Done:   rts
+
+FindPitsOffsetY:
+        .lobytes -1,0,1,0
+
+FindPitsOffsetX:
+        .lobytes 0,1,0,-1
+
+FindPitsLocalOffset:
+        .byte   $02,$0a,$0e,$06
 
 .endproc
-
-; ---------------------------------------------------------------------------
-
-_c01613:
-@1613:  .byte   $ff,$00,$01,$00
-
-_c01617:
-@1617:  .byte   $00,$01,$00,$ff
-
-_c0161b:
-@161b:  .byte   $02,$0a,$0e,$06
-
 
 ; ---------------------------------------------------------------------------
 
@@ -2830,24 +2915,22 @@ _c0161b:
 ; 3 = return zero (no scroll)
 
 .proc CalcParallaxScroll
-
-_161f:  and     #%11
-        bne     _1627
+        and     #%11
+        bne     :+
         lda     $c0
-        bra     _1639
-_1627:  dec
-        bne     _162f
+        bra     Done
+:       dec
+        bne     :+
         lda     $c0
         lsr
-        bra     _1639
-_162f:  dec
-        bne     _1637
+        bra     Done
+:       dec
+        bne     :+
         lda     $c0
         asl
-        bra     _1639
-_1637:  lda     $06
-_1639:  rts
-
+        bra     Done
+:       lda     $06
+Done:   rts
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -2856,40 +2939,40 @@ _1639:  rts
 
 ; $c4: direction (none, up, right, down, left)
 
-.proc _c0163a
-
-_163a:  lda     $57
-        beq     _163f       ; return if an event is running
+.proc CheckPartyCanMove
+        lda     $57
+        beq     :+                      ; return if an event is running
         rts
-_163f:  lda     $10fb       ; map tile properties byte 2
+:       lda     $10fb                   ; map tile properties byte 2
         and     #$40
-        bne     _164e       ; branch if forced facing direction
+        bne     :+                      ; branch if forced facing direction
         lda     $c4
         sta     $bf
         dec
         sta     $0adb
-_164e:  lda     $c4         ; moving direction
+:       lda     $c4                     ; moving direction
         tax
-        lda     $10fb       ; map tile properties byte 2
+        lda     $10fb                   ; map tile properties byte 2
         and     #$40
-        bne     _1661       ; branch if forced facing direction
+        bne     :+                      ; branch if forced facing direction
         lda     $10fb
-        and     f:_c01725,x   ; facing direction mask
-        beq     _16a9
-_1661:  lda     $c4
+        and     f:_c01725,x             ; facing direction mask
+        beq     CantMove
+:       lda     $c4
         tax
-        lda     f:_c01720,x   ; pointer to tile properties
+        lda     f:_c01720,x             ; pointer to tile properties
         tax
-        lda     $10d8,x     ; object at destination tile
-        beq     _1692       ; branch if no object at destination
-        lda     $10f2,x     ; map tile properties byte 1
+        lda     $10d8,x                 ; object at destination tile
+        beq     _1692                   ; branch if no object at destination
+        lda     $10f2,x                 ; map tile properties byte 1
         and     #$04
-        beq     _167d       ; branch if not a bridge
+        beq     :+                      ; branch if not a bridge
         lda     $c3
         cmp     #$01
         bne     _1692
         bra     _168a
-_167d:  lda     $10fa       ; map tile properties byte 1
+
+:       lda     $10fa                   ; map tile properties byte 1
         and     #$04
         beq     _168a
         lda     $c3
@@ -2897,26 +2980,32 @@ _167d:  lda     $10fa       ; map tile properties byte 1
         beq     _1692
 _168a:  lda     $10d8,x
         sta     $e4
-        jmp     _16a9
-_1692:  lda     $10fa       ; map tile properties byte 1
+        jmp     CantMove
+
+;
+_1692:  lda     $10fa                   ; map tile properties byte 1
         and     #$04
         beq     _16ac
-        lda     $10f2,x     ; map tile properties byte 1
+        lda     $10f2,x                 ; map tile properties byte 1
         and     #$04
-        bne     _16b6
-        lda     $10f2,x     ; map tile properties byte 1
+        bne     CanMove
+        lda     $10f2,x                 ; map tile properties byte 1
         and     #$03
         and     $c3
-        bne     _16b6
-_16a9:  stz     $c4
-        rts
-_16ac:  lda     $10f2,x     ; map tile properties byte 1
-        and     $c2
-        bne     _16b6
+        bne     CanMove
+
+CantMove:
         stz     $c4
         rts
-_16b6:  rts
 
+_16ac:  lda     $10f2,x                 ; map tile properties byte 1
+        and     $c2
+        bne     CanMove
+        stz     $c4
+        rts
+
+CanMove:
+        rts
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -2924,14 +3013,13 @@ _16b6:  rts
 ; [  ]
 
 .proc _c016b7
-
-_16b7:  lda     $10fa       ; map tile properties byte 1
+        lda     $10fa       ; map tile properties byte 1
         and     #$04
-        beq     _16c4
+        beq     :+
         lda     $c3
         cmp     #$01
-        bne     _16d9
-_16c4:  lda     $0ad8
+        bne     Done
+:       lda     $0ad8
         sta     $75
         lda     $0ad9
         sta     $76
@@ -2940,8 +3028,7 @@ _16c4:  lda     $0ad8
         lda     #$00
         sta     $7f3000,x
         plx
-_16d9:  rts
-
+Done:   rts
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -2983,10 +3070,10 @@ _1711:  rts
 
 ; none, up, right, down, left
 _c01712:
-@1712:  .byte $00,$00,$01,$00,$ff ; delta x
+@1712:  .lobytes 0,0,1,0,-1 ; delta x
 
 _c01717:
-@1717:  .byte $00,$ff,$00,$01,$00 ; delta y
+@1717:  .lobytes 0,-1,0,1,0 ; delta y
 
 _c0171c:
 @171c:  .byte $02,$01,$04,$08; tile movement speeds
@@ -2997,6 +3084,7 @@ _c01720:
 _c01725:
 @1725:  .byte $00,$08,$01,$04,$02
 
+; forced facing direction
 _c0172a:
 @172a:  .byte $00,$02,$04,$00,$03,$00,$00,$00,$01
 
@@ -3334,7 +3422,7 @@ _17e8:  lda     $0ad8       ; x position
 
 ; ---------------------------------------------------------------------------
 
-; [ get tile properties at current tile (unused ???) ]
+; [ get tile properties at current tile (unused) ]
 
 .proc _c019f1
 
@@ -3368,7 +3456,7 @@ _19f1:  lda     $76         ; y position
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ ??? (world map) ]
 
 .proc _c01a1d
 
@@ -3470,7 +3558,7 @@ _1ad3:  lda     $61
         lda     $63
         and     #$1f
         bne     _1ae1
-        inc     $56
+        inc     $56                     ; enable random battle check
 _1ae1:  inc     $41
         rts
 
@@ -3478,7 +3566,7 @@ _1ae1:  inc     $41
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ ??? (sub-map) ]
 
 .proc _c01ae4
 
@@ -3722,7 +3810,7 @@ _1cc6:  lda     $61
         lda     $63
         and     #$1f
         bne     _1cd4
-        inc     $56
+        inc     $56                     ; enable random battle check
 _1cd4:  inc     $41
         rts
 
@@ -3785,8 +3873,7 @@ _1d1d:  rts
 ; [ copy party sprite graphics to vram ]
 
 .proc TfrPartyGfx
-
-_1d1e:  lda     $0ada       ; party graphic
+        lda     $0ada       ; party graphic
         cmp     #$09
         jcs     _1dc3       ; vehicle graphic
 
@@ -3860,7 +3947,7 @@ _1d9c:  sta     hDMA0::SIZE
         stx     $23
         lda     #$da
         sta     $25
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
 _1dc2:  rts
 
 ; vehicle
@@ -3868,7 +3955,7 @@ _1dc3:  pha
         cmp     #$0a
         bcs     _1dda
         ldx     $06
-_1dca:  lda     f:MapSpritePal+26*$20,x   ; copy color palette
+_1dca:  lda     f:VehiclePal,x   ; copy color palette
         sta     $0d00,x
         sta     $0d80,x
         inx
@@ -3880,7 +3967,7 @@ _1dda:  pla
         asl
         tax
         longa
-        lda     f:_c01dfa,x
+        lda     f:VehicleGfxPtrs,x
         sta     $30
         lda     #$6000
         sta     $33
@@ -3888,20 +3975,18 @@ _1dda:  pla
         sta     $35
         lda     $06
         shorta
-        jsr     _c04ad5       ; copy 3bpp graphics to vram
+        jsr     TfrVehicleGfx
         rts
 
-.endproc
-
-; ---------------------------------------------------------------------------
-
 ; pointers to vehicle graphics (+$db0000)
-_c01dfa:
+VehicleGfxPtrs:
 @1dfa:  .word   $3b80,$4240,$3a00,$3a60
 
 ; pointers to party sprite graphics (+$da0000)
 _c01e02:
 @1e02:  .word   $c800,$d000,$d800,$e000,$e800,$f000,$f800,$6c00,$8400
+
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -4485,7 +4570,7 @@ _c022db:
 _c022fb:
         stz     $3e
 _22fd:  jsr     WaitVBlank
-        jsr     _c04c95
+        jsr     ResetSprites
         jsr     _c047f7
         lda     $3e
         and     #$18
@@ -4529,7 +4614,7 @@ _236c:  .word   $3704,$3708,$370c,$3710,$3710,$370c,$3708,$3704
 
 ; [ update party sprite ]
 
-UpdatePlayerSprite:
+.proc DrawPlayerSprite
         lda     $bd                     ; return if party sprite is not shown
         bne     :+
         rts
@@ -4780,17 +4865,16 @@ _2494:  phx
         sta     $020f,y
         rts
 
-; ---------------------------------------------------------------------------
-
 _c0256c:
 @256c:  .res    16, 0
+.endproc
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ load overlay graphics ]
 
-_c0257c:
-_257c:  lda     #$80
+.proc LoadOverlayGfx
+        lda     #$80
         sta     hVMAINC
         lda     $1114
         longa
@@ -4800,15 +4884,15 @@ _257c:  lda     #$80
         shorta
         ldx     $06
         stx     $11
-_2594:  longa
-        lda     #$7c00
+Loop:   longa
+        lda     #$7c00                  ; copy to vram $7c00-$7dff (16 tiles)
         sta     $2e
         lda     $11
-        cmp     #$0008
-        bcc     _25a7
+        cmp     #8
+        bcc     :+
         lda     #$7d00
         sta     $2e
-_25a7:  lda     $11
+:       lda     $11
         asl5
         clc
         adc     $2e
@@ -4819,71 +4903,61 @@ _25a7:  lda     $11
         lda     $06
         shorta
         ldx     $23
-        lda     f:_c02667,x
+        lda     f:OverlayTilesTbl,x
         longa
         asl3
         tax
         lda     $06
         shorta
         phx
-        ldy     #$0008
-_25d2:  lda     f:MapOverlayGfx,x
+
+; top two 8x8 tiles
+.repeat 2
+        ldy     #8
+:       lda     f:MapOverlayGfx,x
         stz     hVMDATAL
         sta     hVMDATAH
         inx
         dey
-        bne     _25d2
-        jsr     _c02636
-        ldy     #$0008
-_25e6:  lda     f:MapOverlayGfx,x
-        stz     hVMDATAL
-        sta     hVMDATAH
-        inx
-        dey
-        bne     _25e6
-        jsr     _c02636
+        bne     :-
+        jsr     FixOverlayTileGfx
+.endrep
         ldy     $2e
         sty     hVMADDL
         plx
-        ldy     #$0008
-_2600:  lda     f:MapOverlayGfx+128,x
+
+; bottom two 8x8 tiles
+.repeat 2
+        ldy     #8
+:       lda     f:MapOverlayGfx+128,x
         stz     hVMDATAL
         sta     hVMDATAH
         inx
         dey
-        bne     _2600
-        jsr     _c02636
-        ldy     #$0008
-_2614:  lda     f:MapOverlayGfx+128,x
-        stz     hVMDATAL
-        sta     hVMDATAH
-        inx
-        dey
-        bne     _2614
-        jsr     _c02636
+        bne     :-
+        jsr     FixOverlayTileGfx
+.endrep
+
+; next 16x16 tile
         ldx     $23
         inx
         stx     $23
         inc     $11
         lda     $11
         cmp     #$10
-        jne     _2594
+        jne     Loop
         rts
 
-; ---------------------------------------------------------------------------
-
-; [  ]
-
-_c02636:
+; clear high bits of overlay tile graphics
+FixOverlayTileGfx:
 .repeat 8
         stz     hVMDATAL
         stz     hVMDATAH
 .endrep
         rts
 
-; ---------------------------------------------------------------------------
-
-_c02667:
+; overlay tiles for each tileset (27 * 16 bytes)
+OverlayTilesTbl:
         .byte   $00,$02,$8c,$8e,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
         .byte   $00,$02,$a0,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
         .byte   $00,$02,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
@@ -4911,23 +4985,27 @@ _c02667:
         .byte   $00,$02,$2c,$2e,$40,$42,$44,$62,$64,$46,$00,$00,$00,$00,$00,$00
         .byte   $00,$02,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
         .byte   $00,$02,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+.endproc
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ load overlay properties ]
 
-_c02817:
-_2817:  lda     $1114       ; tileset
+; the overlay properties corresponds with the map tileset and determines
+; the tile offset for an overlay sprite for each bg1 tile in the tileset
+
+.proc LoadOverlayProp
+        lda     $1114                   ; tileset
         asl
         tax
         longa
-        lda     f:_c0d980Ptrs,x
+        lda     f:OverlayPropPtrs,x
         clc
-        adc     #near _c0d980Ptrs
+        adc     #near OverlayPropPtrs
         sta     $04f0
         lda     $06
         shorta
-        lda     #^_c0d980Ptrs
+        lda     #^OverlayPropPtrs
         sta     $04f2
         ldx     #$1873
         stx     $04f3
@@ -4935,12 +5013,13 @@ _2817:  lda     $1114       ; tileset
         sta     $04f5
         jsl     Decomp_ext
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ draw overlay sprites ]
 
-_c02842:
+.proc DrawOverlaySprites
 @2842:  lda     $bd
         bne     @2847
         rts
@@ -5018,8 +5097,6 @@ _c02842:
         sta     $041e
         rts
 
-; ---------------------------------------------------------------------------
-
 _c028f3:
 @28f3:  .word   $0000,$0080,$0000,$ff80
         .word   $0000,$0100,$0000,$ff00
@@ -5039,12 +5116,13 @@ _c02933:
         .word   $ff00,$0000,$0100,$0000
         .word   $fe80,$0000,$0180,$0000
         .word   $fc00,$0000,$0400,$0000
+.endproc
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ update overlay ]
 
-_c02973:
+.proc UpdateOverlay
 @2973:  stz     $108c
         stz     $108d
         stz     $108e
@@ -5119,7 +5197,7 @@ _c02973:
         sta     $10
 @2a15:  lda     $10be,y
         tay
-        lda     $1873,y
+        lda     $1873,y                 ; overlay tile
 @2a1c:  ply
         longa
         clc
@@ -5164,6 +5242,7 @@ _c02a75:
         .byte   $70,$7f,$70,$7f
         .byte   $60,$5f,$70,$5f
         .byte   $60,$6f,$70,$6f
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -5573,7 +5652,7 @@ CheckNPCEvents:
         asl
         sta     $147c,x     ; set graphic frame
 @3240:  phx
-        jsr     _c039b3       ; update object sprites
+        jsr     DrawObjSprites
         plx
         jsr     ExecNPCScript
         stz     $e4         ;
@@ -6414,7 +6493,7 @@ _c037d3:
 
 ; [ update object sprites ]
 
-_c039b3:
+.proc DrawObjSprites
 @39b3:  lda     $e6
         bne     @39b8
         rts
@@ -6638,6 +6717,8 @@ _c03b8c:
         .byte   0,0,0,0                 ; 5: animation frames (unused)
         .byte   0,0,0,0                 ; 6: animation frames (unused)
         .byte   0,0,0,0                 ; 7: animation frames (unused)
+
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -7020,7 +7101,7 @@ _c03d28:
         sta     $09
 @3e50:  ldx     #$0200
         stx     $2c
-@3e55:  jsr     _c04cbc       ; copy data to vram
+@3e55:  jsr     TfrVRAM
         longa
         lda     $2e
         clc
@@ -7741,7 +7822,6 @@ _c04488:
 ; A: cutscene id
 
 .proc ShowCutscene
-
         pha
         stz     hMDMAEN
         stz     hHDMAEN
@@ -7754,7 +7834,6 @@ _c04488:
         jsl     ShowCutscene_ext
         jsr     _c044e3                       ; init map bank
         rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -7810,7 +7889,7 @@ _c04528:
         iny
         cpy     #$001e
         bne     @452c
-        lda     #$cb
+        lda     #$cb                    ; question mark
         sta     $0990
         lda     #$ff
         sta     $0991
@@ -7825,7 +7904,7 @@ _c04528:
 ; [ open menu ]
 
 OpenMenu:
-        jsr     _c06081       ; fade out
+        jsr     FadeOutMap
 
 OpenMenuNoFade:
         stz     hMDMAEN
@@ -7925,7 +8004,6 @@ _c045ee:
 ; ---------------------------------------------------------------------------
 
 .proc PlaySong
-
         sta     $08
         lda     $55
         cmp     #2
@@ -7945,7 +8023,6 @@ _462b:  lda     #$28
 _462d:  sta     $1d02
         jsl     ExecSound_ext
 Done:   rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -7964,7 +8041,6 @@ _c04635:
 ; A: sound effect
 
 .proc PlaySfx
-
         sta     $1d01
         lda     #$02        ; play sound effect
         sta     $1d00
@@ -7974,9 +8050,8 @@ _c04635:
         sta     $1d03
 
 ExecSound:
-_464e:  jsl     ExecSound_ext
+        jsl     ExecSound_ext
         rts
-
 .endproc  ; PlaySfx
 
 ExecSound_near := PlaySfx::ExecSound
@@ -8546,25 +8621,27 @@ _c04a64:
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ init fade in ]
 
-_c04a68:
+.proc InitFadeIn
         lda     #$10
         sta     $43
         lda     #$10
         sta     $45
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ init fade out ]
 
-_c04a71:
+.proc InitFadeOut
         lda     #$90
         sta     $43
         lda     #$f0
         sta     $45
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -8603,8 +8680,8 @@ _c04a7a:
 
 _c04aad:
 @4aad:  jsr     WaitVBlank
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
         lda     $02
         and     #$cf
         bne     @4aad
@@ -8618,8 +8695,8 @@ _c04aad:
 
 _c04ac1:
 @4ac1:  jsr     WaitVBlank
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
         lda     $02
         and     #$cf
         bne     @4ad4
@@ -8629,13 +8706,13 @@ _c04ac1:
 
 ; ---------------------------------------------------------------------------
 
-; [ copy 3bpp graphics to vram ]
+; [ copy vehicle graphics to vram (3bpp) ]
 
 ; +$30: source address (+$db0000)
 ; +$33: vram address
 ;  $35: tile count
 
-_c04ad5:
+.proc TfrVehicleGfx
         stz     hMDMAEN
         lda     #$80
         sta     hVMAINC
@@ -8645,7 +8722,7 @@ _c04ad5:
         sta     hDMA0::HREG
         ldx     $33
         stx     hVMADDL
-        ldx     #$0b06
+        ldx     #$0b06                  ; clear the region in VRAM
         stx     hDMA0::ADDR
         stz     hDMA0::ADDR_B
         longa
@@ -8661,6 +8738,8 @@ _c04ad5:
         lda     #$01
         sta     hMDMAEN
         stz     hMDMAEN
+
+; set up the DMA
         ldx     $30
         stx     hDMA0::ADDR
         lda     #$db
@@ -8670,7 +8749,9 @@ _c04ad5:
         ldx     $33
         stx     hVMADDL
         ldy     $06
-@4b27:  lda     #$80
+
+; transfer 1 tile at a time
+Loop:   lda     #$80
         sta     hVMAINC
         lda     #$01
         sta     hDMA0::CTRL
@@ -8687,14 +8768,15 @@ _c04ad5:
         sta     hMDMAEN
         iny
         cpy     $35
-        bne     @4b27
+        bne     Loop
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ load world map graphics ]
 
-_c04b56:
+.proc TfrWorldGfx
         lda     #$80
         sta     hVMAINC
         ldx     $06
@@ -8706,12 +8788,12 @@ _c04b56:
         stz     $23
         ldx     $23
         ldy     $06
-@4b70:  lda     f:WorldTileAttr,x
+:       lda     f:WorldTileAttr,x
         sta     $1873,y
         inx
         iny
         cpy     #$0100
-        bne     @4b70
+        bne     :-
         lda     $0ad6       ; map index
         tax
         lda     f:WorldTileAttrTbl,x
@@ -8720,7 +8802,7 @@ _c04b56:
         stz     $23
         ldx     $23
         ldy     #$0000
-@4b94:  lda     f:WorldGfx,x
+Loop:   lda     f:WorldGfx,x
         sta     $0a
         inx
         and     #$0f
@@ -8732,17 +8814,16 @@ _c04b56:
         sta     hVMDATAH
         txa
         and     #$1f
-        bne     @4b94
+        bne     Loop
         iny
         cpy     #$0100
-        bne     @4b94
+        bne     Loop
         rts
-
-; ---------------------------------------------------------------------------
 
 ; world map tilesets (identical to WorldTilesetTbl)
 WorldTileAttrTbl:
         .byte   0,1,0,2,2
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -8853,36 +8934,38 @@ _c04bc0:
 
 ; [  ]
 
-_c04c90:
+.proc UpdateCtrl
         jsl     _c2a008     ; update joypad input
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ clear sprite data ]
 
-_c04c95:
+.proc ResetSprites
         ldx     #$0200
         lda     #$f0
-@4c9a:  sta     $01fd,x
+:       sta     $01fd,x
         dex4
-        bne     @4c9a
+        bne     :-
         ldx     #$0020
-@4ca6:  stz     $03ff,x
+:       stz     $03ff,x
         dex
-        bne     @4ca6
+        bne     :-
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
-; [ hide all sprites ]
+; [ hide all top sprites ??? (used during cutscenes) ]
 
 _c04cad:
         ldx     #$0100
         lda     #$f0
-@4cb2:  sta     $01fd,x
+:       sta     $01fd,x
         dex4
-        bne     @4cb2
+        bne     :-
         rts
 
 ; ---------------------------------------------------------------------------
@@ -8893,7 +8976,7 @@ _c04cad:
 ;  +$2c: size
 ;  +$2e: destination address (vram)
 
-_c04cbc:
+.proc TfrVRAM
         lda     #$80
         sta     hVMAINC
         stz     hMDMAEN
@@ -8912,13 +8995,14 @@ _c04cbc:
         lda     #$01
         sta     hMDMAEN
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ disable interrupts ]
 
-_c04ce8:
-@4ce8:  stz     hMDMAEN
+.proc DisableInterrupts
+        stz     hMDMAEN
         stz     hHDMAEN
         lda     #$80
         sta     hINIDISP
@@ -8926,28 +9010,30 @@ _c04ce8:
         sta     hNMITIMEN
         sei
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ enable interrupts ]
 
-_c04cfa:
-@4cfa:  lda     #$81
+.proc EnableInterrupts
+        lda     #$81
         sta     hNMITIMEN
         lda     #$00
         sta     hINIDISP
         cli
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
-; [ clear vram ]
+; [ clear vram (cutscenes) ]
 
 _c04d06:
-        jsr     _c04ce8       ; disable interrupts
+        jsr     DisableInterrupts
         stz     $0b6d
         jsr     FillVRAM
-        jsr     _c04cfa       ; enable interrupts
+        jsr     EnableInterrupts
         rts
 
 ; ---------------------------------------------------------------------------
@@ -9066,30 +9152,36 @@ _c04d8e:
 
 ; [  ]
 
-_c04dd7:
+.proc HexToDec
         phx
         phy
         ldx     $06
-@4ddb:  ldy     #$0000
+Loop:   ldy     #0
         stz     $3a
-@4de0:  longa
+
+; repeated subtraction by decreasing powers of 10 to divide
+:       longa
         lda     $37
         sec
-        sbc     f:_c04e21,x
+        sbc     f:HexToDecTblLo,x
         sta     $37
         lda     $39
-        sbc     f:_c04e31,x
+        sbc     f:HexToDecTblHi,x
         sta     $39
-        bcc     @4df9
+        bcc     :+
         iny
-        jmp     @4de0
-@4df9:  lda     $37
+        jmp     :-
+
+; when it goes negative undo the last subtraction
+:       lda     $37
         clc
-        adc     f:_c04e21,x
+        adc     f:HexToDecTblLo,x
         sta     $37
         lda     $39
-        adc     f:_c04e31,x
+        adc     f:HexToDecTblHi,x
         sta     $39
+
+; now we have the dividend and the remainder
         lda     $06
         shorta
         phx
@@ -9097,18 +9189,16 @@ _c04dd7:
         lsr
         tax
         tya
-        sta     $10ac,x
+        sta     $10ac,x                 ; copy to buffer
         plx
         inx2
         cpx     #$0010
-        bne     @4ddb
+        bne     Loop
         ply
         plx
         rts
 
-; ---------------------------------------------------------------------------
-
-_c04e21:
+HexToDecTblLo:
         .word   .loword(10000000)
         .word   .loword(1000000)
         .word   .loword(100000)
@@ -9118,7 +9208,7 @@ _c04e21:
         .word   .loword(10)
         .word   .loword(1)
 
-_c04e31:
+HexToDecTblHi:
         .word   .hiword(10000000)
         .word   .hiword(1000000)
         .word   .hiword(100000)
@@ -9128,23 +9218,22 @@ _c04e31:
         .word   .hiword(10)
         .word   .hiword(1)
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 .proc WaitVBlank
-
-_4e41:  stz     $51
+        stz     $51
 :       lda     $51
         beq     :-
         stz     $51
         rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
 
 .proc InitInterrupts
-
-_4e4a:  lda     #$5c
+        lda     #$5c
         sta     $1f00
         sta     $1f04
         ldx     #near FieldNMI
@@ -9156,14 +9245,12 @@ _4e4a:  lda     #$5c
         lda     #^FieldIRQ
         sta     $1f07
         rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
 
 .proc InitHardware
-
-_4e69:  lda     #$80
+        lda     #$80
         sta     hINIDISP
         lda     #0
         sta     hNMITIMEN
@@ -9237,7 +9324,6 @@ _4e69:  lda     #$80
         stz     hVTIMEL
         stz     hVTIMEH
         rts
-
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -9245,8 +9331,7 @@ _4e69:  lda     #$80
 ; [ generate random number ]
 
 .proc Rand
-
-@4f2b:  phx
+        phx
         inc     $16a7
         bne     :+
         lda     $0af9       ; random number seed
@@ -9260,14 +9345,13 @@ _4e69:  lda     #$80
         sbc     $0af9
         plx
         rts
-
 .endproc  ; Rand
 
 ; ---------------------------------------------------------------------------
 
-; [ update shattering crystal ]
+; [ update shattering crystal animation ]
 
-_c04f48:
+.proc CrystalShatterAnim
         lda     #$00
         sta     $25
         lda     $3f
@@ -9280,7 +9364,7 @@ _c04f48:
         tax
         lda     $06
         shorta
-@4f5e:  txa
+Loop:   txa
         asl
         and     #$7f
         tay
@@ -9386,14 +9470,13 @@ _c04f48:
         and     #$7f
         beq     @5059
         and     #$3f
-        jne     @4f5e
+        jne     Loop
         ldy     $26
         sty     $23
-        jmp     @4f5e
+        jmp     Loop
 @5059:  rts
 
-; ---------------------------------------------------------------------------
-
+; data for shattering crystal animation
 _c0505a:
         .byte   $13,$a0,$10,$a3,$0b,$a6,$04,$a7,$fc,$a7,$f5,$a6,$f0,$a3,$ed,$a0
         .byte   $ed,$9c,$f0,$99,$f5,$96,$fc,$94,$04,$94,$0b,$96,$10,$99,$13,$9c
@@ -9467,40 +9550,52 @@ _c0505a:
         .byte   $64,$05,$58,$18,$3f,$27,$1d,$30,$f6,$32,$d1,$2c,$b3,$20,$a0,$0f
         .byte   $9c,$fb,$a8,$e8,$c1,$d9,$e3,$d0,$0a,$ce,$2f,$d4,$4d,$e0,$60,$f1
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 ; [ load map ]
 
-LoadMap:
-@545a:  jsr     _c06081       ; fade out
+.proc LoadMap
+        jsr     FadeOutMap
 
-LoadMapNoFade:
-@545d:  ldx     $0ad6       ; map index
+::LoadMapNoFade:
+        ldx     $0ad6       ; map index
         cpx     #$0005
-        bcs     @546c
+        bcs     :+
+
+; world map
         jsr     LoadWorldMap
-        jsr     _c06100       ; fade in
+        jsr     FadeInMap
         rts
-@546c:  jsr     LoadSubMap
-        jsr     _c06100       ; fade in
-        jsr     _c09267       ; show map title
+
+; sub-map
+:       jsr     LoadSubMap
+        jsr     FadeInMap
+        jsr     ShowMapTitle
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ reload map ]
 
-ReloadMap:
-@5476:  ldx     $0ad6       ; map index
+.proc ReloadMap
+        ldx     $0ad6       ; map index
         cpx     #$0005
-        bcs     @5485
-        jsr     _c05532       ; reload world map
-        jsr     _c06100       ; fade in
+        bcs     :+
+
+; world map
+        jsr     ReloadWorldMap
+        jsr     FadeInMap
         rts
-@5485:  jsr     _c0577c       ; reload map
-        jsr     _c06100       ; fade in
-        jsr     _c09267       ; show map title
+
+; sub-map
+:       jsr     ReloadSubMap
+        jsr     FadeInMap
+        jsr     ShowMapTitle
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -9531,7 +9626,7 @@ _c054a7:
         stz     $9f
         stz     $a6
         stz     $a3
-        stz     $56
+        stz     $56                     ; clear step counter
         stz     $5a
         stz     $5c
         stz     $0a34
@@ -9566,7 +9661,7 @@ _c054f6:
         sei
         stz     $5e
         jsr     InitHardware
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         jsr     TfrSprites
         lda     #$70
         sta     $c5
@@ -9582,13 +9677,13 @@ _c054f6:
 
 ; [ load world map ]
 
-LoadWorldMap:
+.proc LoadWorldMap
 @5528:  lda     $0adc
-        beq     _c05532
-        lda     #$03
+        beq     ReloadWorldMap          ; branch if no vehicle
+        lda     #$03                    ; face down
         sta     $0adb
 
-_c05532:
+::ReloadWorldMap:
 @5532:  stz     $53
         stz     $169a
         jsr     _c054a7
@@ -9597,7 +9692,7 @@ _c05532:
         lda     #$10
         sta     $49
         sta     $4a
-        ldx     $0ad6       ; map index
+        ldx     $0ad6                   ; map index
         cpx     #$0003
         bcc     @5551
         lda     #$c1
@@ -9608,7 +9703,7 @@ _c05532:
         bne     @555d
         lda     $48
         sta     $47
-@555d:  jsr     _c04b56
+@555d:  jsr     TfrWorldGfx
         jsr     TfrPartyGfx
         jsr     _c01e14
         ldx     #$6100
@@ -9619,7 +9714,7 @@ _c05532:
         stx     $23
         lda     #$da
         sta     $25
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
         ldx     #$6200
         stx     $2e
         ldx     #$0400
@@ -9628,21 +9723,21 @@ _c05532:
         stx     $23
         lda     #$da        ; da/c000 (flying chocobo graphics)
         sta     $25
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
         ldx     #$6440
         stx     $33
         ldx     #$000c
         stx     $35
         ldx     #$3ac0
         stx     $30
-        jsr     _c04ad5       ; copy 3bpp graphics to vram
+        jsr     TfrVehicleGfx
         ldx     #$6540
         stx     $33
         ldx     #$00f0
         stx     $35
         ldx     #$3b80
         stx     $30
-        jsr     _c04ad5       ; copy 3bpp graphics to vram
+        jsr     TfrVehicleGfx
         ldx     #$6400
         stx     $2e
         ldx     #$0080
@@ -9651,7 +9746,7 @@ _c05532:
         stx     $23
         lda     #$da        ; da/1f00 (gradient graphics 1)
         sta     $25
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
         ldx     #$6500
         stx     $2e
         ldx     #$0080
@@ -9660,10 +9755,10 @@ _c05532:
         stx     $23
         lda     #$da        ; da/1f80 (gradient graphics 2)
         sta     $25
-        jsr     _c04cbc       ; copy data to vram
-        jsr     _c056f8
+        jsr     TfrVRAM
+        jsr     LoadWorldPal
         ldx     #$0080
-@55e8:  lda     f:MapSpritePal+$0100-1,x
+@55e8:  lda     f:MapSpritePal_8-1,x
         sta     $0cff,x
         dex
         bne     @55e8
@@ -9686,7 +9781,7 @@ _c05532:
         cpy     #$0020
         bne     @5610
         jsr     TfrPal
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         jsr     TfrSprites
         lda     $0ad6       ; map index
         tax
@@ -9731,7 +9826,7 @@ _c05532:
         lda     $06
         shorta
         lda     #^WorldTileset
-        jsr     _c06b2d       ; load world tileset
+        jsr     LoadWorldTileset
         jsr     _c06c4a
         jsr     _c04583
         jsr     _c04798
@@ -9776,31 +9871,32 @@ _c05532:
 @56e7:  asl
         tax
         longa
-        lda     f:_c0573e,x
+        lda     f:WorldMoveSpeed,x
         sta     $c0
         lda     $06
         shorta
         stz     $55
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ load world map palette ]
 
-_c056f8:
-@56f8:  lda     $0ad6       ; map index
+.proc LoadWorldPal
+        lda     $0ad6                   ; map index
         tax
         lda     f:WorldTilesetTbl,x
         longa
         xba
         tax
         ldy     $06
-@5706:  lda     f:WorldPal,x
+:       lda     f:WorldPal,x
         sta     $0c00,y
         inx2
         iny2
         cpy     #$0100
-        bne     @5706
+        bne     :-
         lda     $06
         shorta
         stz     $1123
@@ -9816,6 +9912,7 @@ _c056f8:
         lda     #$66
         sta     $5e
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -9823,15 +9920,16 @@ _c056f8:
 WorldTilesetTbl:
 @5739:  .byte   0,1,0,2,2
 
-_c0573e:
+; world map movement speed for each vehicle
+WorldMoveSpeed:
         .word   2,4,4,4,4,4,16
 
 ; ---------------------------------------------------------------------------
 
 ; [ load normal map (sub-map) ]
 
-LoadSubMap:
-@574c:  lda     #$01
+.proc LoadSubMap
+        lda     #$01
         sta     $53
         stz     $169f                   ; clear hiryuu flag
         lda     $b9
@@ -9842,7 +9940,7 @@ LoadSubMap:
         jsr     _c05af6                   ; load map properties
         jsr     _c05adb
         jsr     _c03eaa                   ; load npcs
-        jsr     _c06b44                   ; load tile properties and tileset
+        jsr     LoadSubTileset
         jsr     _c05875                   ; load map layouts
         jsr     _c058db                   ; load map palette
         jsr     _c05cbd                   ; load treasure chests
@@ -9850,7 +9948,7 @@ LoadSubMap:
         jsr     _c0580e
         jsr     _c057f9
 
-_c0577c:
+::ReloadSubMap:
         jsr     _c054f6
         ldx     $0971                   ; set window color
         stx     $0c02
@@ -9863,7 +9961,7 @@ _c0577c:
         ldx     #$0002
         stx     $c0
         jsr     _c05b2d                   ; init map color math
-        jsr     _c06b44                   ; load tile properties and tileset
+        jsr     LoadSubTileset
         jsr     _c06d0c
         jsr     _c06c6a
         jsr     _c08c92
@@ -9872,7 +9970,7 @@ _c0577c:
         jsr     _c08b53
         jsr     _c09a96                   ; init map animation
         jsr     _c05d30
-        jsr     _c02817
+        jsr     LoadOverlayProp
         jsr     _c0928c                   ; init map title
         lda     #$fe
         jsr     _c0ca3c                   ; get event flag $01xx
@@ -9881,25 +9979,25 @@ _c0577c:
         lda     $1125                   ; song
         jsr     PlaySong
 @57cc:  jsr     _c017e8                 ; update local tile properties (normal map)
-        jsr     _c01372                 ; update party z-level (destination tile)
-        jsr     _c013a6                 ; update party z-level (current tile)
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3                   ; update object sprites
-        jsr     _c02973
-        jsr     _c02842
+        jsr     UpdateDestZLevel
+        jsr     UpdateCurrZLevel
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
+        jsr     UpdateOverlay
+        jsr     DrawOverlaySprites
         lda     $110f
         lsr5
         and     #$03
         tax
-        lda     f:_c057f5,x
+        lda     f:MapHDMAEnableTbl,x
         sta     $5e
         stz     $55
         rts
 
-; ---------------------------------------------------------------------------
-
-_c057f5:
+; hdma channels enabled
+MapHDMAEnableTbl:
         .byte   $06,$46,$7e,$06
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -9914,7 +10012,7 @@ _c057f9:
         lda     #$10
         bra     @580a
 @5808:  lda     #$3f
-@580a:  sta     $169a
+@580a:  sta     $169a                   ; diameter of window mask circle
         rts
 
 ; ---------------------------------------------------------------------------
@@ -9983,10 +10081,10 @@ _c05875:
         ldx     $06
         cpy     #$ffff
         beq     @588f
-        jsr     _c06aca       ; load map layout
+        jsr     LoadSubTilemap
         bra     @5894
 @588f:  lda     #$01
-        jsr     _c06b21
+        jsr     FillTilemap
 @5894:  longa
         lda     $1119       ; bg2 map layout
         and     #$0ffc
@@ -9998,10 +10096,10 @@ _c05875:
         ldx     #$1000
         cpy     #$ffff
         beq     @58b1
-        jsr     _c06aca       ; load map layout
+        jsr     LoadSubTilemap
         bra     @58b6
 @58b1:  lda     #$01
-        jsr     _c06b21
+        jsr     FillTilemap
 @58b6:  longa
         lda     $111a       ; bg3 map layout
         and     #$3ff0
@@ -10013,10 +10111,10 @@ _c05875:
         ldx     #$2000
         cpy     #$ffff
         beq     @58d5
-        jsr     _c06aca       ; load map layout
+        jsr     LoadSubTilemap
         bra     @58da
 @58d5:  lda     #$01
-        jsr     _c06b21
+        jsr     FillTilemap
 @58da:  rts
 
 ; ---------------------------------------------------------------------------
@@ -10092,7 +10190,7 @@ _c0591a:
         shorta
         ldx     $06
         stx     $2e
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
         longa
         lda     $2c
         lsr
@@ -10105,7 +10203,7 @@ _c0591a:
         ldx     $06
         stx     $23
         inc     $25
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
 @5984:  longa
         lda     $1115       ; map graphics 2
         and     #$0fc0
@@ -10142,7 +10240,7 @@ _c0591a:
         shorta
         ldx     #$1000
         stx     $2e
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
         longa
         lda     $2c
         lsr
@@ -10157,7 +10255,7 @@ _c0591a:
         ldx     $06
         stx     $23
         inc     $25
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
 @59f5:  longa
         lda     $1116       ; map graphics 3
         and     #$03f0
@@ -10192,7 +10290,7 @@ _c0591a:
         shorta
         ldx     #$2000
         stx     $2e
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
         longa
         lda     $2c
         lsr
@@ -10207,7 +10305,7 @@ _c0591a:
         ldx     $06
         stx     $23
         inc     $25
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
 @5a63:  longa
         lda     $1116
         and     #$fc00
@@ -10226,7 +10324,7 @@ _c0591a:
         stx     $2e
         ldx     #$1000
         stx     $2c
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
         jsr     TfrPartyGfx
         jsr     _c01e14
         ldx     #$3d00
@@ -10237,8 +10335,8 @@ _c0591a:
         stx     $23
         lda     #^WindowGfx
         sta     $25
-        jsr     _c04cbc       ; copy data to vram
-        jsr     _c0257c
+        jsr     TfrVRAM
+        jsr     LoadOverlayGfx
         ldx     $06
 @5aae:  lda     $0500,x
         and     #$40
@@ -10277,7 +10375,7 @@ _c05adb:
         stx     $23
         lda     #^TimerFontGfx
         sta     $25
-        jsr     _c04cbc                 ; copy data to vram
+        jsr     TfrVRAM
 @5af5:  rts
 
 ; ---------------------------------------------------------------------------
@@ -10503,7 +10601,7 @@ _c05cbd:
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ update window mask circle hdma ??? ]
 
 _c05d30:
         jsr     _c05d87
@@ -10852,12 +10950,12 @@ _c05f8d:
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ pitfall animation during fade out ]
 
-_c05fe6:
-@5fe6:  lda     $169e
+.proc PitfallFadeOutAnim
+        lda     $169e
         cmp     #$02
-        jne     @6076
+        jne     _6076                   ; branch if not a pitfall trap
         lda     #$70
         sta     $0300
         lda     #$80
@@ -10868,7 +10966,7 @@ _c05fe6:
         sta     $0303
         stz     $bc
         lda     $42
-        bne     @6048
+        bne     _6048
         lda     $0ad8
         sta     $75
         lda     $0ad9
@@ -10886,74 +10984,77 @@ _c05fe6:
         shorta
         lda     $7f0000,x
         cmp     #$05
-        bne     @6075
+        bne     Done                    ; return if not a pitfall tile
         ldx     #$0101
         stx     $2c
         ldx     $06
         stx     $73
-        lda     #$15
+        lda     #$15                    ; draw pitfall hole
         sta     $16b3
-        jsr     _c06f08
-        bra     @6075
-@6048:  lda     $42
+        jsr     ModBGTilemap
+        bra     Done
+_6048:  lda     $42
         lsr3
         lda     #$00
         adc     #$29
         sta     $bb
         lda     $42
         cmp     #$30
-        bne     @6061
-        jsr     _c04a71
+        bne     :+
+        jsr     InitFadeOut
         lda     #$85
         jsr     PlaySfx
-@6061:  lda     $42
+:       lda     $42
         cmp     #$30
-        bcc     @6075
+        bcc     Done
         lda     $c6
         inc2
         sta     $c6
         cmp     #$80
-        bne     @6075
+        bne     Done
         lda     #$80
         sta     $42
-@6075:  rts
-@6076:  lda     $42
-        bne     @6080
-        jsr     _c04a71
+Done:   rts
+
+_6076:  lda     $42
+        bne     :+
+        jsr     InitFadeOut
         stz     $169e
-@6080:  rts
+:       rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ fade out ]
 
-_c06081:
+.proc FadeOutMap
         lda     $169e
-        bne     @6089
-        jsr     _c04a71
-@6089:  stz     $42
-@608b:  jsr     WaitVBlank
+        bne     :+
+        jsr     InitFadeOut
+:       stz     $42
+Loop:   jsr     WaitVBlank
         lda     $169e
-        beq     @60a1
+        beq     :+
         lda     $42
-        bmi     @60a1
-        jsr     _c05fe6
-        jsr     UpdatePlayerSprite
+        bmi     :+
+        jsr     PitfallFadeOutAnim
+        jsr     DrawPlayerSprite
         inc     $42
-        bra     @608b
-@60a1:  inc     $42
+        bra     Loop
+:       inc     $42
         lda     $45
-        bne     @608b
+        bne     Loop
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ pitfall animation during fade in ]
 
-_c060a8:
-@60a8:  lda     $169e
+.proc PitfallFadeInAnim
+        lda     $169e
         cmp     #$02
-        bne     @60ff
+        bne     @60ff                   ; return if not a pitfall trap
         lda     $42
         cmp     #$1e
         bcs     @60c0
@@ -10993,31 +11094,33 @@ _c060a8:
         lda     #$02
         sta     $0adb
 @60ff:  rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
-; [ fade in ]
+; [ fade in map ]
 
-_c06100:
-        jsr     _c04a68
+.proc FadeInMap
+        jsr     InitFadeIn
         stz     $42
         lda     #$81
         sta     hNMITIMEN
         lda     #$00
         sta     hINIDISP
         cli
-@6110:  jsr     WaitVBlank
+Loop:   jsr     WaitVBlank
         lda     $169e
         cmp     #$02
-        bne     @6124
-        jsr     _c060a8
-        jsr     UpdatePlayerSprite
+        bne     :+                      ; branch if not a pitfall trap
+        jsr     PitfallFadeInAnim
+        jsr     DrawPlayerSprite
         inc     $42
-        bra     @6110
-@6124:  lda     $45
+        bra     Loop
+:       lda     $45
         cmp     #$f0
-        bne     @6110
+        bne     Loop
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -11628,11 +11731,11 @@ _c065a3:
 
 ; [ show mini-map ]
 
-ShowMinimap:
-@6632:  jsr     _c06081       ; fade out
+.proc ShowMinimap
+        jsr     FadeOutMap
 
-ShowMinimapNoFade:
-        jsr     _c04ce8       ; disable interrupts
+::ShowMinimapNoFade:
+        jsr     DisableInterrupts
         stz     $5e
         lda     #$07
         sta     hBGMODE
@@ -11671,7 +11774,7 @@ ShowMinimapNoFade:
         lda     #$1f
         sta     $76
         stz     $ba
-@6696:  jsr     _c069a1
+@6696:  jsr     LoadWorldTilemap
         ldy     $06
 @669b:  ldx     $26
         lda     $7f0000,x
@@ -11697,22 +11800,22 @@ ShowMinimapNoFade:
         lda     $76
         cmp     #$1f
         bne     @6696
-        jsr     _c04c95       ; clear sprite data
-        jsr     _c056f8
+        jsr     ResetSprites
+        jsr     LoadWorldPal
         jsr     _c06831
-        lda     #^MinimapSpriteGfx
+        lda     #^MinimapGfx            ; load minimap sprite graphics
         sta     $25
-        ldx     #near MinimapSpriteGfx
+        ldx     #near MinimapGfx
         stx     $23
         ldx     #$7000
         stx     $2e
         ldx     #$0400
         stx     $2c
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
         lda     #$01
         sta     $52
         stz     $3f
-        jsr     _c06100       ; fade in
+        jsr     FadeInMap
 @66f9:  jsr     WaitVBlank
         jsr     _c06731
         jsr     _c06755
@@ -11733,9 +11836,10 @@ ShowMinimapNoFade:
         bne     @672b
         lda     $03
         beq     @6712
-@672b:  jsr     _c06081       ; fade out
+@672b:  jsr     FadeOutMap
         stz     $52
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -11993,7 +12097,7 @@ _c06961:
         ARRAY_LENGTH = 299
 .endscope
 
-_c069a1:
+.proc LoadWorldTilemap
         lda     #^WorldTilemap
         sta     $25
         lda     $ba
@@ -12143,6 +12247,8 @@ WorldModPtrs:
 ; unused
 @6ac8:  rts
 
+.endproc
+
 ; ---------------------------------------------------------------------------
 
 
@@ -12151,7 +12257,7 @@ WorldModPtrs:
 ; +x: destination address (+$7f0000)
 ; +y: map layout index
 
-_c06aca:
+.proc LoadSubTilemap
         stx     $71
         lda     #^SubTilemap
         sta     $25
@@ -12184,27 +12290,29 @@ _c06aca:
         sta     $04f5
         ldy     $06
         lda     [$23],y
-        bne     @6b1b
+        bne     :+
         jsl     Decomp_ext
         rts
-@6b1b:  ldx     $71
-        jsr     _c06b21                 ; clear tile layout
+:       ldx     $71
+        jsr     FillTilemap
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
-; [ fill map tile layout ]
+; [ fill bg tilemap ]
 
 ;  a: fill value
 ; +x: data offset
 
-_c06b21:
-@6b21:  ldy     #$1000
-@6b24:  sta     $7f0000,x
+.proc FillTilemap
+        ldy     #$1000
+:       sta     $7f0000,x
         inx
         dey
-        bne     @6b24
+        bne     :-
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -12213,26 +12321,27 @@ _c06b21:
 ; +y: source address
 ;  a: source bank
 
-_c06b2d:
+.proc LoadWorldTileset
         pha
         plb
         ldx     $06
-@6b31:  lda     $0000,y
+:       lda     0,y
         sta     $7f6e22,x
         iny
         inx
         cpx     #$0800
-        bne     @6b31
+        bne     :-
         lda     $06
         pha
         plb
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ load tile properties and tileset ]
 
-_c06b44:
+.proc LoadSubTileset
         lda     $1111       ; tile properties
         asl
         tax
@@ -12254,7 +12363,7 @@ _c06b44:
         asl
         tax
         longa
-        lda     f:MapTilesetPtrs,x   ; pointers to tilesets
+        lda     f:MapTilesetPtrs,x
         clc
         adc     #near MapTilesetPtrs
         sta     $04f0
@@ -12268,19 +12377,21 @@ _c06b44:
         sta     $04f5
         jsl     Decomp_ext
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ fill bg1, bg2, and bg3 tilemaps (unused) ]
 
-_c06b99:
+.proc _c06b99
         ldx     #$1000
-@6b9c:  sta     $7effff,x
+:       sta     $7effff,x
         sta     $7f0fff,x
         sta     $7f1fff,x
         dex
-        bne     @6b9c
+        bne     :-
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -12366,7 +12477,7 @@ _c06c4a:
         sta     $75
         lda     #$40
 @6c59:  pha
-        jsr     _c069a1
+        jsr     LoadWorldTilemap
         jsr     _c06513
         jsr     _c06465
         inc     $76
@@ -12723,9 +12834,16 @@ _c06e7a:
 
 ; ---------------------------------------------------------------------------
 
-; [  ]
+; [ modify bg tilemap ]
 
-_c06f08:
+; $2c: width
+; $2d: height
+; $73: layer
+; $75: x position
+; $76: y position
+; $16b3-???: tiles to draw
+
+.proc ModBGTilemap
         lda     $76
         and     #$3f
         xba
@@ -12882,6 +13000,7 @@ _c06f08:
         lda     $a0
         bne     @7036
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -13192,7 +13311,7 @@ _c07241:
 
 ; [ show dialog ]
 
-ShowDlg:
+.proc ShowDlg
 @83ae:  jsr     GetDlgPtr
 @83b1:  jsr     _c08f54
         ldx     $b1
@@ -13203,9 +13322,9 @@ ShowDlg:
         sty     $ab
 @83c3:  jsr     _c08d3b
         jsr     WaitVBlank
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
-        jsr     _c02842
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
+        jsr     DrawOverlaySprites
         ldy     $ab
         cpy     #$0040
         bne     @83c3
@@ -13217,20 +13336,21 @@ ShowDlg:
 @83e6:  stz     $b8
         inc     $a5
         jsr     WaitVBlank
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
-        jsr     _c02842
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
+        jsr     DrawOverlaySprites
         lda     $b3
         beq     @83b1
 @83fa:  jsr     _c094a8
         jsr     WaitVBlank
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
 ; [ get pointer to dialog ]
 
-GetDlgPtr:
+.proc GetDlgPtr
 @8401:  stz     $b3         ;
         longa
         lda     $af         ; dialog index
@@ -13249,6 +13369,7 @@ GetDlgPtr:
 @8421:  sta     $b4
         jsr     _c09440
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -13940,9 +14061,9 @@ _c08d3b:
         iny
         sty     $ab
 @8d6e:  jsr     WaitVBlank
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
-        jsr     _c02842
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
+        jsr     DrawOverlaySprites
         ldx     $ad
         dex
         stx     $ad
@@ -13965,9 +14086,9 @@ _c08d3b:
         beq     @8dba
         inc     $a7
         jsr     WaitVBlank
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
-        jsr     _c02842
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
+        jsr     DrawOverlaySprites
         lda     $a8
         clc
         adc     #$0d
@@ -14545,22 +14666,23 @@ _c09237:
 
 ; [ show map title ]
 
-_c09267:
-        lda     $0b53       ;
-        beq     @928b
+.proc ShowMapTitle
+        lda     $0b53
+        beq     Done
         lda     $16a0
-        beq     @927e       ; branch if map title is disabled
-        lda     #$01        ; dialog window at top
+        beq     :+                      ; branch if map title is disabled
+        lda     #$01                    ; dialog window at top
         sta     $b4
-        jsr     _c0933d       ; show dialog window (map title)
-        jsr     _c04ac1       ; wait for keypress
-        jsr     _c09419       ; hide dialog window (map title)
-@927e:  stz     $16a0
+        jsr     DrawMapTitleWindow
+        jsr     _c04ac1                 ; wait for keypress
+        jsr     HideMapTitleWindow
+:       stz     $16a0
         inc     $a5
         jsr     WaitVBlank
         lda     #$01
         sta     $10b8
-@928b:  rts
+Done:   rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -14648,7 +14770,7 @@ _c0928c:
 
 ; [ show dialog window (map title) ]
 
-_c0933d:
+.proc DrawMapTitleWindow
 @933d:  jsr     _c08bd3
         lda     $b4
         sec
@@ -14690,6 +14812,7 @@ _c0933d:
         cmp     #$02
         bne     @9351
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -14714,8 +14837,8 @@ _c093f9:
 
 ; [ hide dialog window (map title) ]
 
-_c09419:
-@9419:  lda     $b4
+.proc HideMapTitleWindow
+        lda     $b4
         sec
         adc     $0ad9
         clc
@@ -14723,7 +14846,7 @@ _c09419:
         sta     $76
         lda     $0ad8
         sta     $75
-@9429:  jsr     WaitVBlank
+:       jsr     WaitVBlank
         lda     #$01
         ldx     $06
         stx     $71
@@ -14732,8 +14855,9 @@ _c09419:
         dec     $76
         dec     $b5
         lda     $b5
-        bne     @9429
+        bne     :-
         rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 
@@ -14750,9 +14874,9 @@ _c09440:
         lda     #$00
         sta     $b5
 @9454:  jsr     WaitVBlank
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
-        jsr     _c02842
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
+        jsr     DrawOverlaySprites
         lda     #$01
         ldx     $06
         stx     $71
@@ -14800,9 +14924,9 @@ _c094a8:
         lda     $0ad8
         sta     $75
 @94b8:  jsr     WaitVBlank
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
-        jsr     _c02842
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
+        jsr     DrawOverlaySprites
         lda     #$01
         ldx     $06
         stx     $71
@@ -16204,9 +16328,9 @@ _c0a45f:
 @a488:  lda     $53         ; branch if on a normal map ???
         bne     @a4a9
         jsr     _c01733       ; update local tile properties (world map)
-        jsr     _c00f8c
+        jsr     CheckPlayerMoveWorld
         jsr     _c01a1d
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         jsr     _c02137
         jsr     _c01ec5
         jsr     _c01e64
@@ -16214,13 +16338,13 @@ _c0a45f:
         jsr     _c0612b
         bra     @a4c4
 @a4a9:  jsr     _c017e8       ; update local tile properties (normal map)
-        jsr     _c011c2
+        jsr     CheckPlayerMoveSub
         jsr     _c01ae4
         jsr     _c03bac
-        jsr     _c04c95       ; clear sprite data
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
-        jsr     _c02842
+        jsr     ResetSprites
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
+        jsr     DrawOverlaySprites
         jsr     _c0420a
 @a4c4:  jsr     WaitVBlank
         lda     $be
@@ -16595,10 +16719,10 @@ EventCmd_bf18:
         sta     $6f
         jsr     _c0a7be
         jsr     _c05bf4
-        jsr     _c04a68
+        jsr     InitFadeIn
         stz     $3d
 @a775:  jsr     WaitVBlank
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         lda     $3d
         and     #$01
         bne     @a787
@@ -16623,7 +16747,7 @@ EventCmd_bf18:
         lda     $3d
         cmp     #$e0
         bne     @a7b3
-        jsr     _c04a71
+        jsr     InitFadeOut
 @a7b3:  inc     $3d
         lda     $3d
         cmp     #$f0
@@ -16648,7 +16772,7 @@ EventCmd_bf19:
         sta     $6f
         jsr     _c0a7be
         jsr     _c05bf4
-        jsr     _c04a68
+        jsr     InitFadeIn
         lda     #$1f
         sta     $0c00
         lda     #$03
@@ -16667,7 +16791,7 @@ EventCmd_bf19:
         stz     $da
         stz     $3d
 @a7ff:  jsr     WaitVBlank
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         lda     $da
         clc
         adc     $3d
@@ -16713,7 +16837,7 @@ EventCmd_bf19:
         lda     $3d
         cmp     #$10
         bne     @a866
-        jsr     _c04a71
+        jsr     InitFadeOut
 @a866:  dec     $3d
         bne     @a85a
         jmp     IncEventPtr2
@@ -16754,7 +16878,7 @@ EventCmd_bf15:
         stz     $3d
 @a8b3:  jsr     WaitVBlank
         stz     $49
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         jsr     _c0a933
         lda     #$a0
         sta     $040f
@@ -16790,7 +16914,7 @@ EventCmd_bf15:
         lda     #$7f
         sta     $3d
 @a90c:  jsr     WaitVBlank
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         jsr     _c0a933
         lda     #$db
         sta     $25
@@ -16864,11 +16988,11 @@ EventCmd_bf14:
 @a99d:  sta     $7f7621,x
         dex
         bne     @a99d
-        jsr     _c04a68
+        jsr     InitFadeIn
         lda     $5e
         ora     #$18
         sta     $5e
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         jsr     _c0612b
 @a9b3:  jsr     WaitVBlank
         lda     $3d
@@ -16903,7 +17027,7 @@ EventCmd_bf14:
         lda     $3d
         cmp     #$70
         bne     @a9ff
-        jsr     _c04a71
+        jsr     InitFadeOut
 @a9ff:  inc     $3d
         lda     $3d
         bpl     @a9b3
@@ -17000,7 +17124,7 @@ _c0aa89:
 
 EventCmd_bf13:
 @ab49:  jsr     _c0abb5
-        jsr     _c04a68
+        jsr     InitFadeIn
         lda     #$7f
         sta     $3d
 @ab53:  jsr     WaitVBlank
@@ -17008,7 +17132,7 @@ EventCmd_bf13:
         dec     $3d
         lda     $3d
         bpl     @ab53
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -17024,7 +17148,7 @@ EventCmd_bf12:
         lda     $3d
         cmp     #$81
         bne     @ab6a
-        jsr     _c04a71
+        jsr     InitFadeOut
         stz     $0b3d
 @ab7e:  jsr     WaitVBlank
         stz     $49
@@ -17061,7 +17185,7 @@ _c0ab8e:
 
 _c0abb5:
 @abb5:  stz     $49
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         ldx     $06
 @abbc:  lda     f:_c0abd5,x
         sta     $0200,x
@@ -17357,7 +17481,7 @@ _c0adb7:
         bra     @adca
 @adc8:  lda     #$01        ; show party sprite
 @adca:  sta     $bd
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         jsr     _c02137
         jsr     _c0612b
         rts
@@ -17644,7 +17768,7 @@ EventCmd_bf16:
         sty     $15
         ldx     $06
         stx     $16b1
-        jsr     _c04f48       ; update shattering crystal
+        jsr     CrystalShatterAnim
         longa
         lda     $1a53
         sec
@@ -17683,7 +17807,7 @@ EventCmd_bf02:
         sty     $15
         ldx     $06
         stx     $16b1
-        jsr     _c04f48       ; update shattering crystal
+        jsr     CrystalShatterAnim
         longa
         lda     $1a53
         clc
@@ -17709,11 +17833,11 @@ EventCmd_bf11:
 @b10b:  lda     #$07
         sta     $6f
         jsr     WaitVBlank
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         lda     #$01
         sta     $52
         jsr     _c05bf4
-        jsr     _c04a68
+        jsr     InitFadeIn
         jsr     WaitVBlank
         ldx     #$7800
         stx     $2e
@@ -17723,7 +17847,7 @@ EventCmd_bf11:
         sta     $25
         ldx     #$6d80
         stx     $23
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
         jsr     WaitVBlank
         ldx     #$7c00
         stx     $2e
@@ -17733,7 +17857,7 @@ EventCmd_bf11:
         sta     $25
         ldx     #$7580
         stx     $23
-        jsr     _c04cbc       ; copy data to vram
+        jsr     TfrVRAM
         stz     $52
         ldx     #$ff80
         stx     $15
@@ -17755,7 +17879,7 @@ EventCmd_bf11:
         lda     $3d
         cmp     #$f0
         bne     @b17e
-        jsr     _c04a71
+        jsr     InitFadeOut
 @b17e:  inc     $3d
         bne     @b15a
         jmp     IncEventPtr2
@@ -17765,7 +17889,7 @@ EventCmd_bf11:
 ; [ event command $bf05:  ]
 
 EventCmd_bf05:
-@b185:  jsr     _c04c95       ; clear sprite data
+@b185:  jsr     ResetSprites
         jsr     _c05bf4
         lda     #$07
         sta     $6f
@@ -17778,7 +17902,7 @@ EventCmd_bf05:
         stx     $15
         lda     #$00
         jsr     _c0b3cd
-        jsr     _c04ce8       ; disable interrupts
+        jsr     DisableInterrupts
         ldx     #$7c00
         stx     $2e
         ldx     #$0800
@@ -17787,14 +17911,14 @@ EventCmd_bf05:
         sta     $25
         ldx     #$7580
         stx     $23
-        jsr     _c04cbc       ; copy data to vram
-        jsr     _c04cfa       ; enable interrupts
-        jsr     _c04a68
+        jsr     TfrVRAM
+        jsr     EnableInterrupts
+        jsr     InitFadeIn
         stz     $3d
 @b1c7:  jsr     WaitVBlank
-        lda     #^(MapSpritePal + $224)
+        lda     #^MapSpritePal_bf05
         sta     $25
-        ldx     #near (MapSpritePal + $224)
+        ldx     #near MapSpritePal_bf05
         stx     $23
         ldx     #$0018
         stx     $2c
@@ -17841,7 +17965,7 @@ EventCmd_bf05:
 @b22e:  lda     $3d
         cmp     #$f0
         bne     @b237
-        jsr     _c04a71
+        jsr     InitFadeOut
 @b237:  inc     $3d
         bne     @b21e
         stz     $52
@@ -17981,11 +18105,11 @@ _c0b371:
         sta     $a4
         inc     $a2
         jsr     WaitVBlank
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         lda     #$01
         sta     $52
         jsr     _c041f1
-        jsr     _c04a68
+        jsr     InitFadeIn
         stz     $3d
 @b3a5:  jsr     WaitVBlank
         lda     $3d
@@ -18230,9 +18354,9 @@ _c0b5fd:
 ; [ event command $bf17:  ]
 
 EventCmd_bf17:
-@b60e:  jsr     _c04ce8       ; disable interrupts
+@b60e:  jsr     DisableInterrupts
         jsr     _c01e14
-        jsr     _c04cfa       ; enable interrupts
+        jsr     EnableInterrupts
         ldx     #$7800
         stx     $16ad
         lda     #$db
@@ -18244,7 +18368,7 @@ EventCmd_bf17:
         lda     #$1f
         jsr     _c04107
         inc     $a3
-        jsr     _c04a68
+        jsr     InitFadeIn
         jsr     _c0b750
         jsr     _c05bf4
         lda     #$0f
@@ -18255,7 +18379,7 @@ EventCmd_bf17:
         lda     $3d
         lsr2
         sta     $da
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         jsr     _c0b791
         jsr     _c0612b
         lda     #$87
@@ -18277,7 +18401,7 @@ EventCmd_bf17:
         bne     @b643
         stz     $3d
 @b67c:  jsr     WaitVBlank
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         jsr     _c0b791
         jsr     _c0612b
         lda     #$87
@@ -18315,10 +18439,10 @@ EventCmd_bf03:
         stz     $da
         jsr     _c0b791
         jsr     _c05bf4
-        jsr     _c04a68
+        jsr     InitFadeIn
         stz     $3d
 @b6d1:  jsr     WaitVBlank
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         jsr     _c0b791
         jsr     _c0612b
         lda     $3d
@@ -18336,7 +18460,7 @@ EventCmd_bf03:
         stz     $d3
         stz     $3d
 @b6fb:  jsr     WaitVBlank
-        jsr     _c04c95       ; clear sprite data
+        jsr     ResetSprites
         jsr     _c0b791
         jsr     _c0612b
         ldx     #$7800
@@ -18362,8 +18486,8 @@ EventCmd_bf03:
         lda     $3d
         cmp     #$f0
         bne     @b73e
-        jsr     _c04a71
-@b73e:  jsr     _c04c95       ; clear sprite data
+        jsr     InitFadeOut
+@b73e:  jsr     ResetSprites
         jsr     _c0b791
         jsr     _c0612b
         inc     $3d
@@ -18545,11 +18669,11 @@ _c0b854:
 EventCmd_ea:
 @b8a0:  lda     #$01        ; enable map title
         sta     $16a0
-        jsr     _c04ce8       ; disable interrupts
+        jsr     DisableInterrupts
         jsr     _c0928c       ; init map title
-        jsr     _c04cfa       ; enable interrupts
-        jsr     _c04a68
-        jsr     _c09267       ; show map title
+        jsr     EnableInterrupts
+        jsr     InitFadeIn
+        jsr     ShowMapTitle
         jmp     IncEventPtr1
 
 ; ---------------------------------------------------------------------------
@@ -18560,8 +18684,8 @@ EventCmd_eb:
 @b8b7:  lda     #$06        ; menu command $06 (transfer galuf's stats to krile)
         sta     $0134
         jsr     OpenMenuNoFade
-        jsr     _c05532       ; load world map
-        jsr     _c06100       ; fade in
+        jsr     ReloadWorldMap
+        jsr     FadeInMap
         jmp     IncEventPtr1
 
 ; ---------------------------------------------------------------------------
@@ -18973,7 +19097,7 @@ EventCmd_7f:
 
 EventCmd_ad:
 @bb4c:  jsr     CalcInnPrice
-        jsr     _c04dd7       ;
+        jsr     HexToDec
         ldx     #$000d      ; dialog message $000d "welcome!  it is \gp gp per night ..."
         stx     $af
         jsr     GetDlgPtr
@@ -19002,7 +19126,7 @@ EventCmd_ad:
         sta     $38
         lda     $0949
         sta     $39
-        jsr     _c04dd7
+        jsr     HexToDec
         jsr     _c09133       ; show gp window
         jsr     _c08fed       ; show yes/no window
         lda     #$80
@@ -19094,7 +19218,7 @@ CalcInnPrice:
 
 ; ---------------------------------------------------------------------------
 
-; [ event command $ac:  ]
+; [ event command $ac: give magic spell ]
 
 EventCmd_ac:
 @bc64:  lda     $df
@@ -19103,7 +19227,7 @@ EventCmd_ac:
 
 ; ---------------------------------------------------------------------------
 
-; [ event command $c0:  ]
+; [ event command $c0: set window mask circle diameter ]
 
 EventCmd_c0:
 @bc6c:  lda     $df
@@ -19206,8 +19330,8 @@ EventCmd_dc:
         sta     $0135       ; tutorial index
         jsr     OpenMenu
         inc     $55
-        jsr     _c0577c       ;
-        jsr     _c06100       ; fade in
+        jsr     ReloadSubMap
+        jsr     FadeInMap
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -19218,8 +19342,8 @@ EventCmd_7a:
 @bd0d:  lda     #$05        ; menu command $05 (name change)
         sta     $0134
         jsr     OpenMenu
-        jsr     _c0577c       ;
-        jsr     _c06100       ; fade in
+        jsr     ReloadSubMap
+        jsr     FadeInMap
         jmp     IncEventPtr1
 
 ; ---------------------------------------------------------------------------
@@ -19233,8 +19357,8 @@ EventCmd_a1:
         sta     $0134
         jsr     OpenMenu
         inc     $55
-        jsr     _c0577c
-        jsr     _c06100       ; fade in
+        jsr     ReloadSubMap
+        jsr     FadeInMap
         jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
@@ -19297,13 +19421,13 @@ EventCmd_bd:
         lda     #$f0
         sta     $1d00       ; don't reset spc
         jmp     Start
-@bda3:  jsr     _c0577c
+@bda3:  jsr     ReloadSubMap
         lda     #$f0
         sta     $43
         stz     $45
         lda     $df
         bmi     @bdb3
-        jsr     _c06100       ; fade in
+        jsr     FadeInMap
 @bdb3:  lda     #$81
         sta     hNMITIMEN
         cli
@@ -19317,13 +19441,13 @@ EventCmd_e2:
 @bdbc:  lda     $df
         and     #$7f
         jsr     _c0bde6       ; event battle
-        jsr     _c0577c
+        jsr     ReloadSubMap
         lda     #$f0
         sta     $43
         stz     $45
         lda     $df
         bmi     @bdd3
-        jsr     _c06100       ; fade in
+        jsr     FadeInMap
 @bdd3:  lda     #$81
         sta     hNMITIMEN
         cli
@@ -20051,10 +20175,10 @@ EventCmd_f0:
         ldx     $0ad6       ; map index
         cpx     #$0005
         bcc     @c2cd
-        jsr     _c04c95       ; clear sprite data
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
-        jsr     _c02842
+        jsr     ResetSprites
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
+        jsr     DrawOverlaySprites
 @c2cd:  jsr     GetDlgPtr
 @c2d0:  jsr     _c08f54
         ldx     $b1
@@ -20129,7 +20253,7 @@ EventCmd_f0:
 ;        g: vehicle frame ???
 
 EventCmd_d6:
-@c362:  jsr     _c04ce8       ; disable interrupts
+@c362:  jsr     DisableInterrupts
         stz     $169e
         lda     $0ad8
         sta     $1088
@@ -20193,7 +20317,7 @@ EventCmd_d6:
 ;      h: vehicle height ???
 
 EventCmd_e0:
-@c3d3:  jsr     _c06081       ; fade out
+@c3d3:  jsr     FadeOutMap
         jsr     _c0c43f
         ldx     $0ad6       ; map index
         cpx     #$0005
@@ -20201,8 +20325,8 @@ EventCmd_e0:
         jsr     LoadWorldMap
         bra     @c3e9
 @c3e6:  jsr     LoadSubMap
-@c3e9:  jsr     _c06100       ; fade in
-        jsr     _c09267       ; show map title
+@c3e9:  jsr     FadeInMap
+        jsr     ShowMapTitle
         lda     #$06
         jsr     AddEventPtr
         jmp     NextEventCmd
@@ -20219,7 +20343,7 @@ EventCmd_e1:
         jsr     LoadWorldMap
         bra     @c40a
 @c407:  jsr     LoadSubMap
-@c40a:  jsr     _c04cfa       ; enable interrupts
+@c40a:  jsr     EnableInterrupts
         jsr     WaitVBlank
         lda     #$06
         jsr     AddEventPtr
@@ -20230,7 +20354,7 @@ EventCmd_e1:
 ; [ event command $e3: load map (fade out only) ]
 
 EventCmd_e3:
-@c418:  jsr     _c06081       ; fade out
+@c418:  jsr     FadeOutMap
         jsr     _c0c43f
         ldx     $0ad6       ; map index
         cpx     #$0005
@@ -20251,7 +20375,7 @@ EventCmd_e3:
 ; [  ]
 
 _c0c43f:
-@c43f:  jsr     _c04ce8       ; disable interrupts
+@c43f:  jsr     DisableInterrupts
         stz     $16a0       ; disable map title
         ldx     $0ad6       ; map index
         cpx     #$0005
@@ -20399,7 +20523,7 @@ _c51d:  lda     $e1
         sta     $d8
         lda     $06
         shorta
-        jsr     _c06f08
+        jsr     ModBGTilemap
         jmp     NextEventCmd
 
 ; ---------------------------------------------------------------------------
@@ -20683,7 +20807,7 @@ EventCmd_b1:
 ; [  ]
 
 _c0c6de:
-@c6de:  jsr     _c04c95       ; clear sprite data
+@c6de:  jsr     ResetSprites
         lda     $53
         bne     @c6f8
         jsr     _c01a1d
@@ -20695,9 +20819,9 @@ _c0c6de:
         rts
 @c6f8:  jsr     _c01ae4
         jsr     _c03bac
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
-        jsr     _c02842
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
+        jsr     DrawOverlaySprites
         jsr     _c0420a
         rts
 
@@ -20751,10 +20875,10 @@ EventCmd_a0:
         ldx     $0ad6       ; map index
         cpx     #$0005
         bcc     @c752
-        jsr     _c04c95       ; clear sprite data
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
-        jsr     _c02842
+        jsr     ResetSprites
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
+        jsr     DrawOverlaySprites
 @c752:  jsr     ShowDlg
         jmp     IncEventPtr2
 
@@ -20813,6 +20937,8 @@ EventCmd_a5:
 
 ; ---------------------------------------------------------------------------
 
+; [ clear event flag (256-511) ]
+
 _c0c796:
 @c796:  jsr     _c0ca49       ; get flag index
         lda     $0a34,y
@@ -20835,10 +20961,10 @@ EventCmd_c8:
         ldx     $0ad6       ; map index
         cpx     #$0005
         bcc     @c7c2       ; branch if a world map
-        jsr     _c04c95       ; clear sprite data
-        jsr     UpdatePlayerSprite
-        jsr     _c039b3       ; update object sprites
-        jsr     _c02842
+        jsr     ResetSprites
+        jsr     DrawPlayerSprite
+        jsr     DrawObjSprites
+        jsr     DrawOverlaySprites
 @c7c2:  jsr     ShowDlg
         jmp     IncEventPtr3
 
@@ -20941,9 +21067,9 @@ _c0c7f9:
         jsr     _c03cf8       ; remove object from object layout
         jmp     @c92f
 
-; unused ???
-@c87c:
-        .byte   $00,$00,$01,$00,$ff,$00,$ff,$00,$01,$00
+; unused
+@c87c:  .lobytes 0,0,1,0,-1
+        .lobytes 0,-1,0,1,0
 
 ; object action $0b: toggle walking animation
 @c886:  cmp     #$0b
@@ -21101,7 +21227,7 @@ _c0c932:
         bne     @c984       ; branch if a world map ???
         jsr     _c02137
         bra     @c987
-@c984:  jsr     UpdatePlayerSprite
+@c984:  jsr     DrawPlayerSprite
 @c987:  jmp     IncEventPtr1
 
 ; ---------------------------------------------------------------------------
@@ -21773,22 +21899,22 @@ _c0d240:
 
 ; ===========================================================================
 
-.scope _c0d980
+.scope OverlayProp
         ARRAY_LENGTH = 28
-        Start = _c0d980Ptrs
+        Start = OverlayPropPtrs
 .endscope
 
-.segment "unknown_c0d980"
+.segment "overlay_prop"
 
 ; c0/d980
-_c0d980Ptrs:
-        ptr_tbl _c0d980
+OverlayPropPtrs:
+        ptr_tbl OverlayProp
 
 ; c0/d9b8
-_c0d980:
-.repeat _c0d980::ARRAY_LENGTH, i
-        array_item _c0d980, {i} := *
-        .incbin .sprintf("unknown_c0d980/unknown_c0d980_%04x.dat.lz", i)
+OverlayProp:
+.repeat OverlayProp::ARRAY_LENGTH, i
+        array_item OverlayProp, {i} := *
+        .incbin .sprintf("overlay_prop/overlay_prop_%04x.dat.lz", i)
 .endrep
 
 ; ===========================================================================
