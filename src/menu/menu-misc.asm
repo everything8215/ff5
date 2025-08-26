@@ -153,3 +153,164 @@ _dca5:  phb
         rtl
 
 ; ---------------------------------------------------------------------------
+
+; [ copy data to vram (channel 5) ]
+
+;    A: source bank
+;   +X: source address
+;   +Y: destination address (vram)
+; +$70: size
+
+_d0de1a:
+_de1a:  phb
+        pha
+        lda #$00
+        pha
+        plb
+        pla
+        sty $2116
+        stx $4352
+        sta $4354
+        lda #$01
+        sta $4350
+        lda #$18
+        sta $4351
+        ldx $70
+        stx $4355
+        lda #$20
+        sta $420b
+        plb
+        rtl
+
+; ---------------------------------------------------------------------------
+
+; [ copy data to vram (channel 4) ]
+
+;    A: source bank
+;   +X: source address
+;   +Y: destination address (vram)
+; +$88: size
+
+_d0de40:
+_de40:  phb
+        pha
+        lda #$00
+        pha
+        plb
+        pla
+        sty $2116
+        stx $4342
+        sta $4344
+        lda #$01
+        sta $4340
+        lda #$18
+        sta $4341
+        ldx $88
+        stx $4345
+        lda #$10
+        sta $420b
+        plb
+        rtl
+
+; ---------------------------------------------------------------------------
+
+; [ copy color palettes to vram ]
+
+_d0de66:
+_de66:  phb
+        lda #$00
+        pha
+        plb
+        sta $2121
+        ldx #$2202
+        stx $4340
+        ldx #$7e09      ; color palettes
+        stx $4342
+        lda #$7e
+        sta $4344
+        ldx #$0200
+        stx $4345
+        lda #$10
+        sta $420b
+        plb
+        rtl
+
+; ---------------------------------------------------------------------------
+
+; [  ]
+
+_d0de8c:
+_de8c:  lda $bc75
+        bne @ded0
+        phb
+        lda #$00
+        pha
+        plb
+        ldx #$0000
+        stx $2102
+        ldx #$0400
+        stx $4340
+        ldx #$0200
+        stx $4342
+        lda #$00
+        sta $4344
+        sta $4347
+        ldx #$0220
+        stx $4345
+        lda #$10
+        sta $420b
+        lda $7ecd46
+        bpl @decf
+        lda $7ecd45
+        sta $2102
+        lda $7ecd46
+        sta $2103
+@decf:  plb
+@ded0:  rtl
+
+; ---------------------------------------------------------------------------
+
+; [ clear vram ]
+
+; +x: vram address
+; +y: size
+
+_d0ded1:
+_ded1:  phb
+        lda #$00
+        pha
+        plb
+        stx $2116
+        ldx #$def8      ; D0/DEF8 (16-bit constant zero)
+        stx $4352
+        lda #$09
+        sta $4350
+        lda #$18
+        sta $4351
+        lda #$d0
+        sta $4354
+        sty $4355
+        lda #$20
+        sta $420b
+        plb
+        rtl
+
+; ---------------------------------------------------------------------------
+
+; [ validate inventory ]
+
+_d0ef78:
+_ef78:  tdc
+        tax
+@ef7a:  lda $0640,x     ; item id
+        bne @ef82
+        stz $0740,x
+@ef82:  lda $0740,x     ; item quantity
+        bne @ef8a
+        stz $0640,x
+@ef8a:  inx
+        cpx #$0100
+        bne @ef7a
+        rtl
+
+; ---------------------------------------------------------------------------
