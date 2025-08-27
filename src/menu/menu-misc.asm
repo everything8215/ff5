@@ -154,6 +154,86 @@ _dca5:  phb
 
 ; ---------------------------------------------------------------------------
 
+; hdma tables
+
+; fixed color / screen brightness
+_d0dd7a:
+        .byte $f0,$55,$ba
+        .byte $f0,$c5,$ba
+        .byte $80
+
+; window position
+_d0dd81:
+        .byte $f0,$f0,$f9
+        .byte $f0,$d0,$fa
+        .byte $80
+
+; bg mode
+_d0dd88:
+        .byte $50,$82,$bc
+        .byte $50,$82,$bc
+        .byte $40,$83,$bc
+        .byte $00
+
+; bg mode
+_d0dd92:
+        .byte $20,$83,$bc
+        .byte $50,$82,$bc
+        .byte $50,$82,$bc
+        .byte $20,$83,$bc
+        .byte $00
+
+; color math
+_d0dd9f:
+        .byte $20,$86,$bc
+        .byte $50,$86,$bc
+        .byte $50,$86,$bc
+        .byte $20,$86,$bc
+        .byte $00
+
+; color math
+_d0ddac:
+        .byte $50,$86,$bc
+        .byte $50,$86,$bc
+        .byte $40,$87,$bc
+        .byte $00
+
+; bg2 base address
+_d0ddb6:
+        .byte $50,$c2,$db
+        .byte $50,$c2,$db
+        .byte $40,$c3,$db
+        .byte $00
+
+; bg2 base address
+_d0ddc0:
+        .byte $20,$c3,$db
+        .byte $50,$c2,$db
+        .byte $50,$c2,$db
+        .byte $20,$c3,$db
+        .byte $00
+
+_d0ddcd:
+        .word $1000
+        .word $1000
+        .word $1000
+        .word $8f00
+        .word $8000
+        .word $0000
+
+_d0ddd9:
+        .byte $c0
+
+_d0ddda:
+        .byte $0d,$80,$fd,$40,$fe,$02,$40,$01,$ff
+        .byte $fd,$80,$fe,$0f,$40,$fe,$01,$ff
+        .byte $fd,$80,$fe,$08,$60,$0b,$60,$01,$ff
+        .byte $0e,$60,$fd,$b0,$fe,$01,$ff
+        .byte $fe,$09,$60,$0a,$60,$01,$ff
+        .byte $fd,$80,$fe,$08,$40,$0b,$40,$03,$50,$01,$62,$0f,$20,$fd,$90,$fe,$01,$28,$10,$28,$fd,$28,$fe,$ff
+
+; ---------------------------------------------------------------------------
+
 ; [ copy data to vram (channel 5) ]
 
 ;    A: source bank
