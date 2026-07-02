@@ -54,11 +54,11 @@ _0003:  php
         jsr     SetupRegisters
         longa
         clc
-        lda     $09c0
+        lda     FieldData::Battles
         adc     #1                      ; increment battle count
         bcc     _0023
         lda     #$ffff
-_0023:  sta     $09c0
+_0023:  sta     FieldData::Battles
         shorta0
         stz     $7cd8
 _002c:  jsr     StartBattle
