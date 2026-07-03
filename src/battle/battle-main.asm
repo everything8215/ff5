@@ -12320,29 +12320,29 @@ NextLoot:
         cmp #$08		;8 monsters
         bne TallyLoot
         clc
-        lda Gil
+        lda.l Gil
         adc VictoryGil
-        sta Gil
-        lda Gil+1
+        sta.l Gil
+        lda.l Gil+1
         adc VictoryGil+1
-        sta Gil+1
-        lda Gil+2
+        sta.l Gil+1
+        lda.l Gil+2
         adc VictoryGil+2
-        sta Gil+2
+        sta.l Gil+2
         sec 			;cap gil at 9999999
-        lda Gil
+        lda.l Gil
         sbc #$7F
-        lda Gil+1
+        lda.l Gil+1
         sbc #$96
-        lda Gil+2
+        lda.l Gil+2
         sbc #$98
         bcc AddAP
         lda #$7F
-        sta Gil
+        sta.l Gil
         lda #$96
-        sta Gil+1
+        sta.l Gil+1
         lda #$98
-        sta Gil+2
+        sta.l Gil+2
 AddAP:
         lda EncounterInfo::AP
         tax
@@ -19955,10 +19955,10 @@ _830A:
         lda Level
         sta $25
         jsr Multiply_8bit
-        lda f:Gil+2
+        lda.l f:Gil+2
         bne Rich	;>65535 Gil
         longa
-        lda f:Gil
+        lda.l f:Gil
         cmp $26
         bcs GilOK
         tdc
@@ -19967,15 +19967,15 @@ _830A:
         bra Finish
 GilOK:        shorta0
 Rich:        SEC 		;manual 24 bit subtraction
-        lda f:Gil
+        lda.l f:Gil
         sbc $26
-        sta f:Gil
-        lda f:Gil+1
+        sta.l f:Gil
+        lda.l f:Gil+1
         sbc $27
-        sta f:Gil+1
-        lda f:Gil+2
+        sta.l f:Gil+1
+        lda.l f:Gil+2
         sbc #$00
-        sta f:Gil+2
+        sta.l f:Gil+2
 Finish:        lda Param2
         tax
         stx M
