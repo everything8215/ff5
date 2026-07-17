@@ -360,7 +360,7 @@ FieldItemsQty = $0740	;256 item qtys
 FieldAbilityCount = $08F3	;1 byte per character
 FieldAbilityList = $08F7	;20 bytes per character in order butz,lenna,galuf,faris
 
-Gil = $000947		;3 bytes, also accessed via 3 byte address for some reason
+Gil = $0947		;3 bytes
 
 FieldFrameCount = $094A	;4 bytes, time played (in frames)
 

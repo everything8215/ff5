@@ -12320,29 +12320,29 @@ NextLoot:
         cmp #$08		;8 monsters
         bne TallyLoot
         clc
-        lda Gil
+        lda f:Gil
         adc VictoryGil
-        sta Gil
-        lda Gil+1
+        sta f:Gil
+        lda f:Gil+1
         adc VictoryGil+1
-        sta Gil+1
-        lda Gil+2
+        sta f:Gil+1
+        lda f:Gil+2
         adc VictoryGil+2
-        sta Gil+2
+        sta f:Gil+2
         sec 			;cap gil at 9999999
-        lda Gil
+        lda f:Gil
         sbc #$7F
-        lda Gil+1
+        lda f:Gil+1
         sbc #$96
-        lda Gil+2
+        lda f:Gil+2
         sbc #$98
         bcc AddAP
         lda #$7F
-        sta Gil
+        sta f:Gil
         lda #$96
-        sta Gil+1
+        sta f:Gil+1
         lda #$98
-        sta Gil+2
+        sta f:Gil+2
 AddAP:
         lda EncounterInfo::AP
         tax

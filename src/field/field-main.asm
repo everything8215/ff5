@@ -24,6 +24,7 @@ inc_lang "text/job_desc_%s.inc"
 
 .import ItemName, MagicName, AttackName
 
+.include "battle/battle_ram.inc"
 .include "field/event_cond.inc"
 .include "field/event_script.inc"
 .include "field/event_trigger.inc"
@@ -1891,32 +1892,32 @@ _0efd:  rts
 ; ++$37: gil
 
 .proc GiveGil
-_0efe:  lda     $0947                   ; current gp
+_0efe:  lda     Gil
         clc
         adc     $37
-        sta     $0947
-        lda     $0948
+        sta     Gil
+        lda     Gil+1
         adc     $38
-        sta     $0948
-        lda     $0949
+        sta     Gil+1
+        lda     Gil+2
         adc     $39
-        sta     $0949
+        sta     Gil+2
         cmp     #$98                    ; max 9999999
         beq     _0f1f
         bcc     _0f3c
         bcs     _0f31
-_0f1f:  lda     $0948
+_0f1f:  lda     Gil+1
         cmp     #$96
         beq     _0f2a
         bcc     _0f3c
         bcs     _0f31
-_0f2a:  lda     $0947
+_0f2a:  lda     Gil
         cmp     #$7f
         bcc     _0f3c
 _0f31:  ldx     #$9896
-        stx     $0948
+        stx     Gil+1
         lda     #$7f
-        sta     $0947
+        sta     Gil
 _0f3c:  rts
 .endproc
 
@@ -19307,11 +19308,11 @@ EventCmd_ad:
         inc     $a5
         jsr     WaitVBlank
         bra     @bb5a
-@bb8a:  lda     $0947
+@bb8a:  lda     Gil
         sta     $37
-        lda     $0948
+        lda     Gil+1
         sta     $38
-        lda     $0949
+        lda     Gil+2
         sta     $39
         jsr     HexToDec
         jsr     _c09133       ; show gp window
@@ -19353,14 +19354,14 @@ EventCmd_ad:
         lda     $1697
         bne     @bc3e
         jsr     CalcInnPrice
-        lda     $0947
+        lda     Gil
         sec
         sbc     $37
         sta     $08
-        lda     $0948
+        lda     Gil+1
         sbc     $38
         sta     $09
-        lda     $0949
+        lda     Gil+2
         sbc     $38
         sta     $0a
         bcs     @bc1f
@@ -19369,11 +19370,11 @@ EventCmd_ad:
         jsr     ShowDlg
         bra     @bc3e
 @bc1f:  lda     $08
-        sta     $0947
+        sta     Gil
         lda     $09
-        sta     $0948
+        sta     Gil+1
         lda     $0a
-        sta     $0949
+        sta     Gil+2
         ldx     #$000e      ; dialog message $000e "please rest well..."
         stx     $af
         jsr     ShowDlg
@@ -19811,21 +19812,21 @@ EventCmd_af:
 
 EventCmd_b0:
 @bf10:  jsr     _c0bf3f       ; calculate gp (event)
-        lda     $0947       ; current gp
+        lda     Gil
         sec
         sbc     $0b37
-        sta     $0947
-        lda     $0948
+        sta     Gil
+        lda     Gil+1
         sbc     $0b38
-        sta     $0948
-        lda     $0949
+        sta     Gil+1
+        lda     Gil+2
         sbc     $0b39
-        sta     $0949
+        sta     Gil+2
         cmp     #$9a
         bcc     @bf3c
-        stz     $0947
-        stz     $0948
-        stz     $0949
+        stz     Gil
+        stz     Gil+1
+        stz     Gil+2
 @bf3c:  jmp     IncEventPtr2
 
 ; ---------------------------------------------------------------------------
