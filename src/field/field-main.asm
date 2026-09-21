@@ -3986,6 +3986,17 @@ VehicleGfxPtrs:
 @1dfa:  .word   $3b80,$4240,$3a00,$3a60
 
 ; pointers to party sprite graphics (+$da0000)
+
+; 0: mini
+; 1: toad
+; 2: butz
+; 3: lenna
+; 4: galuf
+; 5: faris
+; 6: krile
+; 7: chocobo
+; 8: moogle
+
 _c01e02:
 @1e02:  .word   $c800,$d000,$d800,$e000,$e800,$f000,$f800,$6c00,$8400
 
@@ -7030,9 +7041,9 @@ _c03d28:
         shorta
         lda     #$04
         sta     $09
-        inc     $25
+        inc     $25                     ; bank $db
         lda     #$01
-        sta     $169f       ; set hiryuu flag
+        sta     $169f                   ; set hiryuu flag
         bra     @3e50
 
 ; $52-$66: 16 tiles each ($0200 bytes)
@@ -7048,7 +7059,7 @@ _c03d28:
         shorta
         lda     #$01
         sta     $09
-        inc     $25
+        inc     $25                     ; bank $db
         bra     @3e50
 
 ; $4b-$51: main characters, 64 tiles each ($0800 bytes)
@@ -7117,7 +7128,7 @@ _c03d28:
         shorta
         xba
         bne     @3e71
-        inc     $25
+        inc     $25                     ; bank $db
 @3e71:  lda     #$00
         xba
         dec     $09
@@ -9717,7 +9728,7 @@ _c054f6:
         stx     $2e
         ldx     #$0200
         stx     $2c
-        ldx     #$6c00
+        ldx     #$6c00                  ; da/6c00: black chocobo graphics
         stx     $23
         lda     #$da
         sta     $25
@@ -9728,7 +9739,7 @@ _c054f6:
         stx     $2c
         ldx     #$c000
         stx     $23
-        lda     #$da        ; da/c000 (flying chocobo graphics)
+        lda     #$da                    ; da/c000 (flying chocobo graphics)
         sta     $25
         jsr     TfrVRAM
         ldx     #$6440
@@ -9751,7 +9762,7 @@ _c054f6:
         stx     $2c
         ldx     #$1f00
         stx     $23
-        lda     #$da        ; da/1f00 (gradient graphics 1)
+        lda     #$da                    ; da/1f00 (gradient graphics 1)
         sta     $25
         jsr     TfrVRAM
         ldx     #$6500
@@ -9760,7 +9771,7 @@ _c054f6:
         stx     $2c
         ldx     #$1f80
         stx     $23
-        lda     #$da        ; da/1f80 (gradient graphics 2)
+        lda     #$da                    ; da/1f80 (gradient graphics 2)
         sta     $25
         jsr     TfrVRAM
         jsr     LoadWorldPal

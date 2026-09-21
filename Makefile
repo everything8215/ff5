@@ -29,9 +29,12 @@ all: $(VERSIONS)
 PYTHON := python3
 export PYTHONPATH := tools/romtools:$(PYTHONPATH)
 
+# install submodules
+setup:
+	git submodule update --init --recursive --remote --force
+
 # rip data from ROMs
-rip:
-	git submodule update --init --recursive
+rip: setup
 	$(PYTHON) tools/extract_assets.py
 
 # shuffle the RNG table
@@ -207,7 +210,7 @@ battle_bg_flip: $(addsuffix .bgf, $(wildcard src/gfx/battle_bg_flip/*.dat))
 
 # rules for making ROM files
 # run linker twice: 1st for the cutscene program, 2nd for the ROM itself
-$(FF5_JP_PATH): cfg/ff5-jp.cfg spc text_jp cmp lz $(OBJ_FILES_JP)
+$(FF5_JP_PATH): cfg/ff5-jp.cfg spc text_jp cmp lz world_tilemap battle_bg_tiles battle_bg_flip $(OBJ_FILES_JP)
 	@mkdir -p $(LZ_DIR) $(ROM_DIR)
 	$(LINK) $(LINKFLAGS) -o "" -C $< $(OBJ_FILES_JP)
 	$(PYTHON) tools/encode_cutscene.py $(CUTSCENE_LZ:lz=bin) $(CUTSCENE_LZ)
@@ -217,7 +220,7 @@ $(FF5_JP_PATH): cfg/ff5-jp.cfg spc text_jp cmp lz $(OBJ_FILES_JP)
 	@$(RM) -r $(LZ_DIR)
 	$(PYTHON) tools/fix_checksum.py $@
 
-$(FF5_EN_PATH): cfg/ff5-en.cfg spc text_en cmp lz $(OBJ_FILES_EN)
+$(FF5_EN_PATH): cfg/ff5-en.cfg spc text_en cmp lz world_tilemap battle_bg_tiles battle_bg_flip $(OBJ_FILES_EN)
 	@mkdir -p $(LZ_DIR) $(ROM_DIR)
 	$(LINK) $(LINKFLAGS) -o "" -C $< $(OBJ_FILES_EN)
 	$(PYTHON) tools/encode_cutscene.py $(CUTSCENE_LZ:lz=bin) $(CUTSCENE_LZ)
